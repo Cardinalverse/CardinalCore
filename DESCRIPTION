@@ -30,7 +30,11 @@ Suggests:
     knitr,
     rmarkdown
 VignetteBuilder: knitr
-biocViews: Software, MassSpectrometry, ImagingMassSpectrometry, Normalization
+biocViews: 
+	Software,
+	MassSpectrometry,
+	ImagingMassSpectrometry,
+	Normalization
 URL: http://www.cardinalmsi.org
 BugReports: https://github.com/kuwisdelu/CardinalCore/issues
 Config/testthat/edition: 3
