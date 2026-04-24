@@ -1,4 +1,4 @@
 library(testthat)
-library(CardinalXYZ)
+library(CardinalCore)
 
-test_check("CardinalXYZ")
+test_check("CardinalCore")

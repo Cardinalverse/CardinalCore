@@ -1,6 +1,6 @@
-Package: CardinalXYZ
+Package: CardinalCore
 Type: Package
-Title: <<A short descriptive title>>
+Title: Core utilities for mass spectrometry imaging
 Version: 0.0.1
 Date: YYYY-MM-DD
 Authors@R: c(
@@ -20,7 +20,7 @@ Authors@R: c(
 	person("Olga", "Vitek",
 		email = "o.vitek@northeastern.edu",
 		role = "fnd"))
-Description: <<A longer paragraph description>>
+Description: Low-level processing and visualization utilities for mass spectrometry imaging analysis in Cardinal
 License: Artistic-2.0 | file LICENSE
 Depends: R (>= 4.6)
 Imports: methods
@@ -30,9 +30,7 @@ Suggests:
     knitr,
     rmarkdown
 VignetteBuilder: knitr
-biocViews: Software, Infrastructure, Proteomics, Lipidomics,
-	MassSpectrometry, ImagingMassSpectrometry, ImmunoOncology,
-	Normalization, Clustering, Classification, Regression
+biocViews: Software, MassSpectrometry, ImagingMassSpectrometry, Normalization
 URL: http://www.cardinalmsi.org
-BugReports: https://github.com/kuwisdelu/CardinalXYZ/issues
+BugReports: https://github.com/kuwisdelu/CardinalCore/issues
 Config/testthat/edition: 3

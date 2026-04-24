@@ -1,4 +1,4 @@
-require(CardinalXYZ)
+require(CardinalCore)
 require(testthat)
 
 test_that("multiplication works", {
