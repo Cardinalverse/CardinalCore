@@ -1,0 +1,26 @@
+---
+title: "_CardinalXYX_: User tutorial"
+author: "Kylie Ariel Bemis"
+date: "Revised: YYYY-MM-DD"
+output:
+  BiocStyle::html_document:
+  toc: true
+vignette: >
+  %\VignetteIndexEntry{CardinalXYZ: User tutorial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r style, echo=FALSE, results='asis'}
+BiocStyle::markdown()
+```
+
+```{r setup, echo=FALSE, message=FALSE}
+library(CardinalXYZ)
+```
+
+# Session information
+
+```{r session-info}
+sessionInfo()
+```

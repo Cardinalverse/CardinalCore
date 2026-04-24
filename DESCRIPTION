@@ -1,0 +1,38 @@
+Package: CardinalXYZ
+Type: Package
+Title: <<A short descriptive title>>
+Version: 0.0.1
+Date: YYYY-MM-DD
+Authors@R: c(
+	person("Kylie Ariel", "Bemis",
+		email = "k.bemis@northeastern.edu",
+		role = c("aut", "cre")),
+	person("Melanie Christine", "Foell",
+		role = c("ctb", "dtc")),
+	person("Dan", "Guo",
+		role = "ctb"),
+	person("Sai Srikanth", "Lakkimsetty",
+		role = "ctb"),
+	person("Ethan", "Rogers",
+		role = "ctb"),
+	person("Yinyue", "Zhu",
+		role = "ctb"),
+	person("Olga", "Vitek",
+		email = "o.vitek@northeastern.edu",
+		role = "fnd"))
+Description: <<A longer paragraph description>>
+License: Artistic-2.0 | file LICENSE
+Depends: R (>= 4.6)
+Imports: methods
+Suggests: 
+    BiocStyle,
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+biocViews: Software, Infrastructure, Proteomics, Lipidomics,
+	MassSpectrometry, ImagingMassSpectrometry, ImmunoOncology,
+	Normalization, Clustering, Classification, Regression
+URL: http://www.cardinalmsi.org
+BugReports: https://github.com/kuwisdelu/CardinalXYZ/issues
+Config/testthat/edition: 3
