@@ -1,0 +1,3 @@
+export("sdiff")
+
+useDynLib("CardinalCore", .registration=TRUE, .fixes="C_")
