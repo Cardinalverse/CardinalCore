@@ -8,8 +8,7 @@
 extern "C" {
 
 // Search and selection
-//----------------------
-SEXP do_sdiff(SEXP x, SEXP ref, SEXP relative);
+SEXP do_qdiff(SEXP x, SEXP ref, SEXP relative_diff);
 
 } // extern "C"
 

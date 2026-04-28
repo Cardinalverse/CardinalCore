@@ -4,20 +4,37 @@
 
 extern "C" {
 
-SEXP do_sdiff(SEXP x, SEXP ref, SEXP relative)
+SEXP do_qdiff(
+	SEXP x,
+	SEXP ref,
+	SEXP relative_diff)
 {
 	if ( TYPEOF(x) != TYPEOF(ref) )
 		Rf_error("'x' and 'ref' must have the same data type");
-	if ( LENGTH(x) != LENGTH(ref) )
+	if ( XLENGTH(x) != XLENGTH(ref) )
+		Rf_error("'x' and 'ref' must have the same length");
+	SEXP result = PROTECT(Rf_allocVector(REALSXP, XLENGTH(x)));
+	switch(TYPEOF(x))
 	{
-		if ( LENGTH(x) > 1 && LENGTH(y) > 1 )
-			Rf_error("'x' and 'ref' must be equal length or length 1")
+		case INTSXP:
+			do_qdiff_impl<int>(
+				INTEGER_RO(x),
+				INTEGER_RO(ref),
+				REAL(result),
+				static_cast<size_t>(XLENGTH(x)),
+				static_cast<bool>(Rf_asLogical(relative_diff)));
+			break;
+		case REALSXP:
+			do_qdiff_impl<double>(
+				REAL_RO(x),
+				REAL_RO(ref),
+				REAL(result),
+				static_cast<size_t>(XLENGTH(x)),
+				static_cast<bool>(Rf_asLogical(relative_diff)));
+			break;
 	}
-	double result = sdiff(
-		Rf_asReal(x),
-		Rf_asReal(ref),
-		Rf_asLogical(relative));
-	return Rf_ScalarReal(result);
+	UNPROTECT(1);
+	return result;
 }
 
 } // extern "C"
