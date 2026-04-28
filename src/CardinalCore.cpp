@@ -32,6 +32,8 @@ SEXP do_qdiff(
 				static_cast<size_t>(XLENGTH(x)),
 				static_cast<bool>(Rf_asLogical(relative_diff)));
 			break;
+		default:
+			Rf_error("'x' and 'ref' must be integer or double");
 	}
 	UNPROTECT(1);
 	return result;

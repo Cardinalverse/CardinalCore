@@ -29,5 +29,6 @@ test_that("qdiff works", {
 	expect_equal(
 		qdiff(c(0, NA, NA), c(NA, 0, NA), units="ppm"),
 		c(-Inf, Inf, 0))
+	expect_error(qdiff(LETTERS))
 
 })
