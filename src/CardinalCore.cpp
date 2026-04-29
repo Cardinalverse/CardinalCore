@@ -18,16 +18,16 @@ SEXP do_qdiff(SEXP x, SEXP ref, SEXP relative_diff)
 				INTEGER_RO(x),
 				INTEGER_RO(ref),
 				REAL(result),
-				static_cast<size_t>(LENGTH(x)),
-				static_cast<bool>(Rf_asLogical(relative_diff)));
+				LENGTH(x),
+				Rf_asLogical(relative_diff));
 			break;
 		case REALSXP:
 			do_qdiff_impl<double>(
 				REAL_RO(x),
 				REAL_RO(ref),
 				REAL(result),
-				static_cast<size_t>(LENGTH(x)),
-				static_cast<bool>(Rf_asLogical(relative_diff)));
+				LENGTH(x),
+				Rf_asLogical(relative_diff));
 			break;
 		default:
 			Rf_error("'x' and 'ref' must be integer or double");
@@ -44,7 +44,6 @@ SEXP do_qselect(SEXP x, SEXP k)
 		case INTSXP:
 			do_qselect_impl<int,int,int>(
 				INTEGER_RO(x),
-				0,
 				LENGTH(x),
 				INTEGER_RO(k),
 				LENGTH(k),
@@ -53,7 +52,6 @@ SEXP do_qselect(SEXP x, SEXP k)
 		case REALSXP:
 			do_qselect_impl<double,int,int>(
 				REAL_RO(x),
-				0,
 				LENGTH(x),
 				INTEGER_RO(k),
 				LENGTH(k),

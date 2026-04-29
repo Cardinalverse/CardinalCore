@@ -12,7 +12,7 @@ SEXP do_qdiff(SEXP x, SEXP ref, SEXP relative_diff);
 SEXP do_qselect(SEXP x, SEXP k);
 SEXP do_qsort(SEXP x);
 SEXP do_qmedian(SEXP x);
-SEXP do_qmad(SEXP x, SEXP center, SEXP scale);
+SEXP do_qmad(SEXP x, SEXP center, SEXP constant);
 
 } // extern "C"
 

@@ -182,28 +182,21 @@ T quick_select(
 template<typename T, typename Index, typename Rank>
 void do_qselect_impl(
 	const T * x, 
-	Index begin, 
-	Index end, 
+	size_t x_len, 
 	const Rank * ks, 
 	size_t ks_len,
 	T * out_values)
 {
-	// validate input size
-	size_t n;
-	if ( end - begin > 0 )
-		n = static_cast<size_t>(end - begin);
-	else
-		return;
 	// set up working index buffer
-	Index * work_index = R_Calloc(n, Index);
-	fill_buffer<Index>(work_index, n, 0, 1);
+	Index * work_index = R_Calloc(x_len, Index);
+	fill_buffer<Index>(work_index, x_len, 0, 1);
 	// loop through ks	
 	for ( size_t i = 0; i < ks_len; ++i )
 	{
 		if ( i == 0 )
-			out_values[0] = quick_select<T,Index,Rank>(x, 0, n, ks[0], work_index);
+			out_values[0] = quick_select<T,Index,Rank>(x, 0, x_len, ks[0], work_index);
 		else if ( ks[i] > ks[i - 1] )
-			out_values[i] = quick_select<T,Index,Rank>(x, ks[i - 1] + 1, n, ks[i], work_index);
+			out_values[i] = quick_select<T,Index,Rank>(x, ks[i - 1] + 1, x_len, ks[i], work_index);
 		else if ( ks[i] < ks[i - 1] )
 			out_values[i] = quick_select<T,Index,Rank>(x, 0, ks[i - 1], ks[i], work_index);
 		else
@@ -218,8 +211,8 @@ void do_qselect_impl(
 template<typename T, typename Index>
 void quick_sort(
 	const T * x, 
-	Index begin, 
-	Index end, 
+	Index begin, // index of first item to consider
+	Index end,   // one-past-the-end index
 	Index * out_index,
 	bool init_out_index = false,
 	int linear_threshold = 8)
