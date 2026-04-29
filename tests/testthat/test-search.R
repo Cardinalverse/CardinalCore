@@ -53,5 +53,19 @@ test_that("qsort and friends all work", {
 	expect_equal(qselect(u4, 9L), 2)
 	expect_equal(qselect(u4, 16L), NA_real_)
 
+	expect_equal(qsort(u1), sort(u1))
+	expect_equal(qsort(u2), sort(u2))
+	expect_equal(qsort(u3), sort(u3))
+	expect_equal(qsort(u4), sort(u4, na.last=TRUE))
+	expect_equal(
+		qsort(u1, decreasing=TRUE),
+		sort(u1, decreasing=TRUE))
+	expect_equal(
+		qsort(u1, index.return=TRUE),
+		sort(u1, index.return=TRUE))
+	expect_equal(
+		qsort(u1, decreasing=TRUE, index.return=TRUE),
+		sort(u1, decreasing=TRUE, index.return=TRUE))
+
 })
 

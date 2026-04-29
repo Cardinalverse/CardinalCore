@@ -12,6 +12,8 @@ SEXP do_qdiff(SEXP x, SEXP ref, SEXP relative_diff);
 
 SEXP do_qselect(SEXP x, SEXP k);
 
+SEXP do_qsort(SEXP x);
+
 } // extern "C"
 
 #endif // CARDINAL_CORE

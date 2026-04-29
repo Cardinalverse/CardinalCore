@@ -26,3 +26,16 @@ qselect <- function(x, k = (length(x) + 1L) %/% 2L)
 		stop("k includes out of bounds indices")
 	.Call(C_do_qselect, x, as.integer(k - 1L))
 }
+
+qsort <- function(x, decreasing = FALSE, index.return = FALSE)
+{
+	ix <- .Call(C_do_qsort, x) + 1L
+	if ( decreasing )
+		ix <- rev(ix)
+	if ( index.return ) {
+		list(x=x[ix], ix=ix)
+	} else {
+		x[ix]
+	}
+}
+

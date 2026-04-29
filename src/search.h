@@ -78,7 +78,6 @@ void fill_buffer(
 
 // select a pivot and partition x around the pivot such that
 // * partitions the _indices_ of x via out_index
-// * x is NOT modified
 // * all items left of pivot are <= pivot
 // * all items right of pivot are >= pivot
 // * incomparables sort last/highest (NA >> Inf)
@@ -112,9 +111,9 @@ Index partition(
 	// use Hoare's partition method 
 	do {
 		// find next item less than pivot
-		while ( LESSER(x[at[i]], x[at[pivot]]) ) i++;
+		while ( LESSER(x[at[i]], x[at[pivot]]) ) ++i;
 		// find next item greater than pivot
-		while ( GREATER(x[at[j]], x[at[pivot]]) ) j--;
+		while ( GREATER(x[at[j]], x[at[pivot]]) ) --j;
 		// swap items (only if pointers haven't crossed)
 		if ( i < j && NOT_EQUAL(x[at[i]], x[at[j]]) )
 		{
@@ -127,23 +126,24 @@ Index partition(
 		// allow pointers to cross
 		else if ( i == j )
 		{
-			i++;
-			j--;
+			++i;
+			--j;
 		}
 		// account for ties
 		else
 		{
 			if ( i != pivot )
-				i++;
+				++i;
 			if ( j != pivot )
-				j--;
+				--j;
 		}
 	} while (i <= j);
 	return pivot;
 }
 
-// find the k-th item of an array x
+// find the k-th ranked item of an array x
 // * partially sorts the _indices_ of x via out_index
+// * incomparables rank last/highest (NA >> Inf)
 // returns: index of k-th item
 template<typename T, typename Index, typename Rank>
 T quick_select(
@@ -176,7 +176,7 @@ T quick_select(
 	while (true);
 }
 
-// find the k-th items of an array for multiple k's
+// find the k-th ranked items of an array for multiple k's
 template<typename T, typename Index, typename Rank>
 void do_qselect_impl(
 	const T * x, 
@@ -208,6 +208,91 @@ void do_qselect_impl(
 			out_values[i] = out_values[i - 1];
 	}
 	R_Free(work_index);
+}
+
+// sort an array x using Hoare's quicksort algorithm
+// * sorts the _indices_ of x via out_index
+// * incomparables rank last/highest (NA >> Inf)
+template<typename T, typename Index>
+void quick_sort(
+	const T * x, 
+	Index begin, 
+	Index end, 
+	Index * out_index,
+	bool init_out_index = false,
+	int linear_threshold = 8)
+{
+	// validate input size
+	size_t n;
+	if ( end - begin > 0 )
+		n = static_cast<size_t>(end - begin);
+	else
+		return;
+	// fill out_index with sequential indices
+	if ( init_out_index )
+		fill_buffer<Index>(out_index, n, 0, 1);
+	// initialize the stack
+	size_t stack_size = 2 * std::ceil(std::log2(n) + 1);
+	Index * stack = R_Calloc(stack_size, Index);
+	Index top = -1;
+	Index lo = begin, hi = end - 1;
+	stack[++top] = lo;
+	stack[++top] = hi;
+	// we get item k via x[at[k]]
+	Index * at = out_index;
+	// recursively partition the array
+	while ( top >= 0 )
+	{
+		// pop and partition current subarray
+		hi = stack[top--];
+		lo = stack[top--];
+		if ( hi - lo < linear_threshold )
+		{
+			// use insertion sort for small subarrays
+			for ( Index i = lo + 1; i <= hi; ++i )
+			{
+				Index j = i;
+				while ( j > lo && LESSER(x[at[j]], x[at[j - 1]]) )
+				{
+					SWAP(at[j], at[j - 1], Index);
+					--j;
+				}
+			}
+			// skip to next subarray
+			continue;
+		}
+		Index pivot = partition<T,Index>(x, lo, hi, at);
+		// push larger subarray then smaller subarray
+		if ( pivot - lo < hi - pivot )
+		{
+			// push higher subarray if non-empty
+			if ( pivot + 1 < hi )
+			{
+				stack[++top] = pivot + 1;
+				stack[++top] = hi;
+			}
+			// push lower subarray if non-empty
+			if ( pivot - 1 > lo )
+			{
+				stack[++top] = lo;
+				stack[++top] = pivot - 1;
+			}
+		}
+		else {
+			// push lower subarray if non-empty
+			if ( pivot - 1 > lo )
+			{
+				stack[++top] = lo;
+				stack[++top] = pivot - 1;
+			}
+			// push higher subarray if non-empty
+			if ( pivot + 1 < hi )
+			{
+				stack[++top] = pivot + 1;
+				stack[++top] = hi;
+			}
+		}
+	}
 }
 
 #endif // CARDINAL_CORE_SEARCH
