@@ -1,6 +1,8 @@
 export(
 	"qdiff",
 	"qselect",
-	"qsort")
+	"qsort",
+	"qmedian",
+	"qmad")
 
 useDynLib("CardinalCore", .registration=TRUE, .fixes="C_")

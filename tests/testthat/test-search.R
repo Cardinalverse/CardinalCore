@@ -67,5 +67,14 @@ test_that("qsort and friends all work", {
 		qsort(u1, decreasing=TRUE, index.return=TRUE),
 		sort(u1, decreasing=TRUE, index.return=TRUE))
 
-})
+	expect_equal(qmedian(u1), median(u1))
+	expect_equal(qmedian(u2), median(u2))
+	expect_equal(qmedian(u3), median(u3))
+	expect_equal(qmedian(u4, na.rm=TRUE), median(u4, na.rm=TRUE))
+	
+	expect_equal(qmad(u1), mad(u1))
+	expect_equal(qmad(u2), mad(u2))
+	expect_equal(qmad(u3), mad(u3))
+	expect_equal(qmad(u4, na.rm=TRUE), mad(u3, na.rm=TRUE))
 
+})

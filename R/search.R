@@ -20,6 +20,9 @@ qdiff <- function(x, ref, units = c("absolute", "relative", "ppm"))
 	q * .Call(C_do_qdiff, x, ref, units != "absolute")
 }
 
+#### Quickselect and Quicksort
+## ----------------------------
+
 qselect <- function(x, k = (length(x) + 1L) %/% 2L)
 {
 	if ( any(k < 1L | k > length(x)) )
@@ -36,6 +39,27 @@ qsort <- function(x, decreasing = FALSE, index.return = FALSE)
 		list(x=x[ix], ix=ix)
 	} else {
 		x[ix]
+	}
+}
+
+#### Median and MAD
+## -----------------
+
+qmedian <- function(x, na.rm = FALSE)
+{
+	if ( !na.rm && anyNA(x) ) {
+		NA_real_
+	} else {
+		.Call(C_do_qmedian, x)
+	}
+}
+
+qmad <- function(x, center = qmedian(x), constant = 1.4826, na.rm = FALSE)
+{
+	if ( !na.rm && anyNA(x) ) {
+		NA_real_
+	} else {
+		.Call(C_do_qmad, x, center, constant)
 	}
 }
 

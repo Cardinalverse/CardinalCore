@@ -12,6 +12,8 @@ static const R_CallMethodDef callMethods[] = {
 	CALLDEF(do_qdiff, 3),
 	CALLDEF(do_qselect, 2),
 	CALLDEF(do_qsort, 1),
+	CALLDEF(do_qmedian, 1),
+	CALLDEF(do_qmad, 3),
 	{NULL, NULL, 0}
 };
 

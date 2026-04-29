@@ -52,8 +52,8 @@ void do_qdiff_impl(
 	}
 }
 
-//// Quick select/sort
-//---------------------
+//// Quickselect and Quicksort
+//----------------------------
 
 #define LESSER(x, y) (qdiff((x), (y)) < 0)
 #define GREATER(x, y) (qdiff((x), (y)) > 0)
@@ -293,6 +293,75 @@ void quick_sort(
 			}
 		}
 	}
+}
+
+//// Median and MAD
+//-----------------
+
+// computes median of array x
+// * incomparables are ignored/removed
+// returns: the median
+template<typename T, typename Index>
+double quick_median(const T * x, size_t x_len)
+{
+	// initialize result
+	double result = NA_REAL;
+	if ( x_len == 0 )
+		return result;
+	// set up working index buffer
+	Index * work_index = R_Calloc(x_len, Index);
+	fill_buffer<Index>(work_index, x_len, 0, 1);
+	// find number of non-missing items
+	size_t n = 0;
+	for ( size_t i = 0; i < x_len; ++i )
+	{
+		if ( !isIncomparable(x[i]) )
+			++n;
+	}
+	// compute median
+	size_t k = n / 2;
+	if ( x_len % 2 == 0 )
+	{
+		double m1 = quick_select<T,Index>(x, 0, x_len, k - 1, work_index);
+		double m2 = quick_select<T,Index>(x, k, x_len, k, work_index);
+		result = 0.5 * (m1 + m2);
+	}
+	else
+		result = quick_select<T,Index>(x, 0, x_len, k, work_index);
+	R_Free(work_index);
+	return result;
+}
+
+// computes MAD (Median Absolute Deviation) of array x
+// * incomparables are ignored/removed
+// * by default, center is computed as the median
+// * by default, scale is set so SD ~= MAD for Gaussian x
+template<typename T, typename Index>
+double quick_mad(
+	const T * x, 
+	size_t x_len, 
+	double center = NA_REAL, 
+	double scale = 1.4826)
+{
+	// initialize result
+	double result = NA_REAL;
+	if ( x_len == 0 )
+		return result;
+	// compute center (if needed)
+	if ( isIncomparable(center) )
+		center = quick_median<T,Index>(x, x_len);
+	// compute absolute deviations
+	double * dev = R_Calloc(x_len, double);
+	for ( size_t i = 0; i < x_len; ++i )
+	{
+		if ( isIncomparable(x[i]) )
+			dev[i] = NA_REAL;
+		else
+			dev[i] = std::fabs(x[i] - center);
+	}
+	result = scale * quick_median<double,Index>(dev, x_len);
+	R_Free(dev);
+	return result;
 }
 
 #endif // CARDINAL_CORE_SEARCH

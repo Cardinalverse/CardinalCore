@@ -94,4 +94,44 @@ SEXP do_qsort(SEXP x)
 	return result;
 }
 
+SEXP do_qmedian(SEXP x)
+{
+	switch(TYPEOF(x))
+	{
+		case INTSXP:
+			return Rf_ScalarReal(quick_median<int,int>(
+				INTEGER_RO(x),
+				LENGTH(x)));
+			break;
+		case REALSXP:
+			return Rf_ScalarReal(quick_median<double,int>(
+				REAL_RO(x),
+				LENGTH(x)));
+		default:
+			Rf_error("'x' must be integer or double");
+	}
+}
+
+SEXP do_qmad(SEXP x, SEXP center, SEXP scale)
+{
+	switch(TYPEOF(x))
+	{
+		case INTSXP:
+			return Rf_ScalarReal(quick_mad<int,int>(
+				INTEGER_RO(x),
+				LENGTH(x),
+				Rf_asReal(center),
+				Rf_asReal(scale)));
+			break;
+		case REALSXP:
+			return Rf_ScalarReal(quick_mad<double,int>(
+				REAL_RO(x),
+				LENGTH(x),
+				Rf_asReal(center),
+				Rf_asReal(scale)));
+		default:
+			Rf_error("'x' must be integer or double");
+	}
+}
+
 } // extern "C"
