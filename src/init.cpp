@@ -10,6 +10,7 @@ extern "C" {
 static const R_CallMethodDef callMethods[] = {
 	// sort and search
 	CALLDEF(do_qdiff, 3),
+	CALLDEF(do_qselect, 2),
 	{NULL, NULL, 0}
 };
 

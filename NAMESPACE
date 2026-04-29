@@ -1,3 +1,5 @@
-export("qdiff")
+export(
+	"qdiff",
+	"qselect")
 
 useDynLib("CardinalCore", .registration=TRUE, .fixes="C_")

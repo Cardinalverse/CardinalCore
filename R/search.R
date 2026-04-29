@@ -19,3 +19,10 @@ qdiff <- function(x, ref, units = c("absolute", "relative", "ppm"))
 	q <- switch(units, ppm=1e6, 1)
 	q * .Call(C_do_qdiff, x, ref, units != "absolute")
 }
+
+qselect <- function(x, k = (length(x) + 1L) %/% 2L)
+{
+	if ( any(k < 1L | k > length(x)) )
+		stop("k includes out of bounds indices")
+	.Call(C_do_qselect, x, as.integer(k - 1L))
+}

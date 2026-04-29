@@ -4,10 +4,7 @@
 
 extern "C" {
 
-SEXP do_qdiff(
-	SEXP x,
-	SEXP ref,
-	SEXP relative_diff)
+SEXP do_qdiff(SEXP x, SEXP ref, SEXP relative_diff)
 {
 	if ( TYPEOF(x) != TYPEOF(ref) )
 		Rf_error("'x' and 'ref' must have the same data type");
@@ -34,6 +31,36 @@ SEXP do_qdiff(
 			break;
 		default:
 			Rf_error("'x' and 'ref' must be integer or double");
+	}
+	UNPROTECT(1);
+	return result;
+}
+
+SEXP do_qselect(SEXP x, SEXP k)
+{
+	SEXP result = PROTECT(Rf_allocVector(TYPEOF(x), XLENGTH(k)));
+	switch(TYPEOF(x))
+	{
+		case INTSXP:
+			do_qselect_impl<int,int,int>(
+				INTEGER_RO(x),
+				0,
+				XLENGTH(x),
+				INTEGER_RO(k),
+				XLENGTH(k),
+				INTEGER(result));
+			break;
+		case REALSXP:
+			do_qselect_impl<double,int,int>(
+				REAL_RO(x),
+				0,
+				XLENGTH(x),
+				INTEGER_RO(k),
+				XLENGTH(k),
+				REAL(result));
+			break;
+		default:
+			Rf_error("'x' must be integer or double");
 	}
 	UNPROTECT(1);
 	return result;
