@@ -1,6 +1,24 @@
 #ifndef CARDINAL_CORE_SEARCH
 #define CARDINAL_CORE_SEARCH
 
+//// Utility
+//-----------
+
+template<typename T>
+void fill_buffer(
+	T * buffer,      // buffer to fill
+	size_t size,     // size of buffer
+	T init = 0,      // value to use to initialize
+	T increment = 0, // increment init for each item
+	int stride = 1)
+{
+	for ( size_t i = 0; i < size; i++ )
+	{
+		buffer[stride * i] = init;
+		init += increment;
+	}
+}
+
 //// Comparison
 //--------------
 
@@ -59,22 +77,6 @@ void do_qdiff_impl(
 #define GREATER(x, y) (qdiff((x), (y)) > 0)
 #define NOT_EQUAL(x, y) (qdiff((x), (y)) != 0)
 #define SWAP(x, y, T) do { T swap = x; x = y; y = swap; } while (false)
-
-// initialize a buffer with values
-template<typename T>
-void fill_buffer(
-	T * buffer,      // buffer to fill
-	size_t size,     // size of buffer
-	T init = 0,      // value to use to initialize
-	T increment = 0, // increment init for each item
-	int stride = 1)
-{
-	for ( size_t i = 0; i < size; i++ )
-	{
-		buffer[stride * i] = init;
-		init += increment;
-	}
-}
 
 // select a pivot and partition x around the pivot such that
 // * partitions the _indices_ of x via out_index
