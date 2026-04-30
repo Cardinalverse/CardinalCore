@@ -1,7 +1,7 @@
 export(
 	"qdiff",
 	"qselect",
-	"qsort",
+	"qorder",
 	"qmedian",
 	"qmad",
 	"bsearch")

@@ -27,7 +27,7 @@ test_that("qdiff works", {
 
 })
 
-test_that("qsort and friends all work", {
+test_that("qorder and friends all work", {
 
 	set.seed(1, kind="default")
 	u1 <- as.numeric(sample(100L))
@@ -46,30 +46,25 @@ test_that("qsort and friends all work", {
 	expect_equal(qselect(u4, 8L), 2)
 	expect_equal(qselect(u4, 9L), 2)
 	expect_equal(qselect(u4, 16L), NA_real_)
+	expect_error(qselect(LETTERS, 1L))
 
-	expect_equal(qsort(u1), sort(u1))
-	expect_equal(qsort(u2), sort(u2))
-	expect_equal(qsort(u3), sort(u3))
-	expect_equal(qsort(u4), sort(u4, na.last=TRUE))
-	expect_equal(
-		qsort(u1, decreasing=TRUE),
-		sort(u1, decreasing=TRUE))
-	expect_equal(
-		qsort(u1, index.return=TRUE),
-		sort(u1, index.return=TRUE))
-	expect_equal(
-		qsort(u1, decreasing=TRUE, index.return=TRUE),
-		sort(u1, decreasing=TRUE, index.return=TRUE))
+	expect_equal(qorder(u1), order(u1))
+	expect_equal(qorder(u2), order(u2))
+	expect_equal(u3[qorder(u3)], u3[order(u3)])
+	expect_equal(u4[qorder(u4)], u4[order(u4, na.last=TRUE)])
+	expect_error(qorder(LETTERS))
 
 	expect_equal(qmedian(u1), median(u1))
 	expect_equal(qmedian(u2), median(u2))
 	expect_equal(qmedian(u3), median(u3))
-	expect_equal(qmedian(u4, na.rm=TRUE), median(u4, na.rm=TRUE))
+	expect_equal(qmedian(u4), median(u4, na.rm=TRUE))
+	expect_error(qmedian(LETTERS))
 	
 	expect_equal(qmad(u1), mad(u1))
 	expect_equal(qmad(u2), mad(u2))
 	expect_equal(qmad(u3), mad(u3))
-	expect_equal(qmad(u4, na.rm=TRUE), mad(u3, na.rm=TRUE))
+	expect_equal(qmad(u4), mad(u3, na.rm=TRUE))
+	expect_error(qmad(LETTERS))
 
 })
 
@@ -114,5 +109,11 @@ test_that("bsearch works with doubles", {
 	expect_equal(
 		bsearch(c(-1, 0, 1), numeric(), tolerance=0.1), 
 		rep_len(NA_integer_, 3L))
+
+})
+
+test_that("bsearch fails successfully", {
+
+	expect_error(bsearch("a", LETTERS))
 
 })

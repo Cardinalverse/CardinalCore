@@ -11,26 +11,25 @@ SEXP do_qdiff(SEXP x, SEXP ref, SEXP relative)
 	if ( LENGTH(x) != LENGTH(ref) )
 		Rf_error("'x' and 'ref' must have the same length");
 	SEXP result = PROTECT(Rf_allocVector(REALSXP, LENGTH(x)));
-	switch(TYPEOF(x))
+	for ( R_len_t i = 0; i < LENGTH(x); ++i )
 	{
-		case INTSXP:
-			do_qdiff_impl<int>(
-				INTEGER_RO(x),
-				INTEGER_RO(ref),
-				REAL(result),
-				LENGTH(x),
-				Rf_asLogical(relative));
-			break;
-		case REALSXP:
-			do_qdiff_impl<double>(
-				REAL_RO(x),
-				REAL_RO(ref),
-				REAL(result),
-				LENGTH(x),
-				Rf_asLogical(relative));
-			break;
-		default:
-			Rf_error("'x' and 'ref' must be integer or double");
+		switch(TYPEOF(x))
+		{
+			case INTSXP:
+				REAL(result)[i] = qdiff<int>(
+					INTEGER_ELT(x, i),
+					INTEGER_ELT(ref, i),
+					Rf_asLogical(relative));
+				break;
+			case REALSXP:
+				REAL(result)[i] = qdiff<double>(
+					REAL_ELT(x, i),
+					REAL_ELT(ref, i),
+					Rf_asLogical(relative));
+				break;
+			default:
+				Rf_error("'x' and 'ref' must be integer or double");
+		}
 	}
 	UNPROTECT(1);
 	return result;
@@ -42,7 +41,7 @@ SEXP do_qselect(SEXP x, SEXP k)
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
-			do_qselect_impl<int,int,int>(
+			do_quick_select<int,int,int>(
 				INTEGER_RO(x),
 				LENGTH(x),
 				INTEGER_RO(k),
@@ -50,7 +49,7 @@ SEXP do_qselect(SEXP x, SEXP k)
 				INTEGER(result));
 			break;
 		case REALSXP:
-			do_qselect_impl<double,int,int>(
+			do_quick_select<double,int,int>(
 				REAL_RO(x),
 				LENGTH(x),
 				INTEGER_RO(k),
@@ -64,13 +63,13 @@ SEXP do_qselect(SEXP x, SEXP k)
 	return result;
 }
 
-SEXP do_qsort(SEXP x)
+SEXP do_qorder(SEXP x)
 {
 	SEXP result = PROTECT(Rf_allocVector(INTSXP, LENGTH(x)));
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
-			quick_sort<int,int>(
+			quick_order<int,int>(
 				INTEGER_RO(x),
 				0,
 				LENGTH(x),
@@ -78,7 +77,7 @@ SEXP do_qsort(SEXP x)
 				true);
 			break;
 		case REALSXP:
-			quick_sort<double,int>(
+			quick_order<double,int>(
 				REAL_RO(x),
 				0,
 				LENGTH(x),
@@ -140,7 +139,7 @@ SEXP do_bsearch(SEXP x, SEXP data, SEXP tolerance,
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
-			do_bsearch_impl<int,int>(
+			do_binary_search<int,int>(
 				INTEGER_RO(x),
 				LENGTH(x),
 				INTEGER_RO(data),
@@ -152,7 +151,7 @@ SEXP do_bsearch(SEXP x, SEXP data, SEXP tolerance,
 				Rf_asInteger(nomatch));
 			break;
 		case REALSXP:
-			do_bsearch_impl<double,int>(
+			do_binary_search<double,int>(
 				REAL_RO(x),
 				LENGTH(x),
 				REAL_RO(data),

@@ -30,37 +30,22 @@ qselect <- function(x, k = (length(x) + 1L) %/% 2L)
 	.Call(C_do_qselect, x, as.integer(k - 1L))
 }
 
-qsort <- function(x, decreasing = FALSE, index.return = FALSE)
+qorder <- function(x)
 {
-	ix <- .Call(C_do_qsort, x) + 1L
-	if ( decreasing )
-		ix <- rev(ix)
-	if ( index.return ) {
-		list(x=x[ix], ix=ix)
-	} else {
-		x[ix]
-	}
+	.Call(C_do_qorder, x) + 1L
 }
 
 #### Median and MAD
 ## -----------------
 
-qmedian <- function(x, na.rm = FALSE)
+qmedian <- function(x)
 {
-	if ( !na.rm && anyNA(x) ) {
-		NA_real_
-	} else {
-		.Call(C_do_qmedian, x)
-	}
+	.Call(C_do_qmedian, x)
 }
 
-qmad <- function(x, center = qmedian(x), constant = 1.4826, na.rm = FALSE)
+qmad <- function(x, center = qmedian(x), constant = 1.4826)
 {
-	if ( !na.rm && anyNA(x) ) {
-		NA_real_
-	} else {
-		.Call(C_do_qmad, x, center, constant)
-	}
+	.Call(C_do_qmad, x, center, constant)
 }
 
 #### Binary search

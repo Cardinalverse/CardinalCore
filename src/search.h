@@ -55,21 +55,6 @@ double qdiff(T x, T ref, bool relative = false)
 	}
 }
 
-// apply qdiff over an n-length vector
-template<typename T>
-void do_qdiff_impl(
-	const T * x,
-	const T * ref,
-	double * out_result,
-	size_t n,
-	bool relative)
-{
-	for ( size_t i = 0; i < n; ++i )
-	{
-		out_result[i] = qdiff<T>(x[i], ref[i], relative);
-	}
-}
-
 //// Quickselect and Quicksort
 //----------------------------
 
@@ -147,7 +132,7 @@ Index partition(
 }
 
 // find the k-th ranked item of an array x
-// * partially sorts the _indices_ of x via out_index
+// * partially sorts the indices of x via out_index
 // * incomparables rank last/highest (NA >> Inf)
 // returns: index of k-th item
 template<typename T, typename Index, typename Rank>
@@ -182,8 +167,10 @@ T quick_select(
 }
 
 // find the k-th ranked items of an array for multiple k's
+// * incomparables rank last/highest (NA >> Inf)
+// * returns the item values via out_values
 template<typename T, typename Index, typename Rank>
-void do_qselect_impl(
+void do_quick_select(
 	const T * x, 
 	size_t x_len, 
 	const Rank * k, 
@@ -209,10 +196,10 @@ void do_qselect_impl(
 }
 
 // sort an array x using Hoare's quicksort algorithm
-// * sorts the _indices_ of x via out_index
+// * sorts the indices of x via out_index
 // * incomparables rank last/highest (NA >> Inf)
 template<typename T, typename Index>
-void quick_sort(
+void quick_order(
 	const T * x, 
 	Index begin, // index of first item to consider
 	Index end,   // one-past-the-end index
@@ -220,7 +207,7 @@ void quick_sort(
 	bool init_out_index = false,
 	int linear_threshold = 8)
 {
-	// validate input size
+	// get the length of the slice
 	size_t n;
 	if ( end - begin > 0 )
 		n = static_cast<size_t>(end - begin);
@@ -409,7 +396,7 @@ Index binary_search(
 // * differences <= tolerance are considered matches
 // * returns matches via out_index
 template<typename T, typename Index>
-void do_bsearch_impl(
+void do_binary_search(
 	const T * x, 
 	size_t x_len, 
 	const T * data,

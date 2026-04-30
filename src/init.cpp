@@ -11,7 +11,7 @@ static const R_CallMethodDef callMethods[] = {
 	// sort and search
 	CALLDEF(do_qdiff, 3),
 	CALLDEF(do_qselect, 2),
-	CALLDEF(do_qsort, 1),
+	CALLDEF(do_qorder, 1),
 	CALLDEF(do_qmedian, 1),
 	CALLDEF(do_qmad, 3),
 	CALLDEF(do_bsearch, 6),
