@@ -2,22 +2,22 @@
 #### Compute differences
 ## ---------------------
 
-qdiff <- function(x, ref, units = c("absolute", "relative", "ppm"))
+qdiff <- function(x, ref, relative = FALSE)
 {
-	units <- match.arg(units)
 	if ( missing(ref) ) {
 		ref <- x[-length(x)]
 		x <- x[-1L]
+		len <- length(x)
+	} else {
+		len <- max(length(x), length(ref))
 	}
 	if ( is.integer(x) && is.double(ref) )
 		x <- as.double(x)
 	if ( is.double(x) && is.integer(ref) )
 		ref <- as.double(ref)
-	len <- max(length(x), length(ref))
 	x <- rep_len(x, len)
 	ref <- rep_len(ref, len)
-	q <- switch(units, ppm=1e6, 1)
-	q * .Call(C_do_qdiff, x, ref, units != "absolute")
+	.Call(C_do_qdiff, x, ref, isTRUE(relative))
 }
 
 #### Quickselect and Quicksort
@@ -63,3 +63,18 @@ qmad <- function(x, center = qmedian(x), constant = 1.4826, na.rm = FALSE)
 	}
 }
 
+#### Binary search
+## ----------------
+
+bsearch <- function(x, data, tolerance = 0,
+	relative = FALSE, nearest = FALSE, nomatch = NA_integer_)
+{
+	if ( is.integer(x) && is.double(data) )
+		x <- as.double(x)
+	if ( is.double(x) && is.integer(data) )
+		data <- as.double(data)
+	if ( is.unsorted(data) )
+		stop("'data' must be sorted")
+	.Call(C_do_bsearch, x, data, tolerance,
+		isTRUE(relative), isTRUE(nearest), as.integer(nomatch)) + 1L
+}

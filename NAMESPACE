@@ -3,6 +3,7 @@ export(
 	"qselect",
 	"qsort",
 	"qmedian",
-	"qmad")
+	"qmad",
+	"bsearch")
 
 useDynLib("CardinalCore", .registration=TRUE, .fixes="C_")

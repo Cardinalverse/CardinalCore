@@ -38,7 +38,7 @@ inline bool isIncomparable(double x)
 // * incomparables sort equal to each other (NA == NA)
 // returns: the difference
 template<typename T>
-double qdiff(T x, T ref, bool relative_diff = false)
+double qdiff(T x, T ref, bool relative = false)
 {
 	if ( isIncomparable(x) && isIncomparable(ref) )
 		return 0.0;
@@ -48,7 +48,7 @@ double qdiff(T x, T ref, bool relative_diff = false)
 		return R_NegInf; // NAs sort last so (x - ref) => -Inf
 	else
 	{
-		if ( relative_diff )
+		if ( relative )
 			return static_cast<double>(x - ref) / ref;
 		else
 			return static_cast<double>(x - ref);
@@ -62,11 +62,11 @@ void do_qdiff_impl(
 	const T * ref,
 	double * out_result,
 	size_t n,
-	bool relative_diff)
+	bool relative)
 {
 	for ( size_t i = 0; i < n; ++i )
 	{
-		out_result[i] = qdiff<T>(x[i], ref[i], relative_diff);
+		out_result[i] = qdiff<T>(x[i], ref[i], relative);
 	}
 }
 
@@ -75,11 +75,14 @@ void do_qdiff_impl(
 
 #define LESSER(x, y) (qdiff((x), (y)) < 0)
 #define GREATER(x, y) (qdiff((x), (y)) > 0)
+#define LESSER_EQUAL(x, y) (qdiff((x), (y)) <= 0)
+#define GREATER_EQUAL(x, y) (qdiff((x), (y)) >= 0)
+#define EQUAL(x, y) (qdiff((x), (y)) == 0)
 #define NOT_EQUAL(x, y) (qdiff((x), (y)) != 0)
 #define SWAP(x, y, T) do { T swap = x; x = y; y = swap; } while (false)
 
 // select a pivot and partition x around the pivot such that
-// * partitions the _indices_ of x via out_index
+// * partitions the indices of x via out_index
 // * all items left of pivot are <= pivot
 // * all items right of pivot are >= pivot
 // * incomparables sort last/highest (NA >> Inf)
@@ -183,22 +186,22 @@ template<typename T, typename Index, typename Rank>
 void do_qselect_impl(
 	const T * x, 
 	size_t x_len, 
-	const Rank * ks, 
-	size_t ks_len,
+	const Rank * k, 
+	size_t k_len,
 	T * out_values)
 {
 	// set up working index buffer
 	Index * work_index = R_Calloc(x_len, Index);
 	fill_buffer<Index>(work_index, x_len, 0, 1);
-	// loop through ks	
-	for ( size_t i = 0; i < ks_len; ++i )
+	// loop through k's	
+	for ( size_t i = 0; i < k_len; ++i )
 	{
 		if ( i == 0 )
-			out_values[0] = quick_select<T,Index,Rank>(x, 0, x_len, ks[0], work_index);
-		else if ( ks[i] > ks[i - 1] )
-			out_values[i] = quick_select<T,Index,Rank>(x, ks[i - 1] + 1, x_len, ks[i], work_index);
-		else if ( ks[i] < ks[i - 1] )
-			out_values[i] = quick_select<T,Index,Rank>(x, 0, ks[i - 1], ks[i], work_index);
+			out_values[0] = quick_select<T,Index,Rank>(x, 0, x_len, k[0], work_index);
+		else if ( k[i] > k[i - 1] )
+			out_values[i] = quick_select<T,Index,Rank>(x, k[i - 1] + 1, x_len, k[i], work_index);
+		else if ( k[i] < k[i - 1] )
+			out_values[i] = quick_select<T,Index,Rank>(x, 0, k[i - 1], k[i], work_index);
 		else
 			out_values[i] = out_values[i - 1];
 	}
@@ -331,6 +334,7 @@ double quick_median(const T * x, size_t x_len)
 // * incomparables are ignored/removed
 // * by default, center is computed as the median
 // * by default, scale is set so SD ~= MAD for Gaussian x
+// returns: the MAD
 template<typename T, typename Index>
 double quick_mad(
 	const T * x, 
@@ -357,6 +361,76 @@ double quick_mad(
 	result = scale * quick_median<double,Index>(dev, x_len);
 	R_Free(dev);
 	return result;
+}
+
+//// Binary search
+//-----------------
+
+// binary search for query x in data array
+// * data must be sorted in non-decreasing order
+// * differences <= tolerance are considered matches
+// returns: index of match
+template<typename T, typename Index>
+Index binary_search(
+	T x, 
+	const T * data, 
+	Index begin, // index of first item to consider
+	Index end,   // one-past-the-end index
+	double tolerance, 
+	bool relative = false, 
+	bool nearest = false,
+	Index nomatch = -1)
+{
+	if ( begin >= end )
+		return nomatch;
+	Index lo = begin, hi = end - 1;
+	while ( lo <= hi )
+	{
+		Index mid = (lo + hi) / 2;
+		double d_mid = qdiff(data[mid], x, relative);
+		if ( d_mid < 0 )
+			lo = mid + 1;
+		else if ( d_mid > 0 )
+			hi = mid - 1;
+		else
+			return mid;
+	}
+	double d_lo = std::fabs(qdiff(data[lo], x, relative));
+	double d_hi = std::fabs(qdiff(data[hi], x, relative));
+	if ( d_lo <= d_hi && (nearest || d_lo <= tolerance) )
+		return lo;
+	if ( d_hi <= d_lo && (nearest || d_hi <= tolerance) )
+		return hi;
+	return nomatch;
+}
+
+// binary search for multiple queries x in data array
+// * data must be sorted in non-decreasing order
+// * differences <= tolerance are considered matches
+// * returns matches via out_index
+template<typename T, typename Index>
+void do_bsearch_impl(
+	const T * x, 
+	size_t x_len, 
+	const T * data,
+	size_t data_len,
+	Index * out_index,
+	double tolerance, 
+	bool relative = false,
+	bool nearest = false, 
+	Index nomatch = -1)
+{
+	for ( size_t i = 0; i < x_len; ++i )
+	{
+		if ( isIncomparable(x[i]) )
+			out_index[i] = nomatch;
+		else
+		{
+			out_index[i] = binary_search<T,Index>(
+				x[i], data, 0, data_len, tolerance, 
+				relative, nearest, nomatch);
+		}
+	}
 }
 
 #endif // CARDINAL_CORE_SEARCH

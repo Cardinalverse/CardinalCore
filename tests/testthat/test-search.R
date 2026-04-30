@@ -6,17 +6,11 @@ test_that("qdiff works", {
 	expect_equal(qdiff(1:10), diff(1:10))
 	expect_equal(qdiff(as.double(1:10)), diff(as.double(1:10)))
 	expect_equal(
-		qdiff(1:10, units="relative"),
+		qdiff(1:10, relative=TRUE),
 		diff(1:10) / (1:9))
 	expect_equal(
-		qdiff(as.double(1:10), units="relative"),
+		qdiff(as.double(1:10), relative=TRUE),
 		diff(as.double(1:10)) / (1:9))
-	expect_equal(
-		qdiff(1:10, units="ppm"),
-		1e6 * diff(1:10) / (1:9))
-	expect_equal(
-		qdiff(as.double(1:10), units="ppm"),
-		1e6 * diff(as.double(1:10)) / (1:9))
 	expect_equal(
 		qdiff(as.integer(c(0, NA, NA)), as.integer(c(NA, 0, NA))),
 		c(-Inf, Inf, 0))
@@ -24,10 +18,10 @@ test_that("qdiff works", {
 		qdiff(as.double(c(0, NA, NA)), as.double(c(NA, 0, NA))),
 		c(-Inf, Inf, 0))
 	expect_equal(
-		qdiff(c(0, NA, NA), c(NA, 0, NA), units="relative"),
+		qdiff(as.integer(c(0, NA, NA)), as.integer(c(NA, 0, NA)), relative=TRUE),
 		c(-Inf, Inf, 0))
 	expect_equal(
-		qdiff(c(0, NA, NA), c(NA, 0, NA), units="ppm"),
+		qdiff(as.double(c(0, NA, NA)), as.double(c(NA, 0, NA)), relative=TRUE),
 		c(-Inf, Inf, 0))
 	expect_error(qdiff(LETTERS))
 
@@ -76,5 +70,49 @@ test_that("qsort and friends all work", {
 	expect_equal(qmad(u2), mad(u2))
 	expect_equal(qmad(u3), mad(u3))
 	expect_equal(qmad(u4, na.rm=TRUE), mad(u3, na.rm=TRUE))
+
+})
+
+test_that("bsearch works with integers", {
+
+	x <- c(1L, 4L, 6L, 99L, 102L)
+	data <- c(1L, 2L, 3L, 4L, 5L, 8L, 9L, 100L, 101L, 102L)
+	
+	expect_equal(
+		bsearch(x, data), 
+		c(1, 4, NA, NA, 10))
+	expect_equal(
+		bsearch(x, data, tol=Inf), 
+		c(1, 4, 5, 8, 10))
+	expect_equal(
+		bsearch(x, data, nearest=TRUE), 
+		c(1, 4, 5, 8, 10))
+	expect_equal(
+		bsearch(c(-1L, 0L, 1L), integer(), tolerance=0.1), 
+		rep_len(NA_integer_, 3L))
+
+})
+
+test_that("bsearch works with doubles", {
+
+	x <- c(1.11, 3.0, 3.33, 5.0, 5.1)
+	data <- c(1.11, 2.22, 3.33, 4.0, 5.0)
+	
+	expect_equal(
+		bsearch(x, data), 
+		c(1, NA, 3, 5, NA))
+	expect_equal(
+		bsearch(x, data, nearest=TRUE),
+		c(1, 3, 3, 5, 5))
+	expect_equal(bsearch(3.0, data, tolerance=0), NA_integer_)
+	expect_equal(bsearch(3.0, data, tolerance=0.5), 3)
+	expect_equal(bsearch(3.0, data, tolerance=Inf), 3)
+	expect_equal(bsearch(3.0, data, tolerance=0.1, relative=TRUE), NA_integer_)
+	expect_equal(bsearch(3.0, data, tolerance=0.1, relative=TRUE, nearest=TRUE), 3)
+	expect_equal(bsearch(3.0, data, tolerance=0.111, relative=TRUE), 3)
+	expect_equal(bsearch(3.0, data, tolerance=0.111, relative=TRUE), 3)
+	expect_equal(
+		bsearch(c(-1, 0, 1), numeric(), tolerance=0.1), 
+		rep_len(NA_integer_, 3L))
 
 })

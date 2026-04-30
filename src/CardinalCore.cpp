@@ -4,7 +4,7 @@
 
 extern "C" {
 
-SEXP do_qdiff(SEXP x, SEXP ref, SEXP relative_diff)
+SEXP do_qdiff(SEXP x, SEXP ref, SEXP relative)
 {
 	if ( TYPEOF(x) != TYPEOF(ref) )
 		Rf_error("'x' and 'ref' must have the same data type");
@@ -19,7 +19,7 @@ SEXP do_qdiff(SEXP x, SEXP ref, SEXP relative_diff)
 				INTEGER_RO(ref),
 				REAL(result),
 				LENGTH(x),
-				Rf_asLogical(relative_diff));
+				Rf_asLogical(relative));
 			break;
 		case REALSXP:
 			do_qdiff_impl<double>(
@@ -27,7 +27,7 @@ SEXP do_qdiff(SEXP x, SEXP ref, SEXP relative_diff)
 				REAL_RO(ref),
 				REAL(result),
 				LENGTH(x),
-				Rf_asLogical(relative_diff));
+				Rf_asLogical(relative));
 			break;
 		default:
 			Rf_error("'x' and 'ref' must be integer or double");
@@ -120,7 +120,6 @@ SEXP do_qmad(SEXP x, SEXP center, SEXP scale)
 				LENGTH(x),
 				Rf_asReal(center),
 				Rf_asReal(scale)));
-			break;
 		case REALSXP:
 			return Rf_ScalarReal(quick_mad<double,int>(
 				REAL_RO(x),
@@ -130,6 +129,45 @@ SEXP do_qmad(SEXP x, SEXP center, SEXP scale)
 		default:
 			Rf_error("'x' must be integer or double");
 	}
+}
+
+SEXP do_bsearch(SEXP x, SEXP data, SEXP tolerance, 
+	SEXP relative, SEXP nearest, SEXP nomatch)
+{
+	if ( TYPEOF(x) != TYPEOF(data) )
+		Rf_error("'x' and 'data' must have the same data type");
+	SEXP result = PROTECT(Rf_allocVector(INTSXP, LENGTH(x)));
+	switch(TYPEOF(x))
+	{
+		case INTSXP:
+			do_bsearch_impl<int,int>(
+				INTEGER_RO(x),
+				LENGTH(x),
+				INTEGER_RO(data),
+				LENGTH(data),
+				INTEGER(result),
+				Rf_asReal(tolerance),
+				Rf_asLogical(relative),
+				Rf_asLogical(nearest),
+				Rf_asInteger(nomatch));
+			break;
+		case REALSXP:
+			do_bsearch_impl<double,int>(
+				REAL_RO(x),
+				LENGTH(x),
+				REAL_RO(data),
+				LENGTH(data),
+				INTEGER(result),
+				Rf_asReal(tolerance),
+				Rf_asLogical(relative),
+				Rf_asLogical(nearest),
+				Rf_asInteger(nomatch));
+			break;
+		default:
+			Rf_error("'x' must be integer or double");
+	}
+	UNPROTECT(1);
+	return result;
 }
 
 } // extern "C"
