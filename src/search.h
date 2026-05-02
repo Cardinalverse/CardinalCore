@@ -2,24 +2,7 @@
 #define CARDINAL_CORE_SEARCH
 
 #include "compare.h"
-
-//// Utility
-//-----------
-
-template<typename T>
-void fill_buffer(
-	T * buffer,      // buffer to fill
-	size_t size,     // size of buffer
-	T init = 0,      // value to use to initialize
-	T increment = 0, // increment init for each item
-	int stride = 1)
-{
-	for ( size_t i = 0; i < size; i++ )
-	{
-		buffer[stride * i] = init;
-		init += increment;
-	}
-}
+#include "utils.h"
 
 //// Quickselect and Quicksort
 //----------------------------
