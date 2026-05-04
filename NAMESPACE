@@ -6,4 +6,6 @@ export(
 	"qmad",
 	"bsearch")
 
+export("col_sums")
+
 useDynLib("CardinalCore", .registration=TRUE, .fixes="C_")

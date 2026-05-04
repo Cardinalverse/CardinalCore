@@ -1,6 +1,5 @@
 
 #include "CardinalCore.h"
-#include "search.h"
 
 extern "C" {
 
@@ -16,13 +15,13 @@ SEXP do_qdiff(SEXP x, SEXP ref, SEXP relative)
 		switch(TYPEOF(x))
 		{
 			case INTSXP:
-				REAL(result)[i] = qdiff<int>(
+				REAL(result)[i] = diff<int>(
 					INTEGER_ELT(x, i),
 					INTEGER_ELT(ref, i),
 					Rf_asLogical(relative));
 				break;
 			case REALSXP:
-				REAL(result)[i] = qdiff<double>(
+				REAL(result)[i] = diff<double>(
 					REAL_ELT(x, i),
 					REAL_ELT(ref, i),
 					Rf_asLogical(relative));
@@ -164,6 +163,38 @@ SEXP do_bsearch(SEXP x, SEXP data, SEXP tolerance,
 			break;
 		default:
 			Rf_error("'x' must be integer or double");
+	}
+	UNPROTECT(1);
+	return result;
+}
+
+SEXP do_col_sums(SEXP x, SEXP num_threads)
+{
+	SEXP result = PROTECT(Rf_allocVector(REALSXP, Rf_ncols(x)));
+	switch(TYPEOF(x))
+	{
+		case INTSXP:
+		{
+			matrix<int> xmat = {
+				.data = INTEGER(x),
+				.nrows = static_cast<size_t>(Rf_nrows(x)),
+				.ncols = static_cast<size_t>(Rf_ncols(x)),
+				.row_stride = 1,
+				.col_stride = Rf_nrows(x)
+			};
+			col_sums<int>(xmat, Rf_asInteger(num_threads), REAL(result));
+		}
+		case REALSXP:
+		{
+			matrix<double> xmat = {
+				.data = REAL(x),
+				.nrows = static_cast<size_t>(Rf_nrows(x)),
+				.ncols = static_cast<size_t>(Rf_ncols(x)),
+				.row_stride = 1,
+				.col_stride = Rf_nrows(x)
+			};
+			col_sums<double>(xmat, Rf_asInteger(num_threads), REAL(result));
+		}
 	}
 	UNPROTECT(1);
 	return result;

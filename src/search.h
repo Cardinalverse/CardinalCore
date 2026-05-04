@@ -1,8 +1,7 @@
 #ifndef CARDINAL_CORE_SEARCH
 #define CARDINAL_CORE_SEARCH
 
-#include "compare.h"
-#include "utils.h"
+#include "prelude.h"
 
 //// Quickselect and Quicksort
 //----------------------------
@@ -317,7 +316,7 @@ Index binary_search(
 	while ( lo <= hi )
 	{
 		Index mid = (lo + hi) / 2;
-		double d_mid = qdiff(data[mid], x, relative);
+		double d_mid = diff(data[mid], x, relative);
 		if ( d_mid < 0 )
 			lo = mid + 1;
 		else if ( d_mid > 0 )
@@ -325,8 +324,8 @@ Index binary_search(
 		else
 			return mid;
 	}
-	double d_lo = std::fabs(qdiff(data[lo], x, relative));
-	double d_hi = std::fabs(qdiff(data[hi], x, relative));
+	double d_lo = std::fabs(diff(data[lo], x, relative));
+	double d_hi = std::fabs(diff(data[hi], x, relative));
 	if ( d_lo <= d_hi && (nearest || d_lo <= tolerance) )
 		return lo;
 	if ( d_hi <= d_lo && (nearest || d_hi <= tolerance) )

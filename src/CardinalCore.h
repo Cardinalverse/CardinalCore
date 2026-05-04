@@ -1,9 +1,11 @@
 #ifndef CARDINAL_CORE
 #define CARDINAL_CORE
 
+#define R_NO_REMAP
 #include "R.h"
 #include "Rinternals.h"
 #include "search.h"
+#include "stats.h"
 
 extern "C" {
 
@@ -15,6 +17,7 @@ SEXP do_qmedian(SEXP x);
 SEXP do_qmad(SEXP x, SEXP center, SEXP constant);
 SEXP do_bsearch(SEXP x, SEXP data, SEXP tolerance, 
 	SEXP relative, SEXP nearest, SEXP nomatch);
+SEXP do_col_sums(SEXP x, SEXP num_threads);
 
 } // extern "C"
 
