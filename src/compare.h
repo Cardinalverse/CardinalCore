@@ -18,7 +18,7 @@ inline bool isIncomparable(int x)
 
 inline bool isIncomparable(double x)
 {
-	return ISNA(x) || ISNAN(x);
+	return ISNAN(x);
 }
 
 template<typename T>
