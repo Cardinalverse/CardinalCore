@@ -3,7 +3,10 @@
 
 extern "C" {
 
-SEXP do_qdiff(SEXP x, SEXP ref, SEXP relative)
+SEXP do_qdiff(
+	SEXP x, 
+	SEXP ref, 
+	SEXP relative)
 {
 	if ( TYPEOF(x) != TYPEOF(ref) )
 		Rf_error("'x' and 'ref' must have the same data type");
@@ -34,7 +37,9 @@ SEXP do_qdiff(SEXP x, SEXP ref, SEXP relative)
 	return result;
 }
 
-SEXP do_qselect(SEXP x, SEXP k)
+SEXP do_qselect(
+	SEXP x, 
+	SEXP k)
 {
 	SEXP result = PROTECT(Rf_allocVector(TYPEOF(x), LENGTH(k)));
 	switch(TYPEOF(x))
@@ -108,7 +113,10 @@ SEXP do_qmedian(SEXP x)
 	}
 }
 
-SEXP do_qmad(SEXP x, SEXP center, SEXP scale)
+SEXP do_qmad(
+	SEXP x, 
+	SEXP center, 
+	SEXP scale)
 {
 	switch(TYPEOF(x))
 	{
@@ -129,8 +137,13 @@ SEXP do_qmad(SEXP x, SEXP center, SEXP scale)
 	}
 }
 
-SEXP do_bsearch(SEXP x, SEXP data, SEXP tolerance, 
-	SEXP relative, SEXP nearest, SEXP nomatch)
+SEXP do_bsearch(
+	SEXP x, 
+	SEXP data, 
+	SEXP tolerance, 
+	SEXP relative, 
+	SEXP nearest, 
+	SEXP nomatch)
 {
 	if ( TYPEOF(x) != TYPEOF(data) )
 		Rf_error("'x' and 'data' must have the same data type");
@@ -168,7 +181,9 @@ SEXP do_bsearch(SEXP x, SEXP data, SEXP tolerance,
 	return result;
 }
 
-SEXP do_col_sums(SEXP x, SEXP num_threads)
+SEXP do_col_sums(
+	SEXP x, 
+	SEXP num_threads)
 {
 	SEXP result = PROTECT(Rf_allocVector(REALSXP, Rf_ncols(x)));
 	switch(TYPEOF(x))
@@ -176,12 +191,52 @@ SEXP do_col_sums(SEXP x, SEXP num_threads)
 		case INTSXP:
 		{
 			matrix<int> xmat {x};
-			col_sums<int>(xmat, Rf_asInteger(num_threads), REAL(result));
+			col_sums<int>(
+				xmat, 
+				REAL(result), 
+				Rf_asInteger(num_threads));
 		}
 		case REALSXP:
 		{
 			matrix<double> xmat {x};
-			col_sums<double>(xmat, Rf_asInteger(num_threads), REAL(result));
+			col_sums<double>(
+				xmat, 
+				REAL(result), 
+				Rf_asInteger(num_threads));
+		}
+	}
+	UNPROTECT(1);
+	return result;
+}
+
+SEXP do_col_sums_grouped(
+	SEXP x, 
+	SEXP group,
+	SEXP ngroups,
+	SEXP num_threads)
+{
+	SEXP result = PROTECT(Rf_allocMatrix(REALSXP, Rf_asInteger(ngroups), Rf_ncols(x)));
+	switch(TYPEOF(x))
+	{
+		case INTSXP:
+		{
+			matrix<int> xmat {x};
+			col_sums_grouped<int>(
+				xmat, 
+				INTEGER(group),
+				Rf_asInteger(ngroups),
+				REAL(result), 
+				Rf_asInteger(num_threads));
+		}
+		case REALSXP:
+		{
+			matrix<double> xmat {x};
+			col_sums_grouped<double>(
+				xmat, 
+				INTEGER(group),
+				Rf_asInteger(ngroups),
+				REAL(result), 
+				Rf_asInteger(num_threads));
 		}
 	}
 	UNPROTECT(1);
