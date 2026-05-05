@@ -3,6 +3,7 @@
 
 //// Data Ptr (mutable)
 //---------------------
+// Get a mutable data pointer from an object
 
 template<typename T, typename Object>
 T * data_ptr(Object x);
@@ -21,6 +22,7 @@ double * data_ptr<double,SEXP>(SEXP x)
 
 //// Data Ptr (immutable)
 //-----------------------
+// Get an immutable data pointer from an object
 
 template<typename T, typename Object>
 const T * data_ptr_const(Object x);
@@ -39,6 +41,7 @@ const double * data_ptr_const<double,SEXP>(SEXP x)
 
 //// Structs
 //-----------
+// Containers for common object types
 
 template<typename T>
 struct matrix 
@@ -90,8 +93,24 @@ struct matrix
 	}
 };
 
-//// Comparison
-//--------------
+template<typename T, typename Count>
+struct stat 
+{
+	T value;
+	Count n;
+};
+
+template<typename T, typename Count>
+struct stats 
+{
+	T * value;
+	Count * n;
+	size_t len;
+};
+
+//// Incomparables
+//-----------------
+// Handle incomparable values (NAs and NaNs)
 
 inline bool isIncomparable(int x)
 {
@@ -118,6 +137,8 @@ double mkIncomparable<double>()
 	return NA_REAL;
 }
 
+//// Comparison
+//--------------
 // compute signed absolute or relative difference
 // * safe to use with incomparables (NAs and NaNs)
 // * incomparables sort last/highest (NA >> Inf)

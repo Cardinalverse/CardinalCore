@@ -12,8 +12,7 @@ double do_sum(
 	const T * x,
 	size_t len,
 	ptrdiff_t stride = 1,
-	const double * center = nullptr,
-	const double * scale = nullptr,
+	const double * weights = nullptr,
 	bool abs = false,
 	double p = 1)
 {
@@ -23,10 +22,8 @@ double do_sum(
 		double xi = static_cast<double>(x[i * stride]);
 		if ( isIncomparable(xi) )
 			continue;
-		if ( center != nullptr )
-			xi -= center[i];
-		if ( scale != nullptr )
-			xi /= scale[i];
+		if ( weights != nullptr )
+			xi *= weights[i];
 		if ( abs )
 			xi = std::fabs(xi);
 		sum += std::pow(xi, p);
@@ -38,7 +35,11 @@ double do_sum(
 //---------------------
 
 template<typename T>
-void colrange_sums(matrix<T> x, size_t begin, size_t end, double * out_sums)
+void colrange_sums(
+	const matrix<T> x, 
+	size_t begin, 
+	size_t end, 
+	double * out_sums)
 {
 	for ( size_t col = begin; col < end; ++col )
 	{
@@ -47,7 +48,10 @@ void colrange_sums(matrix<T> x, size_t begin, size_t end, double * out_sums)
 }
 
 template<typename T>
-void col_sums(matrix<T> x, int num_threads, double * out_sums)
+void col_sums(
+	const matrix<T> x, 
+	int num_threads, 
+	double * out_sums)
 {
 	fill_buffer<double>(out_sums, x.ncols);
 	if ( num_threads > 1 )
