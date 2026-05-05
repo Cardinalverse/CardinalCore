@@ -11,8 +11,8 @@ test_that("col_sums works", {
 	expect_equal(col_sums(x), colSums(x, na.rm=TRUE))
 
 	matter::mem(x)
-	bench::mark(col_sums(x, 1), colSums(x, na.rm=TRUE))
-	bench::mark(col_sums(x, 2), colSums(x, na.rm=TRUE))
-	bench::mark(col_sums(x, 4), colSums(x, na.rm=TRUE))
+	bench::mark(col_sums(x, num.threads=1), colSums(x, na.rm=TRUE))
+	bench::mark(col_sums(x, num.threads=2), colSums(x, na.rm=TRUE))
+	bench::mark(col_sums(x, num.threads=4), colSums(x, na.rm=TRUE))
 
 })

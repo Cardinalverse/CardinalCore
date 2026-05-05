@@ -1,6 +1,42 @@
 #ifndef CARDINAL_CORE_PRELUDE
 #define CARDINAL_CORE_PRELUDE
 
+//// Data Ptr (mutable)
+//---------------------
+
+template<typename T, typename Object>
+T * data_ptr(Object x);
+
+template<> inline
+int * data_ptr<int,SEXP>(SEXP x)
+{
+	return INTEGER(x);
+}
+
+template<> inline
+double * data_ptr<double,SEXP>(SEXP x)
+{
+	return REAL(x);
+}
+
+//// Data Ptr (immutable)
+//-----------------------
+
+template<typename T, typename Object>
+const T * data_ptr_const(Object x);
+
+template<> inline
+const int * data_ptr_const<int,SEXP>(SEXP x)
+{
+	return INTEGER_RO(x);
+}
+
+template<> inline
+const double * data_ptr_const<double,SEXP>(SEXP x)
+{
+	return REAL_RO(x);
+}
+
 //// Structs
 //-----------
 
@@ -13,45 +49,44 @@ struct matrix
 	ptrdiff_t row_stride;
 	ptrdiff_t col_stride;
 
-	inline T at(size_t i, size_t j)
+	matrix(SEXP x)
+	{
+		if ( x != R_NilValue )
+		{
+			data = data_ptr<T,SEXP>(x);
+			nrows = Rf_nrows(x);
+			ncols = Rf_ncols(x);
+			row_stride = 1;
+			col_stride = Rf_nrows(x);
+		}
+		else
+		{
+			data = nullptr;
+			nrows = 0;
+			ncols = 0;
+			row_stride = 0;
+			col_stride = 0;
+		}
+	}
+
+	inline bool valid() const
+	{
+		return data != nullptr;
+	}
+
+	inline T at(size_t i, size_t j) const
 	{
 		return data[row_stride * i + col_stride * j];
 	}
 
-	inline const T * row(size_t i)
+	inline const T * row(size_t i) const
 	{
 		return data + (row_stride * i);
 	}
 
-	inline const T * col(size_t j)
+	inline const T * col(size_t j) const
 	{
 		return data + (col_stride * j);
-	}
-};
-
-template<typename T>
-struct scaling
-{
-	T * center;
-	T * scale;
-	int * group;
-	size_t ngroups;
-	ptrdiff_t group_stride;
-
-	inline T center_at(size_t i, size_t grp)
-	{
-		if ( ngroups <= 1 )
-			return center[i];
-		else
-			return center[i + (group_stride * group[grp])];
-	}
-
-	inline T scale_at(size_t i, size_t grp)
-	{
-		if ( ngroups <= 1 )
-			return scale[i];
-		else
-			return scale[i + (group_stride * group[grp])];
 	}
 };
 

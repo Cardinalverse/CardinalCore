@@ -175,24 +175,12 @@ SEXP do_col_sums(SEXP x, SEXP num_threads)
 	{
 		case INTSXP:
 		{
-			matrix<int> xmat = {
-				.data = INTEGER(x),
-				.nrows = static_cast<size_t>(Rf_nrows(x)),
-				.ncols = static_cast<size_t>(Rf_ncols(x)),
-				.row_stride = 1,
-				.col_stride = Rf_nrows(x)
-			};
+			matrix<int> xmat {x};
 			col_sums<int>(xmat, Rf_asInteger(num_threads), REAL(result));
 		}
 		case REALSXP:
 		{
-			matrix<double> xmat = {
-				.data = REAL(x),
-				.nrows = static_cast<size_t>(Rf_nrows(x)),
-				.ncols = static_cast<size_t>(Rf_ncols(x)),
-				.row_stride = 1,
-				.col_stride = Rf_nrows(x)
-			};
+			matrix<double> xmat {x};
 			col_sums<double>(xmat, Rf_asInteger(num_threads), REAL(result));
 		}
 	}
