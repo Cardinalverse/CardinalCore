@@ -77,19 +77,21 @@ struct matrix
 		return data != nullptr;
 	}
 
-	inline T at(size_t i, size_t j) const
+	inline T at(
+		const size_t i, 
+		const size_t j) const
 	{
 		return data[row_stride * i + col_stride * j];
 	}
 
-	inline const T * row(size_t i) const
+	inline const T * row(const size_t i) const
 	{
 		return data + (row_stride * i);
 	}
 
-	inline const T * col(size_t j) const
+	inline const T * col(const size_t i) const
 	{
-		return data + (col_stride * j);
+		return data + (col_stride * i);
 	}
 };
 
@@ -130,7 +132,10 @@ double mkIncomparable<double>()
 // * incomparables sort equal to each other (NA == NA)
 // returns: the difference
 template<typename T> inline
-double diff(T x, T ref, bool relative = false)
+double diff(
+	const T x, 
+	const T ref, 
+	const bool relative = false)
 {
 	if ( isIncomparable(x) && isIncomparable(ref) )
 		return 0.0;
@@ -160,10 +165,10 @@ double diff(T x, T ref, bool relative = false)
 template<typename T>
 void fill_buffer(
 	T * buffer,      // buffer to fill
-	size_t size,     // size of buffer
+	const size_t size,     // size of buffer
 	T init = 0,      // value to use to initialize
-	T increment = 0, // increment init for each item
-	int stride = 1)
+	const T increment = 0, // increment init for each item
+	const int stride = 1)
 {
 	for ( size_t i = 0; i < size; i++ )
 	{
