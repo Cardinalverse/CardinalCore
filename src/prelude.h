@@ -93,21 +93,6 @@ struct matrix
 	}
 };
 
-template<typename T, typename Count>
-struct stat 
-{
-	T value;
-	Count n;
-};
-
-template<typename T, typename Count>
-struct stats 
-{
-	T * value;
-	Count * n;
-	size_t len;
-};
-
 //// Incomparables
 //-----------------
 // Handle incomparable values (NAs and NaNs)
