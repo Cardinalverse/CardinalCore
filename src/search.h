@@ -17,10 +17,10 @@
 template<typename T, typename Index>
 Index partition(
 	const T * x,
-	Index lo, // index of first item to consider in x
-	Index hi, // index of last item to consider in x
+	const Index lo, // index of first item to consider in x
+	const Index hi, // index of last item to consider in x
 	Index * out_index,
-	bool init_out_index = false)
+	const bool init_out_index = false)
 {
 	// we get item k via x[at[k]]
 	Index * at = out_index;
@@ -79,12 +79,12 @@ Index partition(
 // returns: index of k-th item
 template<typename T, typename Index, typename Rank>
 T quick_select(
-	T const * x,
-	Index begin, // index of first item to consider
-	Index end,   // one-past-the-end index
-	Rank k,
+	const T * x,
+	const Index begin, // index of first item to consider
+	const Index end,   // one-past-the-end index
+	const Rank k,
 	Index * out_index,
-	bool init_out_index = false)
+	const bool init_out_index = false)
 {
 	// we get item k via x[at[k]]
 	Index * at = out_index;
@@ -114,9 +114,9 @@ T quick_select(
 template<typename T, typename Index, typename Rank>
 void do_quick_select(
 	const T * x, 
-	size_t x_len, 
+	const size_t x_len, 
 	const Rank * k, 
-	size_t k_len,
+	const size_t k_len,
 	T * out_values)
 {
 	// set up working index buffer
@@ -143,11 +143,11 @@ void do_quick_select(
 template<typename T, typename Index>
 void quick_order(
 	const T * x, 
-	Index begin, // index of first item to consider
-	Index end,   // one-past-the-end index
+	const Index begin, // index of first item to consider
+	const Index end,   // one-past-the-end index
 	Index * out_index,
-	bool init_out_index = false,
-	int linear_threshold = 8)
+	const bool init_out_index = false,
+	const int linear_threshold = 8)
 {
 	// get the length of the slice
 	size_t n;
@@ -229,7 +229,9 @@ void quick_order(
 // * incomparables are ignored/removed
 // returns: the median
 template<typename T, typename Index>
-double quick_median(const T * x, size_t x_len)
+double quick_median(
+	const T * x, 
+	const size_t x_len)
 {
 	// initialize result
 	double result = NA_REAL;
@@ -267,7 +269,7 @@ double quick_median(const T * x, size_t x_len)
 template<typename T, typename Index>
 double quick_mad(
 	const T * x, 
-	size_t x_len, 
+	const size_t x_len, 
 	double center = NA_REAL, 
 	double scale = 1.4826)
 {
@@ -303,12 +305,12 @@ template<typename T, typename Index>
 Index binary_search(
 	T x, 
 	const T * data, 
-	Index begin, // index of first item to consider
-	Index end,   // one-past-the-end index
-	double tolerance, 
-	bool relative = false, 
-	bool nearest = false,
-	Index nomatch = -1)
+	const Index begin, // index of first item to consider
+	const Index end,   // one-past-the-end index
+	const double tolerance = DBL_EPSILON, 
+	const bool relative = false, 
+	const bool nearest = false,
+	const Index nomatch = -1)
 {
 	if ( begin >= end )
 		return nomatch;
@@ -340,14 +342,14 @@ Index binary_search(
 template<typename T, typename Index>
 void do_binary_search(
 	const T * x, 
-	size_t x_len, 
+	const size_t x_len, 
 	const T * data,
-	size_t data_len,
+	const size_t data_len,
 	Index * out_index,
-	double tolerance, 
-	bool relative = false,
-	bool nearest = false, 
-	Index nomatch = -1)
+	const double tolerance = DBL_EPSILON, 
+	const bool relative = false,
+	const bool nearest = false, 
+	const Index nomatch = -1)
 {
 	for ( size_t i = 0; i < x_len; ++i )
 	{

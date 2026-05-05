@@ -10,11 +10,11 @@
 template<typename T>
 double do_sum(
 	const T * x,
-	size_t len,
-	ptrdiff_t stride = 1,
+	const size_t len,
+	const ptrdiff_t stride = 1,
 	const double * weights = nullptr,
-	bool abs = false,
-	double p = 1)
+	const bool abs = false,
+	const double p = 1)
 {
 	double sum = 0;
 	for ( size_t i = 0; i < len; ++i )
@@ -37,8 +37,8 @@ double do_sum(
 template<typename T>
 void colrange_sums(
 	const matrix<T> x, 
-	size_t begin, 
-	size_t end, 
+	const size_t begin, 
+	const size_t end, 
 	double * out_sums)
 {
 	for ( size_t col = begin; col < end; ++col )
@@ -50,7 +50,7 @@ void colrange_sums(
 template<typename T>
 void col_sums(
 	const matrix<T> x, 
-	int num_threads, 
+	const int num_threads, 
 	double * out_sums)
 {
 	fill_buffer<double>(out_sums, x.ncols);
