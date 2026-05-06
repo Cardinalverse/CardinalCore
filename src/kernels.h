@@ -5,6 +5,7 @@
 
 //// Elementary operations
 //-------------------------
+
 #define OP_ADD 1
 #define OP_SUB 2
 #define OP_MUL 3
@@ -25,8 +26,8 @@ double do_binop<OP_MUL>(double x, double y) { return x * y; }
 template<> inline
 double do_binop<OP_DIV>(double x, double y) { return x / y; }
 
-//// Kernels
-//-----------
+//// Unary kernels
+//-----------------
 
 // computes sum(x_i^p) by default
 // * if weights are given, computes sum(w_i * x_i^p)
@@ -53,40 +54,6 @@ double do_sum(
 			sum += weights[i] * std::pow(xi, p);
 		else
 			sum += std::pow(xi, p);
-	}
-	return sum;
-}
-
-// computes sum((x_i o y_i)^p) by default
-// where operation o is given by <Op> e.g., OP_SUB or OP_MUL
-// * if weights are given, computes sum(w_i * (x_i o y_i)^p)
-// * if abs is true, computes sum(w_i * |x_i o y_i|^p)
-// returns: the sum
-template<typename Tx, typename Ty, int Op>
-double do_sum2(
-	const Tx * x,
-	const Ty * y,
-	const size_t len, // length of x, y, weights
-	const ptrdiff_t x_stride = 1, // stride of x
-	const ptrdiff_t y_stride = 1, // stride of y
-	const double * weights = nullptr,
-	const bool abs = false,
-	const double p = 1)
-{
-	double sum = 0;
-	for ( size_t i = 0; i < len; ++i )
-	{
-		double xi = static_cast<double>(x[i * x_stride]);
-		double yi = static_cast<double>(y[i * y_stride]);
-		if ( isIncomparable(xi) || isIncomparable(yi) )
-			continue;
-		double di = do_binop<Op>(xi, yi);
-		if ( abs )
-			di = std::fabs(di);
-		if ( weights != nullptr )
-			sum += weights[i] * std::pow(di, p);
-		else
-			sum += std::pow(di, p);
 	}
 	return sum;
 }
@@ -121,6 +88,43 @@ void do_sum_grouped(
 		else
 			out_sums[group[i]] += std::pow(xi, p);
 	}
+}
+
+//// Binary kernels
+//------------------
+
+// computes sum((x_i o y_i)^p) by default
+// where operation o is given by <Op> e.g., OP_SUB or OP_MUL
+// * if weights are given, computes sum(w_i * (x_i o y_i)^p)
+// * if abs is true, computes sum(w_i * |x_i o y_i|^p)
+// returns: the sum
+template<typename Tx, typename Ty, int Op>
+double do_sum2(
+	const Tx * x,
+	const Ty * y,
+	const size_t len, // length of x, y, weights
+	const ptrdiff_t x_stride = 1, // stride of x
+	const ptrdiff_t y_stride = 1, // stride of y
+	const double * weights = nullptr,
+	const bool abs = false,
+	const double p = 1)
+{
+	double sum = 0;
+	for ( size_t i = 0; i < len; ++i )
+	{
+		double xi = static_cast<double>(x[i * x_stride]);
+		double yi = static_cast<double>(y[i * y_stride]);
+		if ( isIncomparable(xi) || isIncomparable(yi) )
+			continue;
+		double di = do_binop<Op>(xi, yi);
+		if ( abs )
+			di = std::fabs(di);
+		if ( weights != nullptr )
+			sum += weights[i] * std::pow(di, p);
+		else
+			sum += std::pow(di, p);
+	}
+	return sum;
 }
 
 // computes out_sums[g] = sum((x_ig o y_g)^p) by default
