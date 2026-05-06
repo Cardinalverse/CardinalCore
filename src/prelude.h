@@ -44,6 +44,24 @@ const double * data_ptr_const<double,SEXP>(SEXP x)
 // Containers for common object types
 
 template<typename T>
+struct strided 
+{
+	T * data;
+	ptrdiff_t stride;
+
+	inline T at(const ptrdiff_t i) const
+	{
+		return data[stride * i];
+	}
+
+	template<typename To>
+	inline To at_as(const ptrdiff_t i) const
+	{
+		return static_cast<To>(data[stride * i]);
+	}
+};
+
+template<typename T>
 struct matrix 
 {
 	T * data;
@@ -78,18 +96,26 @@ struct matrix
 	}
 
 	inline T at(
-		const size_t i, 
-		const size_t j) const
+		const ptrdiff_t i, 
+		const ptrdiff_t j) const
 	{
 		return data[row_stride * i + col_stride * j];
 	}
 
-	inline const T * row(const size_t i) const
+	template<typename To>
+	inline To at_as(
+		const ptrdiff_t i,
+		const ptrdiff_t j) const
+	{
+		return static_cast<To>(data[row_stride * i + col_stride * j]);
+	}
+
+	inline const T * row(const ptrdiff_t i) const
 	{
 		return data + (row_stride * i);
 	}
 
-	inline const T * col(const size_t i) const
+	inline const T * col(const ptrdiff_t i) const
 	{
 		return data + (col_stride * i);
 	}
