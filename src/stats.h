@@ -16,7 +16,7 @@ void colrange_sums(
 {
 	for ( size_t col = begin; col < end; ++col )
 	{
-		out_sums[col] = do_sum(x.col(col), x.nrows, x.row_stride);
+		out_sums[col] = kern_sum(x.col(col), x.nrows, x.row_stride);
 	}
 }
 
@@ -32,7 +32,7 @@ void colrange_sums_grouped(
 	for ( size_t col = begin; col < end; ++col )
 	{
 		double * out_sums_col = out_sums + (col * ngroups);
-		do_sum_grouped(x.col(col), x.nrows,
+		kern_sum_grouped(x.col(col), x.nrows,
 			out_sums_col, group, ngroups, x.row_stride);
 	}
 }

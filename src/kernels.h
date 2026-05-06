@@ -34,7 +34,7 @@ double do_binop<OP_DIV>(double x, double y) { return x / y; }
 // * if abs is true, computes sum(w_i * |x_i|^p)
 // returns: the sum
 template<typename T>
-double do_sum(
+double kern_sum(
 	const T * x,
 	const size_t len, // length of x, weights
 	const ptrdiff_t stride = 1, // stride of x
@@ -64,7 +64,7 @@ double do_sum(
 // * if abs is true, computes sum(w_i * |x_ig|^p)
 // * returns sums via out_sums
 template<typename T>
-void do_sum_grouped(
+void kern_sum_grouped(
 	const T * x,
 	const size_t len, // length of x, group, weights
 	double * out_sums,
@@ -99,7 +99,7 @@ void do_sum_grouped(
 // * if abs is true, computes sum(w_i * |x_i o y_i|^p)
 // returns: the sum
 template<typename Tx, typename Ty, int Op>
-double do_sum2(
+double kern_sum2(
 	const Tx * x,
 	const Ty * y,
 	const size_t len, // length of x, y, weights
@@ -133,7 +133,7 @@ double do_sum2(
 // * if abs is true, computes sum(w_i * |x_ig o y_g|^p)
 // * returns sums via out_sums
 template<typename Tx, typename Ty, int Op>
-void do_sum2_grouped(
+void kern_sum2_grouped(
 	const Tx * x,
 	const Ty * y,
 	const size_t len, // length of x, group, weights
