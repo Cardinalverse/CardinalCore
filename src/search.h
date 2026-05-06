@@ -28,7 +28,7 @@ Index partition(
 	if ( init_out_index )
 		fill_buffer<Index>(out_index, hi - lo + 1, 0, 1);
 	// find pivot by median of 1st/mid/last
-	Index pivot = (lo + hi) / 2;
+	Index pivot = static_cast<Index>((lo + hi) / 2);
 	if ( LESSER(x[at[pivot]], x[at[lo]]) )
 		SWAP(at[pivot], at[lo], Index);
 	if ( GREATER(x[at[pivot]], x[at[hi]]) )
@@ -38,8 +38,8 @@ Index partition(
 			SWAP(at[pivot], at[lo], Index);
 	}
 	// lo and hi are now partitioned so skip them
-	Index i = lo + 1;
-	Index j = hi - 1;
+	Index i = static_cast<Index>(lo + 1);
+	Index j = static_cast<Index>(hi - 1);
 	// use Hoare's partition method 
 	do {
 		// find next item less than pivot
@@ -80,8 +80,8 @@ Index partition(
 template<typename T, typename Index, typename Rank>
 T quick_select(
 	const T * x,
-	const Index begin, // index of first item to consider
-	const Index end,   // one-past-the-end index
+	const ptrdiff_t begin, // index of first item to consider
+	const ptrdiff_t end,   // one-past-the-end index
 	const Rank k,
 	Index * out_index,
 	const bool init_out_index = false)
@@ -92,7 +92,8 @@ T quick_select(
 	if ( init_out_index )
 		fill_buffer<Index>(out_index, end - begin, 0, 1);
 	// recursively partition the array
-	Index lo = begin, hi = end - 1;
+	Index lo = static_cast<Index>(begin);
+	Index hi = static_cast<Index>(end - 1);
 	do {
 		if ( lo == hi )
 			return x[at[lo]];
@@ -143,8 +144,8 @@ void do_quick_select(
 template<typename T, typename Index>
 void quick_order(
 	const T * x, 
-	const Index begin, // index of first item to consider
-	const Index end,   // one-past-the-end index
+	const ptrdiff_t begin, // index of first item to consider
+	const ptrdiff_t end,   // one-past-the-end index
 	Index * out_index,
 	const bool init_out_index = false,
 	const int linear_threshold = 8)
@@ -162,7 +163,8 @@ void quick_order(
 	size_t stack_size = 2 * std::ceil(std::log2(n) + 1);
 	Index * stack = R_Calloc(stack_size, Index);
 	Index top = -1;
-	Index lo = begin, hi = end - 1;
+	Index lo = static_cast<Index>(begin);
+	Index hi = static_cast<Index>(end - 1);
 	stack[++top] = lo;
 	stack[++top] = hi;
 	// we get item k via x[at[k]]
@@ -303,8 +305,8 @@ double quick_mad(
 // returns: index of match
 template<typename T, typename Index>
 Index binary_search(
-	T x, 
-	const T * data, 
+	T x,               // query
+	const T * data,    // data to search for query
 	const Index begin, // index of first item to consider
 	const Index end,   // one-past-the-end index
 	const double tolerance = DBL_EPSILON, 

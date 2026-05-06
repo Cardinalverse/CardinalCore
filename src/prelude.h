@@ -43,10 +43,17 @@ const double * data_ptr_const<double,SEXP>(SEXP x)
 //-----------
 // Containers for common object types
 
+struct slice 
+{
+	ptrdiff_t begin;
+	ptrdiff_t end;
+};
+
 template<typename T>
-struct strided 
+struct vctr 
 {
 	T * data;
+	size_t len;
 	ptrdiff_t stride;
 
 	inline T at(const ptrdiff_t i) const
