@@ -91,11 +91,6 @@ struct matrix
 		}
 	}
 
-	inline bool valid() const
-	{
-		return data != nullptr;
-	}
-
 	inline T at(
 		const ptrdiff_t i, 
 		const ptrdiff_t j) const
@@ -103,24 +98,24 @@ struct matrix
 		return data[row_stride * i + col_stride * j];
 	}
 
-	inline T * row(const ptrdiff_t i) const
+	inline T * row_ptr(const ptrdiff_t i) const
 	{
 		return data + (row_stride * i);
 	}
 
-	inline T * col(const ptrdiff_t i) const
+	inline T * col_ptr(const ptrdiff_t i) const
 	{
 		return data + (col_stride * i);
 	}
 
 	inline vctr<T> row_vctr(const ptrdiff_t i) const
 	{
-		return {data + (row_stride * i), ncols, col_stride};
+		return {this->row_ptr(i), ncols, col_stride};
 	}
 
 	inline vctr<T> col_vctr(const ptrdiff_t i) const
 	{
-		return {data + (col_stride * i), nrows, row_stride};
+		return {this->col_ptr(i), nrows, row_stride};
 	}
 };
 

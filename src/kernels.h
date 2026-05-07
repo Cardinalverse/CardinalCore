@@ -6,25 +6,27 @@
 //// Elementary operations
 //-------------------------
 
-#define OP_ADD 1
-#define OP_SUB 2
-#define OP_MUL 3
-#define OP_DIV 4
+enum Binop {
+	Addition,
+	Subtraction,
+	Multiplication,
+	Division
+};
 
 template<int Op>
 double do_binop(double x, double y);
 
 template<> inline
-double do_binop<OP_ADD>(double x, double y) { return x + y; }
+double do_binop<Addition>(double x, double y) { return x + y; }
 
 template<> inline
-double do_binop<OP_SUB>(double x, double y) { return x - y; }
+double do_binop<Subtraction>(double x, double y) { return x - y; }
 
 template<> inline
-double do_binop<OP_MUL>(double x, double y) { return x * y; }
+double do_binop<Multiplication>(double x, double y) { return x * y; }
 
 template<> inline
-double do_binop<OP_DIV>(double x, double y) { return x / y; }
+double do_binop<Division>(double x, double y) { return x / y; }
 
 //// Unary kernels
 //-----------------
