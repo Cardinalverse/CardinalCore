@@ -60,12 +60,6 @@ struct vctr
 	{
 		return data[stride * i];
 	}
-
-	template<typename To>
-	inline To at_as(const ptrdiff_t i) const
-	{
-		return static_cast<To>(data[stride * i]);
-	}
 };
 
 template<typename T>
@@ -109,22 +103,24 @@ struct matrix
 		return data[row_stride * i + col_stride * j];
 	}
 
-	template<typename To>
-	inline To at_as(
-		const ptrdiff_t i,
-		const ptrdiff_t j) const
-	{
-		return static_cast<To>(data[row_stride * i + col_stride * j]);
-	}
-
-	inline const T * row(const ptrdiff_t i) const
+	inline T * row(const ptrdiff_t i) const
 	{
 		return data + (row_stride * i);
 	}
 
-	inline const T * col(const ptrdiff_t i) const
+	inline T * col(const ptrdiff_t i) const
 	{
 		return data + (col_stride * i);
+	}
+
+	inline vctr<T> row_vctr(const ptrdiff_t i) const
+	{
+		return {data + (row_stride * i), ncols, col_stride};
+	}
+
+	inline vctr<T> col_vctr(const ptrdiff_t i) const
+	{
+		return {data + (col_stride * i), nrows, row_stride};
 	}
 };
 

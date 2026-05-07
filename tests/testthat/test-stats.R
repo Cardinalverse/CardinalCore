@@ -4,8 +4,8 @@ require(testthat)
 test_that("col_sums works", {
 
 	set.seed(1)
-	nr <- 10000
-	nc <- 5000
+	nr <- 1e6
+	nc <- 20
 	x <- matrix(runif(nr * nc), nrow=nr, ncol=nc)
 	g <- sample(8, nrow(x), replace=TRUE)
 

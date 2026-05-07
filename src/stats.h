@@ -15,9 +15,7 @@ void colrange_sums(
 	double * out_sums)
 {
 	for ( size_t col = begin; col < end; ++col )
-	{
-		out_sums[col] = kern_sum(x.col(col), x.nrows, x.row_stride);
-	}
+		out_sums[col] = kern_sum<T>(x.col_vctr(col));
 }
 
 template<typename T>
@@ -32,8 +30,7 @@ void colrange_sums_grouped(
 	for ( size_t col = begin; col < end; ++col )
 	{
 		double * out_sums_col = out_sums + (col * ngroups);
-		kern_sum_grouped(x.col(col), x.nrows,
-			out_sums_col, group, ngroups, x.row_stride);
+		kern_sum_grouped(x.col_vctr(col), out_sums_col, group, ngroups);
 	}
 }
 
