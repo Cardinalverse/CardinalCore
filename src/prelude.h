@@ -50,7 +50,7 @@ struct slice
 
 	inline size_t size() const
 	{
-		if end > begin;
+		if ( end > begin )
 			return static_cast<size_t>(end - begin);
 		else
 			return 0;
@@ -68,6 +68,12 @@ struct vctr
 	{
 		return data[stride * i];
 	}
+
+	inline slice all_elements() const
+	{
+		return {0, static_cast<size_t>(len)};
+	}
+
 };
 
 template<typename T>
@@ -103,29 +109,54 @@ struct matrix
 		const ptrdiff_t i, 
 		const ptrdiff_t j) const
 	{
-		return data[row_stride * i + col_stride * j];
-	}
-
-	inline T * row_ptr(const ptrdiff_t i) const
-	{
-		return data + (row_stride * i);
-	}
-
-	inline T * col_ptr(const ptrdiff_t i) const
-	{
-		return data + (col_stride * i);
+		return data[(row_stride * i) + (col_stride * j)];
 	}
 
 	inline vctr<T> row_vctr(const ptrdiff_t i) const
 	{
-		return {this->row_ptr(i), ncols, col_stride};
+		return {data + (row_stride * i), ncols, col_stride};
 	}
 
 	inline vctr<T> col_vctr(const ptrdiff_t i) const
 	{
-		return {this->col_ptr(i), nrows, row_stride};
+		return {data + (col_stride * i), nrows, row_stride};
+	}
+
+	inline slice all_rows() const
+	{
+		return {0, static_cast<ptrdiff_t>(nrows)};
+	}
+
+	inline slice all_cols() const
+	{
+		return {0, static_cast<ptrdiff_t>(ncols)};
 	}
 };
+
+template<typename T>
+matrix<T> as_matrix(SEXP x)
+{
+	if ( x != R_NilValue )
+	{
+		return {
+			.data = data_ptr<T>(x),
+			.nrows = Rf_nrows(x),
+			.ncols = Rf_ncols(x),
+			.row_stride = 1,
+			.col_stride = Rf_nrows(x)
+		};
+	}
+	else
+	{
+		return {
+			.data = nullptr,
+			.nrows = 0,
+			.ncols = 0,
+			.row_stride = 0,
+			.col_stride = 0
+		};
+	}
+}
 
 //// Incomparables
 //-----------------

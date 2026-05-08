@@ -10,27 +10,25 @@
 template<typename T>
 void colrange_sums(
 	const matrix<T> x, 
-	const size_t begin, 
-	const size_t end, 
+	const slice index,
 	double * out_sums)
 {
-	for ( size_t col = begin; col < end; ++col )
-		out_sums[col] = kern_sum<T>(x.col_vctr(col));
+	for ( size_t i = index.begin; i < index.end; ++i )
+		out_sums[i] = kern_sum<T>(x.col_vctr(i));
 }
 
 template<typename T>
 void colrange_sums_grouped(
 	const matrix<T> x, 
-	const size_t begin, 
-	const size_t end, 
+	const slice index,
 	const int * group,
 	const size_t ngroups,
 	double * out_sums)
 {
-	for ( size_t col = begin; col < end; ++col )
+	for ( size_t i = index.begin; i < index.end; ++i )
 	{
-		double * out_sums_col = out_sums + (col * ngroups);
-		kern_sum_grouped(x.col_vctr(col), group, ngroups, out_sums_col);
+		double * out_sums_i = out_sums + (i * ngroups);
+		kern_sum_grouped(x.col_vctr(i), group, ngroups, out_sums_i);
 	}
 }
 
@@ -47,11 +45,11 @@ void col_sums(
 		int chunksize = x.ncols / num_threads;
 		if ( x.ncols % num_threads > 0 )
 			chunksize += 1;
-		size_t begin = 0, end = chunksize;
+		ptrdiff_t begin = 0, end = chunksize;
 		for ( int i = 0; i < num_threads; ++i )
 		{
 			workers[i] = std::thread{
-				colrange_sums<T>, x, begin, end, out_sums
+				colrange_sums<T>, x, slice{begin, end}, out_sums
 			};
 			begin += chunksize;
 			end += chunksize;
@@ -64,7 +62,7 @@ void col_sums(
 	}
 	else
 	{
-		colrange_sums<T>(x, 0, x.ncols, out_sums);
+		colrange_sums<T>(x, x.all_cols(), out_sums);
 	}
 }
 
@@ -83,14 +81,13 @@ void col_sums_grouped(
 		int chunksize = x.ncols / num_threads;
 		if ( x.ncols % num_threads > 0 )
 			chunksize += 1;
-		size_t begin = 0, end = chunksize;
+		ptrdiff_t begin = 0, end = chunksize;
 		for ( int i = 0; i < num_threads; ++i )
 		{
 			workers[i] = std::thread{
 				colrange_sums_grouped<T>, 
 				x, 
-				begin, 
-				end, 
+				slice{begin, end}, 
 				group,
 				ngroups,
 				out_sums
@@ -108,8 +105,7 @@ void col_sums_grouped(
 	{
 		colrange_sums_grouped<T>(
 			x, 
-			0, 
-			x.ncols, 
+			x.all_cols(), 
 			group,
 			ngroups,
 			out_sums);
