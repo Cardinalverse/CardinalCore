@@ -85,26 +85,6 @@ struct matrix
 	ptrdiff_t row_stride;
 	ptrdiff_t col_stride;
 
-	matrix(SEXP x)
-	{
-		if ( x != R_NilValue )
-		{
-			data = data_ptr<T>(x);
-			nrows = Rf_nrows(x);
-			ncols = Rf_ncols(x);
-			row_stride = 1;
-			col_stride = Rf_nrows(x);
-		}
-		else
-		{
-			data = nullptr;
-			nrows = 0;
-			ncols = 0;
-			row_stride = 0;
-			col_stride = 0;
-		}
-	}
-
 	inline T at(
 		const ptrdiff_t i, 
 		const ptrdiff_t j) const
@@ -133,6 +113,31 @@ struct matrix
 	}
 };
 
+//// R objects
+//--------------
+// Initialize struct from R object
+
+template<typename T>
+vctr<T> as_vctr(SEXP x)
+{
+	if ( x != R_NilValue )
+	{
+		return {
+			.data = data_ptr<T>(x),
+			.len = static_cast<size_t>(XLENGTH(x)),
+			.stride = 1
+		};
+	}
+	else
+	{
+		return {
+			.data = nullptr,
+			.len = 0,
+			.stride = 0
+		};
+	}
+}
+
 template<typename T>
 matrix<T> as_matrix(SEXP x)
 {
@@ -140,8 +145,8 @@ matrix<T> as_matrix(SEXP x)
 	{
 		return {
 			.data = data_ptr<T>(x),
-			.nrows = Rf_nrows(x),
-			.ncols = Rf_ncols(x),
+			.nrows = static_cast<size_t>(Rf_nrows(x)),
+			.ncols = static_cast<size_t>(Rf_ncols(x)),
 			.row_stride = 1,
 			.col_stride = Rf_nrows(x)
 		};

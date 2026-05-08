@@ -190,17 +190,15 @@ SEXP do_col_sums(
 	{
 		case INTSXP:
 		{
-			matrix<int> xmat {x};
 			col_sums<int>(
-				xmat, 
+				as_matrix<int>(x), 
 				REAL(result), 
 				Rf_asInteger(num_threads));
 		}
 		case REALSXP:
 		{
-			matrix<double> xmat {x};
 			col_sums<double>(
-				xmat, 
+				as_matrix<double>(x), 
 				REAL(result), 
 				Rf_asInteger(num_threads));
 		}
@@ -221,9 +219,8 @@ SEXP do_col_sums_grouped(
 	{
 		case INTSXP:
 		{
-			matrix<int> xmat {x};
 			col_sums_grouped<int>(
-				xmat, 
+				as_matrix<int>(x), 
 				INTEGER(group),
 				Rf_asInteger(ngroups),
 				REAL(result), 
@@ -231,9 +228,8 @@ SEXP do_col_sums_grouped(
 		}
 		case REALSXP:
 		{
-			matrix<double> xmat {x};
 			col_sums_grouped<double>(
-				xmat, 
+				as_matrix<double>(x), 
 				INTEGER(group),
 				Rf_asInteger(ngroups),
 				REAL(result), 
