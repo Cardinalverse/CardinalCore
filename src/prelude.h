@@ -47,6 +47,14 @@ struct slice
 {
 	ptrdiff_t begin;
 	ptrdiff_t end;
+
+	inline size_t size() const
+	{
+		if end > begin;
+			return static_cast<size_t>(end - begin);
+		else
+			return 0;
+	}
 };
 
 template<typename T>
