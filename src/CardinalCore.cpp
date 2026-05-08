@@ -215,7 +215,8 @@ SEXP do_col_sums_grouped(
 	SEXP ngroups,
 	SEXP num_threads)
 {
-	SEXP result = PROTECT(Rf_allocMatrix(REALSXP, Rf_asInteger(ngroups), Rf_ncols(x)));
+	SEXP result = PROTECT(Rf_allocMatrix(REALSXP, 
+		Rf_asInteger(ngroups), Rf_ncols(x)));
 	switch(TYPEOF(x))
 	{
 		case INTSXP:

@@ -30,7 +30,7 @@ void colrange_sums_grouped(
 	for ( size_t col = begin; col < end; ++col )
 	{
 		double * out_sums_col = out_sums + (col * ngroups);
-		kern_sum_grouped(x.col_vctr(col), out_sums_col, group, ngroups);
+		kern_sum_grouped(x.col_vctr(col), group, ngroups, out_sums_col);
 	}
 }
 

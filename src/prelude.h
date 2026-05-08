@@ -5,17 +5,17 @@
 //---------------------
 // Get a mutable data pointer from an object
 
-template<typename T, typename Object>
-T * data_ptr(Object x);
+template<typename T>
+T * data_ptr(SEXP x);
 
 template<> inline
-int * data_ptr<int,SEXP>(SEXP x)
+int * data_ptr<int>(SEXP x)
 {
 	return INTEGER(x);
 }
 
 template<> inline
-double * data_ptr<double,SEXP>(SEXP x)
+double * data_ptr<double>(SEXP x)
 {
 	return REAL(x);
 }
@@ -24,17 +24,17 @@ double * data_ptr<double,SEXP>(SEXP x)
 //-----------------------
 // Get an immutable data pointer from an object
 
-template<typename T, typename Object>
-const T * data_ptr_const(Object x);
+template<typename T>
+const T * data_ptr_const(SEXP x);
 
 template<> inline
-const int * data_ptr_const<int,SEXP>(SEXP x)
+const int * data_ptr_const<int>(SEXP x)
 {
 	return INTEGER_RO(x);
 }
 
 template<> inline
-const double * data_ptr_const<double,SEXP>(SEXP x)
+const double * data_ptr_const<double>(SEXP x)
 {
 	return REAL_RO(x);
 }
@@ -75,7 +75,7 @@ struct matrix
 	{
 		if ( x != R_NilValue )
 		{
-			data = data_ptr<T,SEXP>(x);
+			data = data_ptr<T>(x);
 			nrows = Rf_nrows(x);
 			ncols = Rf_ncols(x);
 			row_stride = 1;

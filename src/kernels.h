@@ -31,9 +31,9 @@ double do_binop<Division>(double x, double y) { return x / y; }
 //// Unary kernels
 //-----------------
 
-// computes sum((x_i - m)^p) by default
-// * if weights are given, computes sum(w_i * (x_i - m)^p)
-// * if abs is true, computes sum(w_i * |x_i - m|^p)
+// computes sum(w_i * {x_i - m}^p)
+// * if weights are null, then all w_i = 1
+// * if abs = true, {} is absolute value
 // returns: the sum
 template<typename T>
 double kern_sum(
@@ -46,9 +46,9 @@ double kern_sum(
 	double sum = 0;
 	for ( size_t i = 0; i < x.len; ++i )
 	{
-		double xi = static_cast<double>(x.at(i));
-		if ( isIncomparable(xi) )
+		if ( isIncomparable(x.at(i)) )
 			continue;
+		double xi = static_cast<double>(x.at(i));
 		if ( m != 0 )
 			xi -= m;
 		if ( abs )
@@ -61,17 +61,17 @@ double kern_sum(
 	return sum;
 }
 
-// computes out_sums[g] = sum((x_i - m_g)^p) by default
+// computes out_sums[g] = sum(w_i * {x_i - m_g}^p)
 // where groups g are given by group[i]
-// * if weights are given, computes sum(w_i * (x_i - m_g)^p)
-// * if abs is true, computes sum(w_i * |x_i - m_g|^p)
+// * if weights are null, then all w_i = 1
+// * if abs = true, {} is absolute value
 // * returns sums via out_sums
 template<typename T>
 void kern_sum_grouped(
 	const vctr<T> x,
-	double * out_sums,
 	const int * group,
-	const size_t ngroups, // length of out_sums
+	const size_t ngroups,
+	double * out_sums,
 	const double * m = nullptr,
 	const double * weights = nullptr,
 	const bool abs = false,
@@ -80,9 +80,9 @@ void kern_sum_grouped(
 	fill_buffer<double>(out_sums, ngroups);
 	for ( size_t i = 0; i < x.len; ++i )
 	{
-		double xi = static_cast<double>(x.at(i));
-		if ( isIncomparable(xi) )
+		if ( isIncomparable(x.at(i)) )
 			continue;
+		double xi = static_cast<double>(x.at(i));
 		if ( m != nullptr )
 			xi -= m[group[i]];
 		if ( abs )
@@ -97,29 +97,26 @@ void kern_sum_grouped(
 //// Binary kernels
 //------------------
 
-// computes sum((x_i o y_i)^p) by default
-// where operation o is given by <Op> e.g., OP_SUB or OP_MUL
-// * if weights are given, computes sum(w_i * (x_i o y_i)^p)
-// * if abs is true, computes sum(w_i * |x_i o y_i|^p)
+// computes sum(w_i * {x_i @ y_i}^p)
+// where operation @ is a Binop given by <Op>
+// * if weights are null, then all w_i = 1
+// * if abs = true, {} is absolute value
 // returns: the sum
 template<typename Tx, typename Ty, int Op>
 double kern2_sum(
-	const Tx * x,
-	const Ty * y,
-	const size_t len, // length of x, y, weights
-	const ptrdiff_t x_stride = 1, // stride of x
-	const ptrdiff_t y_stride = 1, // stride of y
+	const vctr<Tx> x,
+	const vctr<Ty> y,
 	const double * weights = nullptr,
 	const bool abs = false,
 	const double p = 1)
 {
 	double sum = 0;
-	for ( size_t i = 0; i < len; ++i )
+	for ( size_t i = 0; i < x.len; ++i )
 	{
-		double xi = static_cast<double>(x[i * x_stride]);
-		double yi = static_cast<double>(y[i * y_stride]);
-		if ( isIncomparable(xi) || isIncomparable(yi) )
+		if ( isIncomparable(x.at(i)) || isIncomparable(y.at(i)) )
 			continue;
+		double xi = static_cast<double>(x.at(i));
+		double yi = static_cast<double>(y.at(i));
 		double di = do_binop<Op>(xi, yi);
 		if ( abs )
 			di = std::fabs(di);
