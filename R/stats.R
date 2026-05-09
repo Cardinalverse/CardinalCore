@@ -33,7 +33,8 @@ col_sums <- function(
 	if ( is.null(group) ) {
 		.Call(C_do_col_sums, x, as.integer(num.threads))
 	} else {
-		ans <- .Call(C_do_col_sums_grouped, x, group, ngroups, as.integer(num.threads))
+		ans <- .Call(C_do_col_scatter_sums, x, 
+			group, ngroups, as.integer(num.threads))
 		rownames(ans) <- as.character(ugroup)
 		ans
 	}

@@ -10,22 +10,22 @@
 template<typename T>
 void colrange_sums(
 	const matrix<T> x, 
-	const slice index,
+	const slice range,
 	double * out_sums)
 {
-	for ( size_t i = index.begin; i < index.end; ++i )
+	for ( size_t i = range.begin; i < range.end; ++i )
 		out_sums[i] = kern_sum<T>(x.col_vctr(i));
 }
 
 template<typename T>
-void colrange_sums_grouped(
+void colrange_scatter_sums(
 	const matrix<T> x, 
-	const slice index,
+	const slice range,
 	const int * group,
 	const size_t ngroups,
 	double * out_sums)
 {
-	for ( size_t i = index.begin; i < index.end; ++i )
+	for ( size_t i = range.begin; i < range.end; ++i )
 	{
 		double * out_sums_i = out_sums + (i * ngroups);
 		kern_sum_grouped(x.col_vctr(i), group, ngroups, out_sums_i);
@@ -67,7 +67,7 @@ void col_sums(
 }
 
 template<typename T>
-void col_sums_grouped(
+void col_scatter_sums(
 	const matrix<T> x, 
 	const int * group,
 	const size_t ngroups, 
@@ -85,7 +85,7 @@ void col_sums_grouped(
 		for ( int i = 0; i < num_threads; ++i )
 		{
 			workers[i] = std::thread{
-				colrange_sums_grouped<T>, 
+				colrange_scatter_sums<T>, 
 				x, 
 				slice{begin, end}, 
 				group,
@@ -103,7 +103,7 @@ void col_sums_grouped(
 	}
 	else
 	{
-		colrange_sums_grouped<T>(
+		colrange_scatter_sums<T>(
 			x, 
 			x.all_cols(), 
 			group,

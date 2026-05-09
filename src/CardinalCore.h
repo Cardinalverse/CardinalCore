@@ -18,7 +18,7 @@ SEXP do_qmad(SEXP x, SEXP center, SEXP constant);
 SEXP do_bsearch(SEXP x, SEXP data, SEXP tolerance, 
 	SEXP relative, SEXP nearest, SEXP nomatch);
 SEXP do_col_sums(SEXP x, SEXP num_threads);
-SEXP do_col_sums_grouped(SEXP x, SEXP group, SEXP ngroups, SEXP num_threads);
+SEXP do_col_scatter_sums(SEXP x, SEXP group, SEXP ngroups, SEXP num_threads);
 
 } // extern "C"
 

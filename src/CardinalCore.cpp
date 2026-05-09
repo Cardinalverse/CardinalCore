@@ -207,7 +207,7 @@ SEXP do_col_sums(
 	return result;
 }
 
-SEXP do_col_sums_grouped(
+SEXP do_col_scatter_sums(
 	SEXP x, 
 	SEXP group,
 	SEXP ngroups,
@@ -219,7 +219,7 @@ SEXP do_col_sums_grouped(
 	{
 		case INTSXP:
 		{
-			col_sums_grouped<int>(
+			col_scatter_sums<int>(
 				as_matrix<int>(x), 
 				INTEGER(group),
 				Rf_asInteger(ngroups),
@@ -228,7 +228,7 @@ SEXP do_col_sums_grouped(
 		}
 		case REALSXP:
 		{
-			col_sums_grouped<double>(
+			col_scatter_sums<double>(
 				as_matrix<double>(x), 
 				INTEGER(group),
 				Rf_asInteger(ngroups),
