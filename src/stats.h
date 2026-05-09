@@ -13,7 +13,7 @@ void colrange_sums(
 	const slice range,
 	double * out_sums)
 {
-	for ( size_t i = range.begin; i < range.end; ++i )
+	for ( ptrdiff_t i = range.begin; i < range.end; ++i )
 		out_sums[i] = kern_sum<T>(x.col_vctr(i));
 }
 
@@ -25,7 +25,7 @@ void colrange_scatter_sums(
 	const size_t ngroups,
 	double * out_sums)
 {
-	for ( size_t i = range.begin; i < range.end; ++i )
+	for ( ptrdiff_t i = range.begin; i < range.end; ++i )
 	{
 		double * out_sums_i = out_sums + (i * ngroups);
 		kern_sum_grouped(x.col_vctr(i), group, ngroups, out_sums_i);

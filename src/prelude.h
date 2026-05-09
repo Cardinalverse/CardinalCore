@@ -60,18 +60,18 @@ struct slice
 template<typename T>
 struct vctr 
 {
-	T * data;
+	T * ptr;
 	size_t len;
 	ptrdiff_t stride;
 
 	inline T at(const ptrdiff_t i) const
 	{
-		return data[stride * i];
+		return ptr[stride * i];
 	}
 
 	inline slice all_elements() const
 	{
-		return {0, static_cast<size_t>(len)};
+		return {0, static_cast<ptrdiff_t>(len)};
 	}
 
 };
@@ -79,7 +79,7 @@ struct vctr
 template<typename T>
 struct matrix 
 {
-	T * data;
+	T * ptr;
 	size_t nrows;
 	size_t ncols;
 	ptrdiff_t row_stride;
@@ -89,17 +89,17 @@ struct matrix
 		const ptrdiff_t i, 
 		const ptrdiff_t j) const
 	{
-		return data[(row_stride * i) + (col_stride * j)];
+		return ptr[(row_stride * i) + (col_stride * j)];
 	}
 
 	inline vctr<T> row_vctr(const ptrdiff_t i) const
 	{
-		return {data + (row_stride * i), ncols, col_stride};
+		return {ptr + (row_stride * i), ncols, col_stride};
 	}
 
 	inline vctr<T> col_vctr(const ptrdiff_t i) const
 	{
-		return {data + (col_stride * i), nrows, row_stride};
+		return {ptr + (col_stride * i), nrows, row_stride};
 	}
 
 	inline slice all_rows() const
@@ -123,7 +123,7 @@ vctr<T> as_vctr(SEXP x)
 	if ( x != R_NilValue )
 	{
 		return {
-			.data = data_ptr<T>(x),
+			.ptr = data_ptr<T>(x),
 			.len = static_cast<size_t>(XLENGTH(x)),
 			.stride = 1
 		};
@@ -131,7 +131,7 @@ vctr<T> as_vctr(SEXP x)
 	else
 	{
 		return {
-			.data = nullptr,
+			.ptr = nullptr,
 			.len = 0,
 			.stride = 0
 		};
@@ -144,7 +144,7 @@ matrix<T> as_matrix(SEXP x)
 	if ( x != R_NilValue )
 	{
 		return {
-			.data = data_ptr<T>(x),
+			.ptr = data_ptr<T>(x),
 			.nrows = static_cast<size_t>(Rf_nrows(x)),
 			.ncols = static_cast<size_t>(Rf_ncols(x)),
 			.row_stride = 1,
@@ -154,7 +154,7 @@ matrix<T> as_matrix(SEXP x)
 	else
 	{
 		return {
-			.data = nullptr,
+			.ptr = nullptr,
 			.nrows = 0,
 			.ncols = 0,
 			.row_stride = 0,

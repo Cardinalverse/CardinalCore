@@ -80,8 +80,8 @@ Index partition(
 template<typename T, typename Index, typename Rank>
 T quick_select(
 	const T * x,
-	const ptrdiff_t begin, // index of first item to consider
-	const ptrdiff_t end,   // one-past-the-end index
+	const ptrdiff_t begin,
+	const ptrdiff_t end,
 	const Rank k,
 	Index * out_index,
 	const bool init_out_index = false)
@@ -305,31 +305,31 @@ double quick_mad(
 // returns: index of match
 template<typename T, typename Index>
 Index binary_search(
-	T x,               // query
-	const T * data,    // data to search for query
-	const Index begin, // index of first item to consider
-	const Index end,   // one-past-the-end index
+	const T x,          // query
+	const vctr<T> data, // data to search for query
+	const slice range,
 	const double tolerance = DBL_EPSILON, 
 	const bool relative = false, 
 	const bool nearest = false,
 	const Index nomatch = -1)
 {
-	if ( begin >= end )
+	if ( range.size() == 0 )
 		return nomatch;
-	Index lo = begin, hi = end - 1;
+	Index lo = static_cast<Index>(range.begin);
+	Index hi = static_cast<Index>(range.end - 1);
 	while ( lo <= hi )
 	{
 		Index mid = (lo + hi) / 2;
-		double d_mid = diff(data[mid], x, relative);
+		double d_mid = diff(data.at(mid), x, relative);
 		if ( d_mid < 0 )
 			lo = mid + 1;
 		else if ( d_mid > 0 )
 			hi = mid - 1;
 		else
-			return mid;
+			return mid * data.stride;
 	}
-	double d_lo = std::fabs(diff(data[lo], x, relative));
-	double d_hi = std::fabs(diff(data[hi], x, relative));
+	double d_lo = std::fabs(diff(data.at(lo), x, relative));
+	double d_hi = std::fabs(diff(data.at(hi), x, relative));
 	if ( d_lo <= d_hi && (nearest || d_lo <= tolerance) )
 		return lo;
 	if ( d_hi <= d_lo && (nearest || d_hi <= tolerance) )
@@ -343,24 +343,22 @@ Index binary_search(
 // * returns matches via out_index
 template<typename T, typename Index>
 void do_binary_search(
-	const T * x, 
-	const size_t x_len, 
-	const T * data,
-	const size_t data_len,
+	const vctr<T> x, 
+	const vctr<T> data,
 	Index * out_index,
 	const double tolerance = DBL_EPSILON, 
 	const bool relative = false,
 	const bool nearest = false, 
 	const Index nomatch = -1)
 {
-	for ( size_t i = 0; i < x_len; ++i )
+	for ( size_t i = 0; i < x.len; ++i )
 	{
-		if ( isIncomparable(x[i]) )
+		if ( isIncomparable(x.at(i)) )
 			out_index[i] = nomatch;
 		else
 		{
 			out_index[i] = binary_search<T,Index>(
-				x[i], data, 0, data_len, tolerance, 
+				x.at(i), data, data.all_elements(), tolerance, 
 				relative, nearest, nomatch);
 		}
 	}

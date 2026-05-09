@@ -152,10 +152,8 @@ SEXP do_bsearch(
 	{
 		case INTSXP:
 			do_binary_search<int,int>(
-				INTEGER_RO(x),
-				LENGTH(x),
-				INTEGER_RO(data),
-				LENGTH(data),
+				as_vctr<int>(x),
+				as_vctr<int>(data),
 				INTEGER(result),
 				Rf_asReal(tolerance),
 				Rf_asLogical(relative),
@@ -164,10 +162,8 @@ SEXP do_bsearch(
 			break;
 		case REALSXP:
 			do_binary_search<double,int>(
-				REAL_RO(x),
-				LENGTH(x),
-				REAL_RO(data),
-				LENGTH(data),
+				as_vctr<double>(x),
+				as_vctr<double>(data),
 				INTEGER(result),
 				Rf_asReal(tolerance),
 				Rf_asLogical(relative),
