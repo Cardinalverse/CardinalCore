@@ -130,11 +130,11 @@ struct chunks
 		// create slice
 		slice chunk = {
 			.begin = static_cast<ptrdiff_t>(i),
-			.end = static_cast<ptrdiff_t>(i + n)
+			.end = static_cast<ptrdiff_t>(i + chunksize)
 		};
 		// update members
+		i += chunksize;
 		--nchunks;
-		i += n;
 		// return slice
 		return chunk;
 	}
