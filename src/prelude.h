@@ -20,24 +20,13 @@ double * data_ptr<double>(SEXP x)
 	return REAL(x);
 }
 
-//// Data Ptr (immutable)
-//-----------------------
-// Get an immutable data pointer from an object
+//// Min/Max
+//------------
 
-template<typename T>
-const T * data_ptr_const(SEXP x);
-
-template<> inline
-const int * data_ptr_const<int>(SEXP x)
-{
-	return INTEGER_RO(x);
-}
-
-template<> inline
-const double * data_ptr_const<double>(SEXP x)
-{
-	return REAL_RO(x);
-}
+#define MIN2(x, y) ((x) < (y) ? (x) : (y))
+#define MIN3(x, y, z) (MIN2(MIN2((x), (y)), (z)))
+#define MAX2(x, y) ((x) > (y) ? (x) : (y))
+#define MAX3(x, y, z) (MAX2(MAX2((x), (y)), (z)))
 
 //// Structs
 //-----------
@@ -110,6 +99,44 @@ struct matrix
 	inline slice all_cols() const
 	{
 		return {0, static_cast<ptrdiff_t>(ncols)};
+	}
+};
+
+struct chunks
+{
+	size_t i;
+	size_t len;
+	int nchunks;
+
+	inline slice next()
+	{
+		// compute remaining items
+		size_t n = len - i;
+		// exit early if no remaining chunks or items
+		if ( nchunks == 0 || n == 0 )
+		{
+			return {
+				.begin = static_cast<ptrdiff_t>(len),
+				.end = static_cast<ptrdiff_t>(len)
+			};
+		}
+		// estimate size of next chunk
+		size_t chunksize = n / nchunks;
+		// adjust chunksize for remaining items
+		if ( chunksize < n * nchunks )
+			++chunksize;
+		else if ( chunksize > n )
+			chunksize = n;
+		// create slice
+		slice chunk = {
+			.begin = static_cast<ptrdiff_t>(i),
+			.end = static_cast<ptrdiff_t>(i + n)
+		};
+		// update members
+		--nchunks;
+		i += n;
+		// return slice
+		return chunk;
 	}
 };
 
@@ -194,6 +221,8 @@ double mkIncomparable<double>()
 
 //// Comparison
 //--------------
+// Comparisons handling incomparables (NAs and NaNs)
+
 // compute signed absolute or relative difference
 // * safe to use with incomparables (NAs and NaNs)
 // * incomparables sort last/highest (NA >> Inf)
@@ -232,9 +261,9 @@ double diff(
 
 template<typename T>
 void fill_buffer(
-	T * buffer,      // buffer to fill
+	T * buffer,            // buffer to fill
 	const size_t size,     // size of buffer
-	T init = 0,      // value to use to initialize
+	T init = 0,            // value to use to initialize
 	const T increment = 0, // increment init for each item
 	const int stride = 1)
 {

@@ -2,6 +2,27 @@
 #### Compute differences
 ## ---------------------
 
+chunks <- function(i, len, nchunks)
+{
+	function()
+	{
+		if ( nchunks == 0 )
+			return()
+		chunksize <- (len - i) %/% nchunks
+		if ( (len - i) %% nchunks > 0 )
+			chunksize <- chunksize + 1
+		if ( i + chunksize < len ) {
+			chunk <- c(i, i + chunksize)
+			i <<- i + chunksize
+		} else {
+			chunk <- c(i, len)
+			i <<- len
+		}
+		nchunks <<- nchunks - 1
+		chunk
+	}
+}
+
 col_sums <- function(
 	x, y = NULL,
 	group = NULL,

@@ -36,25 +36,21 @@ template<typename T>
 void col_sums(
 	const matrix<T> x, 
 	double * out_sums,
-	const int num_threads = 1)
+	int num_threads = 1)
 {
+	if ( x.nrows == 0 || x.ncols == 0 )
+		return;
 	fill_buffer<double>(out_sums, x.ncols);
+	num_threads = MIN2(num_threads, x.ncols);
 	if ( num_threads > 1 )
 	{
 		std::thread * workers = new std::thread[num_threads];
-		int chunksize = x.ncols / num_threads;
-		if ( x.ncols % num_threads > 0 )
-			chunksize += 1;
-		ptrdiff_t begin = 0, end = chunksize;
+		chunks c = chunks{0, x.ncols, num_threads};
 		for ( int i = 0; i < num_threads; ++i )
 		{
 			workers[i] = std::thread{
-				colrange_sums<T>, x, slice{begin, end}, out_sums
+				colrange_sums<T>, x, c.next(), out_sums
 			};
-			begin += chunksize;
-			end += chunksize;
-			if ( end > x.ncols )
-				end = x.ncols;
 		}
 		for ( int i = 0; i < num_threads; ++i )
 			workers[i].join();
@@ -72,30 +68,26 @@ void col_scatter_sums(
 	const int * group,
 	const size_t ngroups, 
 	double * out_sums,
-	const int num_threads = 1)
+	int num_threads = 1)
 {
+	if ( x.nrows == 0 || x.ncols == 0 )
+		return;
 	fill_buffer<double>(out_sums, x.ncols);
+	num_threads = MIN2(num_threads, x.ncols);
 	if ( num_threads > 1 )
 	{
 		std::thread * workers = new std::thread[num_threads];
-		int chunksize = x.ncols / num_threads;
-		if ( x.ncols % num_threads > 0 )
-			chunksize += 1;
-		ptrdiff_t begin = 0, end = chunksize;
+		chunks c = chunks{0, x.ncols, num_threads};
 		for ( int i = 0; i < num_threads; ++i )
 		{
 			workers[i] = std::thread{
 				colrange_scatter_sums<T>, 
 				x, 
-				slice{begin, end}, 
+				c.next(), 
 				group,
 				ngroups,
 				out_sums
 			};
-			begin += chunksize;
-			end += chunksize;
-			if ( end > x.ncols )
-				end = x.ncols;
 		}
 		for ( int i = 0; i < num_threads; ++i )
 			workers[i].join();
