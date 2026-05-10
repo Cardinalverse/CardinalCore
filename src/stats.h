@@ -18,21 +18,6 @@ void colrange_sums(
 }
 
 template<typename T>
-void colrange_scatter_sums(
-	const matrix<T> x, 
-	const slice range,
-	const int * group,
-	const size_t ngroups,
-	double * out_sums)
-{
-	for ( ptrdiff_t i = range.begin; i < range.end; ++i )
-	{
-		double * out_sums_i = out_sums + (i * ngroups);
-		kern_sum_grouped(x.col_vctr(i), group, ngroups, out_sums_i);
-	}
-}
-
-template<typename T>
 void col_sums(
 	const matrix<T> x, 
 	double * out_sums,
@@ -59,6 +44,21 @@ void col_sums(
 	else
 	{
 		colrange_sums<T>(x, x.all_cols(), out_sums);
+	}
+}
+
+template<typename T>
+void colrange_scatter_sums(
+	const matrix<T> x, 
+	const slice range,
+	const int * group,
+	const size_t ngroups,
+	double * out_sums)
+{
+	for ( ptrdiff_t i = range.begin; i < range.end; ++i )
+	{
+		double * out_sums_i = out_sums + (i * ngroups);
+		kern_scatter_sum(x.col_vctr(i), group, ngroups, out_sums_i);
 	}
 }
 

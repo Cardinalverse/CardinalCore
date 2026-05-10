@@ -67,7 +67,7 @@ double kern_sum(
 // * if abs = true, {} is absolute value
 // * returns sums via out_sums
 template<typename T>
-void kern_sum_grouped(
+void kern_scatter_sum(
 	const vctr<T> x,
 	const int * group,
 	const size_t ngroups,
