@@ -3,10 +3,10 @@
 
 extern "C" {
 
-SEXP do_qdiff(
-	SEXP x, 
-	SEXP ref, 
-	SEXP relative)
+//// Quicksort and Quickselect
+//----------------------------
+
+SEXP do_qdiff(SEXP x, SEXP ref, SEXP relative)
 {
 	if ( TYPEOF(x) != TYPEOF(ref) )
 		Rf_error("'x' and 'ref' must have the same data type");
@@ -37,27 +37,21 @@ SEXP do_qdiff(
 	return result;
 }
 
-SEXP do_qselect(
-	SEXP x, 
-	SEXP k)
+SEXP do_qselect(SEXP x, SEXP k)
 {
 	SEXP result = PROTECT(Rf_allocVector(TYPEOF(x), LENGTH(k)));
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
-			do_quick_select<int,int,int>(
-				INTEGER_RO(x),
-				LENGTH(x),
-				INTEGER_RO(k),
-				LENGTH(k),
+			quick_select<int,int,int>(
+				as_vctr<int>(x),
+				as_vctr<int>(k),
 				INTEGER(result));
 			break;
 		case REALSXP:
-			do_quick_select<double,int,int>(
-				REAL_RO(x),
-				LENGTH(x),
-				INTEGER_RO(k),
-				LENGTH(k),
+			quick_select<double,int,int>(
+				as_vctr<double>(x),
+				as_vctr<int>(k),
 				REAL(result));
 			break;
 		default:
@@ -74,19 +68,13 @@ SEXP do_qorder(SEXP x)
 	{
 		case INTSXP:
 			quick_order<int,int>(
-				INTEGER_RO(x),
-				0,
-				LENGTH(x),
-				INTEGER(result),
-				true);
+				as_vctr<int>(x),
+				INTEGER(result));
 			break;
 		case REALSXP:
 			quick_order<double,int>(
-				REAL_RO(x),
-				0,
-				LENGTH(x),
-				INTEGER(result),
-				true);
+				as_vctr<double>(x),
+				INTEGER(result));
 			break;
 		default:
 			Rf_error("'x' must be integer or double");
@@ -101,35 +89,28 @@ SEXP do_qmedian(SEXP x)
 	{
 		case INTSXP:
 			return Rf_ScalarReal(quick_median<int,int>(
-				INTEGER_RO(x),
-				LENGTH(x)));
+				as_vctr<int>(x)));
 			break;
 		case REALSXP:
 			return Rf_ScalarReal(quick_median<double,int>(
-				REAL_RO(x),
-				LENGTH(x)));
+				as_vctr<double>(x)));
 		default:
 			Rf_error("'x' must be integer or double");
 	}
 }
 
-SEXP do_qmad(
-	SEXP x, 
-	SEXP center, 
-	SEXP scale)
+SEXP do_qmad(SEXP x, SEXP center, SEXP scale)
 {
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
 			return Rf_ScalarReal(quick_mad<int,int>(
-				INTEGER_RO(x),
-				LENGTH(x),
+				as_vctr<int>(x),
 				Rf_asReal(center),
 				Rf_asReal(scale)));
 		case REALSXP:
 			return Rf_ScalarReal(quick_mad<double,int>(
-				REAL_RO(x),
-				LENGTH(x),
+				as_vctr<double>(x),
 				Rf_asReal(center),
 				Rf_asReal(scale)));
 		default:
@@ -151,7 +132,7 @@ SEXP do_bsearch(
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
-			do_binary_search<int,int>(
+			binary_search<int,int>(
 				as_vctr<int>(x),
 				as_vctr<int>(data),
 				INTEGER(result),
@@ -161,7 +142,7 @@ SEXP do_bsearch(
 				Rf_asInteger(nomatch));
 			break;
 		case REALSXP:
-			do_binary_search<double,int>(
+			binary_search<double,int>(
 				as_vctr<double>(x),
 				as_vctr<double>(data),
 				INTEGER(result),
@@ -177,9 +158,7 @@ SEXP do_bsearch(
 	return result;
 }
 
-SEXP do_col_sums(
-	SEXP x, 
-	SEXP num_threads)
+SEXP do_col_sums(SEXP x, SEXP num_threads)
 {
 	SEXP result = PROTECT(Rf_allocVector(REALSXP, Rf_ncols(x)));
 	switch(TYPEOF(x))
