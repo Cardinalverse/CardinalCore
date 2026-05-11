@@ -8,7 +8,7 @@
 //---------------------
 
 template<typename T>
-void subapply_sums(
+void sliceapply_sums(
 	const matrix<T> x,
 	const Axis axis,
 	const slice range,
@@ -46,7 +46,7 @@ void apply_sums(
 		for ( int i = 0; i < num_threads; ++i )
 		{
 			workers[i] = std::thread{
-				subapply_sums<T>, x, axis, c.next(), out_sums
+				sliceapply_sums<T>, x, axis, c.next(), out_sums
 			};
 		}
 		for ( int i = 0; i < num_threads; ++i )
@@ -55,12 +55,12 @@ void apply_sums(
 	}
 	else
 	{
-		subapply_sums<T>(x, axis, x.all_along(axis), out_sums);
+		sliceapply_sums<T>(x, axis, x.all_along(axis), out_sums);
 	}
 }
 
 template<typename T>
-void subapply_scatter_sums(
+void sliceapply_scatter_sums(
 	const matrix<T> x, 
 	const Axis axis,
 	const slice range,
@@ -103,7 +103,7 @@ void apply_scatter_sums(
 		for ( int i = 0; i < num_threads; ++i )
 		{
 			workers[i] = std::thread{
-				subapply_scatter_sums<T>, 
+				sliceapply_scatter_sums<T>, 
 				x, 
 				axis,
 				c.next(), 
@@ -118,7 +118,7 @@ void apply_scatter_sums(
 	}
 	else
 	{
-		subapply_scatter_sums<T>(
+		sliceapply_scatter_sums<T>(
 			x, 
 			axis,
 			x.all_along(axis), 

@@ -158,6 +158,9 @@ SEXP do_bsearch(
 	return result;
 }
 
+//// Matrix statistics
+//---------------------
+
 SEXP do_col_sums(SEXP x, SEXP num_threads)
 {
 	SEXP result = PROTECT(Rf_allocVector(REALSXP, Rf_ncols(x)));
@@ -211,6 +214,38 @@ SEXP do_col_scatter_sums(
 				Columns,
 				INTEGER(group),
 				Rf_asInteger(ngroups),
+				REAL(result), 
+				Rf_asInteger(num_threads));
+		}
+	}
+	UNPROTECT(1);
+	return result;
+}
+
+//// Matrix distances
+//--------------------
+
+SEXP do_col_dists_mkw(SEXP x, SEXP y, SEXP num_threads)
+{
+	SEXP result = PROTECT(Rf_allocMatrix(REALSXP, 
+		Rf_ncols(y), Rf_ncols(x)));
+	switch(TYPEOF(x))
+	{
+		case INTSXP:
+		{
+			apply_dists_mkw<int>(
+				as_matrix<int>(x), 
+				as_matrix<int>(y), 
+				Columns,
+				REAL(result), 
+				Rf_asInteger(num_threads));
+		}
+		case REALSXP:
+		{
+			apply_dists_mkw<double>(
+				as_matrix<double>(x), 
+				as_matrix<double>(y), 
+				Columns,
 				REAL(result), 
 				Rf_asInteger(num_threads));
 		}

@@ -1,58 +1,70 @@
 #ifndef CARDINAL_CORE_DIST
 #define CARDINAL_CORE_DIST
 
-#include "prelude.h"
+#include <thread>
+#include "kernels.h"
 
 //// Mikowski distance 
 //---------------------
 
-// computes Mikowski distances between vectors x and y
-// * dist = sum(w_i * |x_i - y_i|^p)^(1/p)
-// returns: the distance
 template<typename T>
-double dist_mkw(
-	const T * x,
-	const T * y,
-	size_t len,      // length of x and y
-	double p = 2,
-	int x_stride = 1,
-	int y_stride = 1,
-	const double * weights = nullptr)
+void sliceapply_dists_mkw(
+	const matrix<T> x,
+	const matrix<T> y,
+	const Axis axis,
+	const slice range,
+	double * out_dists)
 {
-	double D = 0;
-	double w_i = 1;
-	for ( size_t i = 0; i < len; ++i )
+	for ( ptrdiff_t i = range.begin; i < range.end; ++i )
 	{
-		if ( weights != nullptr )
-			w_i = weights[i];
-		else
-			w_i = 1;
-		double d_i = diff(x[i * x_stride], y[i * y_stride]);
-		D += std::pow(std::fabs(d_i), p);
+		double * out_dists_i = out_dists + (y.dim(axis) * i);
+		for ( size_t j = 0; j < y.dim(axis); ++j )
+		{
+			switch(axis) {
+				case Rows:
+					out_dists_i[j] = kern2_sum<T,T,Minus>(
+						x.row_vctr(i), y.row_vctr(j), nullptr, true, 2);
+					break;
+				case Columns:
+					out_dists_i[j] = kern2_sum<T,T,Minus>(
+						x.col_vctr(i), y.col_vctr(j), nullptr, true, 2);
+					break;
+			}
+		}
 	}
-	return std::pow(D, 1 / p);
 }
 
-// computes Mikowski distances on rows of matrices of x and y
-// * dist = sum(w_i * |x_i - y_i|^p)^(1/p)
-// returns: the distance
-template<typename Mat>
-void do_dist_mkw(
-	const Mat * x,
-	const Mat * y,
-	double p = 2,
-	const double * weights = nullptr)
+template<typename T>
+void apply_dists_mkw(
+	const matrix<T> x, 
+	const matrix<T> y, 
+	const Axis axis,
+	double * out_dists,
+	int num_threads = 1)
 {
-	for ( size_t i = 0; i < x->len; ++i )
+	if ( x.nrows == 0 || x.ncols == 0 )
+		return;
+	size_t n = x.dim(axis);
+	fill_buffer<double>(out_dists, n);
+	num_threads = MIN2(num_threads, n);
+	if ( num_threads > 1 )
 	{
-		if ( weights != nullptr )
-			w_i = weights[i];
-		else
-			w_i = 1;
-		double d_i = diff(x[i * x_stride], y[i * y_stride]);
-		D += std::pow(std::fabs(d_i), p);
+		std::thread * workers = new std::thread[num_threads];
+		chunks c = chunks{0, n, num_threads};
+		for ( int i = 0; i < num_threads; ++i )
+		{
+			workers[i] = std::thread{
+				sliceapply_dists_mkw<T>, x, y, axis, c.next(), out_dists
+			};
+		}
+		for ( int i = 0; i < num_threads; ++i )
+			workers[i].join();
+		delete [] workers;
 	}
-	return std::pow(D, 1 / p);
+	else
+	{
+		sliceapply_dists_mkw<T>(x, y, axis, x.all_along(axis), out_dists);
+	}
 }
 
 #endif // CARDINAL_CORE_DIST
