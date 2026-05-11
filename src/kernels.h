@@ -7,26 +7,26 @@
 //-------------------------
 
 enum Binop {
-	Addition,
-	Subtraction,
-	Multiplication,
-	Division
+	Plus,
+	Minus,
+	Multiply,
+	Divide
 };
 
 template<int Op>
 double do_binop(double x, double y);
 
 template<> inline
-double do_binop<Addition>(double x, double y) { return x + y; }
+double do_binop<Plus>(double x, double y) { return x + y; }
 
 template<> inline
-double do_binop<Subtraction>(double x, double y) { return x - y; }
+double do_binop<Minus>(double x, double y) { return x - y; }
 
 template<> inline
-double do_binop<Multiplication>(double x, double y) { return x * y; }
+double do_binop<Multiply>(double x, double y) { return x * y; }
 
 template<> inline
-double do_binop<Division>(double x, double y) { return x / y; }
+double do_binop<Divide>(double x, double y) { return x / y; }
 
 //// Unary kernels
 //-----------------
