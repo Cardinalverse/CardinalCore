@@ -65,7 +65,7 @@ double kern_sum(
 // where groups g are given by group[i]
 // * if weights are null, then all w_i = 1
 // * if abs = true, {} is absolute value
-// * returns sums via out_sums
+// * returns sums via out_sums (MUST already be zeroed)
 template<typename T>
 void kern_scatter_sum(
 	const vctr<T> x,
@@ -77,7 +77,6 @@ void kern_scatter_sum(
 	const bool abs = false,
 	const double p = 1)
 {
-	fill_buffer<double>(out_sums, ngroups);
 	for ( size_t i = 0; i < x.len; ++i )
 	{
 		if ( isIncomparable(x.at(i)) )

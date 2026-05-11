@@ -8,33 +8,45 @@
 //---------------------
 
 template<typename T>
-void colrange_sums(
-	const matrix<T> x, 
+void subapply_sums(
+	const matrix<T> x,
+	const Axis axis,
 	const slice range,
 	double * out_sums)
 {
 	for ( ptrdiff_t i = range.begin; i < range.end; ++i )
-		out_sums[i] = kern_sum<T>(x.col_vctr(i));
+	{
+		switch(axis) {
+			case Rows:
+				out_sums[i] = kern_sum<T>(x.row_vctr(i));
+				break;
+			case Columns:
+				out_sums[i] = kern_sum<T>(x.col_vctr(i));
+				break;
+		}
+	}
 }
 
 template<typename T>
-void col_sums(
+void apply_sums(
 	const matrix<T> x, 
+	const Axis axis,
 	double * out_sums,
 	int num_threads = 1)
 {
 	if ( x.nrows == 0 || x.ncols == 0 )
 		return;
-	fill_buffer<double>(out_sums, x.ncols);
-	num_threads = MIN2(num_threads, x.ncols);
+	size_t n = x.dim(axis);
+	fill_buffer<double>(out_sums, n);
+	num_threads = MIN2(num_threads, n);
 	if ( num_threads > 1 )
 	{
 		std::thread * workers = new std::thread[num_threads];
-		chunks c = chunks{0, x.ncols, num_threads};
+		chunks c = chunks{0, n, num_threads};
 		for ( int i = 0; i < num_threads; ++i )
 		{
 			workers[i] = std::thread{
-				colrange_sums<T>, x, c.next(), out_sums
+				subapply_sums<T>, x, axis, c.next(), out_sums
 			};
 		}
 		for ( int i = 0; i < num_threads; ++i )
@@ -43,13 +55,14 @@ void col_sums(
 	}
 	else
 	{
-		colrange_sums<T>(x, x.all_cols(), out_sums);
+		subapply_sums<T>(x, axis, x.all_along(axis), out_sums);
 	}
 }
 
 template<typename T>
-void colrange_scatter_sums(
+void subapply_scatter_sums(
 	const matrix<T> x, 
+	const Axis axis,
 	const slice range,
 	const int * group,
 	const size_t ngroups,
@@ -57,14 +70,22 @@ void colrange_scatter_sums(
 {
 	for ( ptrdiff_t i = range.begin; i < range.end; ++i )
 	{
-		double * out_sums_i = out_sums + (i * ngroups);
-		kern_scatter_sum(x.col_vctr(i), group, ngroups, out_sums_i);
+		double * out_sums_i = out_sums + (ngroups * i);
+		switch(axis) {
+			case Rows:
+				kern_scatter_sum(x.row_vctr(i), group, ngroups, out_sums_i);
+				break;
+			case Columns:
+				kern_scatter_sum(x.col_vctr(i), group, ngroups, out_sums_i);
+				break;
+		}
 	}
 }
 
 template<typename T>
-void col_scatter_sums(
+void apply_scatter_sums(
 	const matrix<T> x, 
+	const Axis axis,
 	const int * group,
 	const size_t ngroups, 
 	double * out_sums,
@@ -72,17 +93,19 @@ void col_scatter_sums(
 {
 	if ( x.nrows == 0 || x.ncols == 0 )
 		return;
-	fill_buffer<double>(out_sums, x.ncols);
-	num_threads = MIN2(num_threads, x.ncols);
+	size_t n = x.dim(axis);
+	fill_buffer<double>(out_sums, n * ngroups);
+	num_threads = MIN2(num_threads, n);
 	if ( num_threads > 1 )
 	{
 		std::thread * workers = new std::thread[num_threads];
-		chunks c = chunks{0, x.ncols, num_threads};
+		chunks c = chunks{0, n, num_threads};
 		for ( int i = 0; i < num_threads; ++i )
 		{
 			workers[i] = std::thread{
-				colrange_scatter_sums<T>, 
+				subapply_scatter_sums<T>, 
 				x, 
+				axis,
 				c.next(), 
 				group,
 				ngroups,
@@ -95,9 +118,10 @@ void col_scatter_sums(
 	}
 	else
 	{
-		colrange_scatter_sums<T>(
+		subapply_scatter_sums<T>(
 			x, 
-			x.all_cols(), 
+			axis,
+			x.all_along(axis), 
 			group,
 			ngroups,
 			out_sums);

@@ -165,15 +165,17 @@ SEXP do_col_sums(SEXP x, SEXP num_threads)
 	{
 		case INTSXP:
 		{
-			col_sums<int>(
+			apply_sums<int>(
 				as_matrix<int>(x), 
+				Columns,
 				REAL(result), 
 				Rf_asInteger(num_threads));
 		}
 		case REALSXP:
 		{
-			col_sums<double>(
+			apply_sums<double>(
 				as_matrix<double>(x), 
+				Columns,
 				REAL(result), 
 				Rf_asInteger(num_threads));
 		}
@@ -194,8 +196,9 @@ SEXP do_col_scatter_sums(
 	{
 		case INTSXP:
 		{
-			col_scatter_sums<int>(
+			apply_scatter_sums<int>(
 				as_matrix<int>(x), 
+				Columns,
 				INTEGER(group),
 				Rf_asInteger(ngroups),
 				REAL(result), 
@@ -203,8 +206,9 @@ SEXP do_col_scatter_sums(
 		}
 		case REALSXP:
 		{
-			col_scatter_sums<double>(
+			apply_scatter_sums<double>(
 				as_matrix<double>(x), 
+				Columns,
 				INTEGER(group),
 				Rf_asInteger(ngroups),
 				REAL(result), 

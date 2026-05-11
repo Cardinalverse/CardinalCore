@@ -65,6 +65,11 @@ struct vctr
 
 };
 
+enum Axis {
+	Rows,
+	Columns
+};
+
 template<typename T>
 struct matrix 
 {
@@ -79,6 +84,18 @@ struct matrix
 		const ptrdiff_t j) const
 	{
 		return ptr[(row_stride * i) + (col_stride * j)];
+	}
+
+	inline size_t dim(Axis axis) const
+	{
+		switch(axis) {
+			case Rows:
+				return nrows;
+			case Columns:
+				return ncols;
+			default:
+				return 0;
+		}
 	}
 
 	inline vctr<T> row_vctr(const ptrdiff_t i) const
@@ -100,6 +117,12 @@ struct matrix
 	{
 		return {0, static_cast<ptrdiff_t>(ncols)};
 	}
+
+	inline slice all_along(Axis axis) const
+	{
+		return {0, static_cast<ptrdiff_t>(dim(axis))};
+	}
+
 };
 
 struct chunks
