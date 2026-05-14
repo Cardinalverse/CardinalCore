@@ -32,6 +32,11 @@ double * data_ptr<double>(SEXP x)
 //-----------
 // Containers for common object types
 
+enum Axis {
+	Rows,
+	Columns
+};
+
 struct slice 
 {
 	ptrdiff_t begin;
@@ -44,6 +49,12 @@ struct slice
 		else
 			return 0;
 	}
+};
+
+struct groups 
+{
+	ptrdiff_t index;
+	int ngroups;
 };
 
 template<typename T>
@@ -63,11 +74,6 @@ struct vctr
 		return {0, static_cast<ptrdiff_t>(len)};
 	}
 
-};
-
-enum Axis {
-	Rows,
-	Columns
 };
 
 template<typename T>
@@ -242,6 +248,12 @@ double mkIncomparable<double>()
 	return NA_REAL;
 }
 
+//// Infinities
+//-----------------
+// Define infinite values
+#define POS_INF R_PosInf
+#define NEG_INF R_NegInf 
+
 //// Comparison
 //--------------
 // Comparisons handling incomparables (NAs and NaNs)
@@ -260,9 +272,9 @@ double diff(
 	if ( isIncomparable(x) && isIncomparable(ref) )
 		return 0.0;
 	else if ( isIncomparable(x) )
-		return R_PosInf; // NAs sort last so (x - ref) => +Inf
+		return POS_INF; // NAs sort last so (x - ref) => +Inf
 	else if ( isIncomparable(ref) )
-		return R_NegInf; // NAs sort last so (x - ref) => -Inf
+		return NEG_INF; // NAs sort last so (x - ref) => -Inf
 	else
 	{
 		if ( relative )
