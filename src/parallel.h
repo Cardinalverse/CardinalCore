@@ -38,7 +38,7 @@ struct threads
 
 	threads& operator=(threads&&) noexcept = delete;
 
-	void join_all() noexcept
+	bool join_all() noexcept
 	{
 		for ( int i = 0; i < count; ++i )
 		{
@@ -51,6 +51,7 @@ struct threads
 				tasks[i].detach();
 			}
 		}
+		return *ok;
 	}
 };
 

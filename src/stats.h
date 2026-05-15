@@ -47,7 +47,7 @@ void par_apply_kern(
 				x, axis, c.next(), out_values
 			};
 		}
-		if ( !ok )
+		if ( !work.join_all() )
 			Rf_error("one or more threads failed");
 	}
 	else
