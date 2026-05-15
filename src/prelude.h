@@ -51,9 +51,9 @@ struct slice
 	}
 };
 
-struct groups 
+struct groups
 {
-	ptrdiff_t index;
+	int * index;
 	int ngroups;
 };
 

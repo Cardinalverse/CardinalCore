@@ -127,10 +127,10 @@ double kern_reduce(
 		if ( isIncomparable(x.at(i)) )
 			continue;
 		double xi = static_cast<double>(x.at(i));
-		xi = std::pow(do_unop<Tform>(xi - c));
+		xi = std::pow(do_unop<Tform>(xi - c), p);
 		if ( weights != nullptr )
 			xi = weights[i] * xi;
-		xi = do_binop<Op>(accum, xi);
+		accum = do_binop<Op>(accum, xi);
 	}
 	return accum;
 }
@@ -157,7 +157,7 @@ void kern_accum(
 		if ( isIncomparable(x.at(i)) )
 			continue;
 		double xi = static_cast<double>(x.at(i));
-		xi = std::pow(do_unop<Tform>(xi - c));
+		xi = std::pow(do_unop<Tform>(xi - c), p);
 		if ( weights != nullptr )
 			xi = weights[i] * xi;
 		out_accum[i] = do_binop<Op>(out_accum[i], xi);
@@ -191,9 +191,9 @@ void kern_scatter(
 		double xi = static_cast<double>(x.at(i));
 		ptrdiff_t g = group.index[i];
 		if ( c != nullptr )
-			xi = std::pow(do_unop<Tform>(xi - c[g]));
+			xi = std::pow(do_unop<Tform>(xi - c[g]), p);
 		else
-			xi = std::pow(do_unop<Tform>(xi));
+			xi = std::pow(do_unop<Tform>(xi), p);
 		if ( weights != nullptr )
 			xi = weights[i] * xi;
 		out_accum[g] = do_binop<Op>(out_accum[i], xi);
@@ -208,30 +208,30 @@ void kern_scatter(
 // * if weights are null, then all w_i = 1
 // * if abs = true, {} is absolute value
 // returns: the sum
-template<typename Tx, typename Ty, int Op>
-double kern2_sum(
-	const vctr<Tx> x,
-	const vctr<Ty> y,
-	const double * weights = nullptr,
-	const bool abs = false,
-	const double p = 1)
-{
-	double sum = 0;
-	for ( size_t i = 0; i < x.len; ++i )
-	{
-		if ( isIncomparable(x.at(i)) || isIncomparable(y.at(i)) )
-			continue;
-		double xi = static_cast<double>(x.at(i));
-		double yi = static_cast<double>(y.at(i));
-		double di = do_binop<Op>(xi, yi);
-		if ( abs )
-			di = std::fabs(di);
-		if ( weights != nullptr )
-			sum += weights[i] * std::pow(di, p);
-		else
-			sum += std::pow(di, p);
-	}
-	return sum;
-}
+// template<typename Tx, typename Ty, int Op>
+// double kern2_sum(
+// 	const vctr<Tx> x,
+// 	const vctr<Ty> y,
+// 	const double * weights = nullptr,
+// 	const bool abs = false,
+// 	const double p = 1)
+// {
+// 	double sum = 0;
+// 	for ( size_t i = 0; i < x.len; ++i )
+// 	{
+// 		if ( isIncomparable(x.at(i)) || isIncomparable(y.at(i)) )
+// 			continue;
+// 		double xi = static_cast<double>(x.at(i));
+// 		double yi = static_cast<double>(y.at(i));
+// 		double di = do_binop<Op>(xi, yi);
+// 		if ( abs )
+// 			di = std::fabs(di);
+// 		if ( weights != nullptr )
+// 			sum += weights[i] * std::pow(di, p);
+// 		else
+// 			sum += std::pow(di, p);
+// 	}
+// 	return sum;
+// }
 
 #endif // CARDINAL_CORE_KERNELS
