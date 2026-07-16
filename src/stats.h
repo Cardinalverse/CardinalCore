@@ -11,10 +11,10 @@ template<typename T, int Tform, int Op>
 void apply_kern(
 	const matrix<T> x,
 	const Axis axis,
-	const slice range,
+	const slice region,
 	double * out_values)
 {
-	for ( ptrdiff_t i = range.begin; i < range.end; ++i )
+	for ( isize i = region.start; i < region.stop; ++i )
 	{
 		switch(axis) {
 			case Rows:

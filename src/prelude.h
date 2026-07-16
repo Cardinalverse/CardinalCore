@@ -1,6 +1,12 @@
 #ifndef CARDINAL_CORE_PRELUDE
 #define CARDINAL_CORE_PRELUDE
 
+//// Data Types
+//--------------
+
+using usize = std::size_t;
+using isize = std::ptrdiff_t;
+
 //// Data Ptr (mutable)
 //---------------------
 // Get a mutable data pointer from an object
@@ -39,15 +45,12 @@ enum Axis {
 
 struct slice 
 {
-	ptrdiff_t begin;
-	ptrdiff_t end;
+	isize start;
+	isize stop;
 
-	inline size_t size() const
+	inline isize width() const
 	{
-		if ( end > begin )
-			return static_cast<size_t>(end - begin);
-		else
-			return 0;
+		return stop - start;
 	}
 };
 
@@ -61,17 +64,17 @@ template<typename T>
 struct vctr 
 {
 	T * ptr;
-	size_t len;
-	ptrdiff_t stride;
+	isize len;
+	isize stride;
 
-	inline T at(const ptrdiff_t i) const
+	inline T at(const isize i) const
 	{
 		return ptr[stride * i];
 	}
 
 	inline slice all_elements() const
 	{
-		return {0, static_cast<ptrdiff_t>(len)};
+		return {0, len};
 	}
 
 };
@@ -80,19 +83,19 @@ template<typename T>
 struct matrix 
 {
 	T * ptr;
-	size_t nrows;
-	size_t ncols;
-	ptrdiff_t row_stride;
-	ptrdiff_t col_stride;
+	isize nrows;
+	isize ncols;
+	isize row_stride;
+	isize col_stride;
 
 	inline T at(
-		const ptrdiff_t i, 
-		const ptrdiff_t j) const
+		const isize i, 
+		const isize j) const
 	{
 		return ptr[(row_stride * i) + (col_stride * j)];
 	}
 
-	inline size_t dim(Axis axis) const
+	inline isize dim(Axis axis) const
 	{
 		switch(axis) {
 			case Rows:
@@ -104,53 +107,53 @@ struct matrix
 		}
 	}
 
-	inline vctr<T> row_vctr(const ptrdiff_t i) const
+	inline vctr<T> row_vctr(const isize i) const
 	{
 		return {ptr + (row_stride * i), ncols, col_stride};
 	}
 
-	inline vctr<T> col_vctr(const ptrdiff_t i) const
+	inline vctr<T> col_vctr(const isize i) const
 	{
 		return {ptr + (col_stride * i), nrows, row_stride};
 	}
 
 	inline slice all_rows() const
 	{
-		return {0, static_cast<ptrdiff_t>(nrows)};
+		return {0, nrows};
 	}
 
 	inline slice all_cols() const
 	{
-		return {0, static_cast<ptrdiff_t>(ncols)};
+		return {0, ncols};
 	}
 
 	inline slice all_along(Axis axis) const
 	{
-		return {0, static_cast<ptrdiff_t>(dim(axis))};
+		return {0, dim(axis)};
 	}
 
 };
 
 struct chunks
 {
-	size_t i;
-	size_t len;
+	isize i;
+	isize len;
 	int nchunks;
 
 	inline slice next()
 	{
 		// compute remaining items
-		size_t n = len - i;
+		isize n = len - i;
 		// exit early if no remaining chunks or items
 		if ( nchunks == 0 || n == 0 )
 		{
 			return {
-				.begin = static_cast<ptrdiff_t>(len),
-				.end = static_cast<ptrdiff_t>(len)
+				.start = len,
+				.stop = len
 			};
 		}
 		// estimate size of next chunk
-		size_t chunksize = n / nchunks;
+		isize chunksize = n / nchunks;
 		// adjust chunksize for remaining items
 		if ( chunksize < n * nchunks )
 			++chunksize;
@@ -158,8 +161,8 @@ struct chunks
 			chunksize = n;
 		// create slice
 		slice chunk = {
-			.begin = static_cast<ptrdiff_t>(i),
-			.end = static_cast<ptrdiff_t>(i + chunksize)
+			.start = i,
+			.stop = i + chunksize
 		};
 		// update members
 		i += chunksize;
@@ -180,7 +183,7 @@ vctr<T> as_vctr(SEXP x)
 	{
 		return {
 			.ptr = data_ptr<T>(x),
-			.len = static_cast<size_t>(XLENGTH(x)),
+			.len = static_cast<isize>(XLENGTH(x)),
 			.stride = 1
 		};
 	}
@@ -201,8 +204,8 @@ matrix<T> as_matrix(SEXP x)
 	{
 		return {
 			.ptr = data_ptr<T>(x),
-			.nrows = static_cast<size_t>(Rf_nrows(x)),
-			.ncols = static_cast<size_t>(Rf_ncols(x)),
+			.nrows = static_cast<isize>(Rf_nrows(x)),
+			.ncols = static_cast<isize>(Rf_ncols(x)),
 			.row_stride = 1,
 			.col_stride = Rf_nrows(x)
 		};
@@ -259,9 +262,9 @@ double mkIncomparable<double>()
 // Comparisons handling incomparables (NAs and NaNs)
 
 // compute signed absolute or relative difference
-// * safe to use with incomparables (NAs and NaNs)
-// * incomparables sort last/highest (NA >> Inf)
-// * incomparables sort equal to each other (NA == NA)
+// - safe to use with incomparables (NAs and NaNs)
+// - incomparables sort last/highest (NA >> Inf)
+// - incomparables sort equal to each other (NA == NA)
 // returns: the difference
 template<typename T> inline
 double diff(
@@ -297,12 +300,12 @@ double diff(
 template<typename T>
 void fill_buffer(
 	T * buffer,            // buffer to fill
-	const size_t size,     // size of buffer
+	const isize size,     // size of buffer
 	T init = 0,            // value to use to initialize
 	const T increment = 0, // increment init for each item
 	const int stride = 1)
 {
-	for ( size_t i = 0; i < size; i++ )
+	for ( isize i = 0; i < size; i++ )
 	{
 		buffer[stride * i] = init;
 		init += increment;

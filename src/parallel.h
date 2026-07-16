@@ -8,8 +8,8 @@
 // This is a thin unsafe wrapper around a thread array
 // The flag is set to false if any threads fail to join
 // The caller takes responsiblity for ensuring:
-// * the flag has a lifetime that outlives the struct
-// * the flag is checked and handled appropriately
+// - the flag has a lifetime that outlives the struct
+// - the flag is checked and handled appropriately
 // Threads that fail to join will be detached
 
 struct threads

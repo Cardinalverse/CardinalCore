@@ -10,10 +10,10 @@
 #define LINEAR_THRESHOLD 8
 
 // select a pivot and partition x around the pivot such that
-// * partitions the indices of x via out_index
-// * all items left of pivot are <= pivot
-// * all items right of pivot are >= pivot
-// * incomparables sort last/highest (NA >> Inf)
+// - partitions the indices of x via out_index
+// - all items left of pivot are <= pivot
+// - all items right of pivot are >= pivot
+// - incomparables sort last/highest (NA >> Inf)
 // returns: pivot index
 template<typename T, typename Index>
 Index partition(
@@ -25,7 +25,7 @@ Index partition(
 	// we get item k via x[at[k]]
 	Index * at = out_index;
 	// find pivot by median of 1st/mid/last
-	Index pivot = static_cast<Index>((lo + hi) / 2);
+	Index pivot = (lo + hi) / 2;
 	if ( LESSER(x[at[pivot]], x[at[lo]]) )
 		SWAP(at[pivot], at[lo], Index);
 	if ( GREATER(x[at[pivot]], x[at[hi]]) )
@@ -35,8 +35,8 @@ Index partition(
 			SWAP(at[pivot], at[lo], Index);
 	}
 	// lo and hi are now partitioned so skip them
-	Index i = static_cast<Index>(lo + 1);
-	Index j = static_cast<Index>(hi - 1);
+	Index i = lo + 1;
+	Index j = hi - 1;
 	// use Hoare's partition method 
 	do {
 		// find next item less than pivot
@@ -71,18 +71,19 @@ Index partition(
 }
 
 // sort an array x using Hoare's quicksort algorithm
-// * sorts indices of x via out_index
-// * sorts indices of elements within range
-// * incomparables rank last/highest (NA >> Inf)
+// - sorts indices of x via out_index
+// - sorts indices of elements within region
+// - incomparables rank last/highest (NA >> Inf)
+// - region.width must be nonnegative
 template<typename T, typename Index>
 void quick_order(
 	const vctr<T> x, 
-	const slice range,
+	const slice region,
 	Index * out_index,
 	const bool init_out_index = false)
 {
 	// get the length of the slice
-	size_t n = range.size();
+	isize n = region.width();
 	if ( n == 0 )
 		return;
 	// fill out_index with sequential indices
@@ -91,11 +92,11 @@ void quick_order(
 	// we get item k via x[at[k]]
 	Index * at = out_index;
 	// initialize the stack
-	size_t stack_size = 2 * std::ceil(std::log2(n) + 1);
+	isize stack_size = 2 * std::ceil(std::log2(n) + 1);
 	Index * stack = R_Calloc(stack_size, Index);
 	Index top = -1;
-	Index lo = static_cast<Index>(range.begin);
-	Index hi = static_cast<Index>(range.end - 1);
+	Index lo = static_cast<Index>(region.start);
+	Index hi = static_cast<Index>(region.stop - 1);
 	stack[++top] = lo;
 	stack[++top] = hi;
 	// recursively partition the array
@@ -160,25 +161,26 @@ void quick_order(const vctr<T> x, Index * out_index)
 }
 
 // find the k-th ranked item of an array x
-// * partially sorts the indices of x via out_index
-// * incomparables rank last/highest (NA >> Inf)
+// - partially sorts the indices of x via out_index
+// - incomparables rank last/highest (NA >> Inf)
+// - region.width must be nonnegative
 // returns: index of k-th item
 template<typename T, typename Rank, typename Index>
 T quick_select(
 	const vctr<T> x,
-	const slice range,
+	const slice region,
 	const Rank k,
 	Index * out_index,
 	const bool init_out_index = false)
 {
 	// fill out_index with sequential indices
 	if ( init_out_index )
-		fill_buffer<Index>(out_index, range.size(), 0, x.stride);
+		fill_buffer<Index>(out_index, region.width(), 0, x.stride);
 	// we get item k via x[at[k]]
 	Index * at = out_index;
 	// recursively partition the array
-	Index lo = static_cast<Index>(range.begin);
-	Index hi = static_cast<Index>(range.end - 1);
+	Index lo = static_cast<Index>(region.start);
+	Index hi = static_cast<Index>(region.stop - 1);
 	do {
 		if ( lo == hi )
 			return x.ptr[at[lo]];
@@ -195,8 +197,8 @@ T quick_select(
 }
 
 // find the k-th ranked items of an array for multiple k's
-// * incomparables rank last/highest (NA >> Inf)
-// * returns the item values via out_values
+// - incomparables rank last/highest (NA >> Inf)
+// - returns the item values via out_values
 template<typename T, typename Rank, typename Index>
 void quick_select(const vctr<T> x, const vctr<Rank> k, T * out_values)
 {
@@ -204,15 +206,14 @@ void quick_select(const vctr<T> x, const vctr<Rank> k, T * out_values)
 	Index * work_index = R_Calloc(x.len, Index);
 	fill_buffer<Index>(work_index, x.len, 0, x.stride);
 	// loop through k's	
-	for ( size_t i = 0; i < k.len; ++i )
+	for ( isize i = 0; i < k.len; ++i )
 	{
-		ptrdiff_t slen = static_cast<ptrdiff_t>(x.len);
 		if ( i == 0 )
 			out_values[0] = quick_select<T,Index,Rank>(
-				x, slice{0, slen}, k.at(0), work_index);
+				x, slice{0, x.len}, k.at(0), work_index);
 		else if ( k.at(i) > k.at(i - 1) )
 			out_values[i] = quick_select<T,Index,Rank>(
-				x, slice{k.at(i - 1) + 1, slen}, k.at(i), work_index);
+				x, slice{k.at(i - 1) + 1, x.len}, k.at(i), work_index);
 		else if ( k.at(i) < k.at(i - 1) )
 			out_values[i] = quick_select<T,Index,Rank>(
 				x, slice{0, k.at(i - 1)}, k.at(i), work_index);
@@ -226,7 +227,7 @@ void quick_select(const vctr<T> x, const vctr<Rank> k, T * out_values)
 //-----------------
 
 // computes median of array x
-// * incomparables are ignored/removed
+// - incomparables are ignored/removed
 // returns: the median
 template<typename T, typename Index>
 double quick_median(const vctr<T> x)
@@ -240,7 +241,7 @@ double quick_median(const vctr<T> x)
 	fill_buffer<Index>(work_index, x.len, 0, x.stride);
 	// find number of comparable items
 	Index n = 0;
-	for ( size_t i = 0; i < x.len; ++i )
+	for ( isize i = 0; i < x.len; ++i )
 	{
 		if ( !isIncomparable(x.at(i)) )
 			++n;
@@ -249,7 +250,7 @@ double quick_median(const vctr<T> x)
 	Index k = n / 2;
 	if ( x.len % 2 == 0 )
 	{
-		ptrdiff_t len = static_cast<ptrdiff_t>(x.len);
+		isize len = x.len;
 		double m1 = quick_select<T,Index,Index>(
 			x, slice{0, len}, k - 1, work_index);
 		double m2 = quick_select<T,Index,Index>(
@@ -264,8 +265,8 @@ double quick_median(const vctr<T> x)
 }
 
 // computes MAD (Median Absolute Deviation) of array x
-// * incomparables are ignored/removed
-// * default scale is chosen so SD ~= MAD for if x ~ Normal
+// - incomparables are ignored/removed
+// - default scale is chosen so SD ~= MAD for if x ~ Normal
 // returns: the MAD
 template<typename T, typename Index>
 double quick_mad(const vctr<T> x, double center, double scale = 1.4826)
@@ -276,7 +277,7 @@ double quick_mad(const vctr<T> x, double center, double scale = 1.4826)
 		return mad;
 	// compute absolute deviations
 	double * dev = R_Calloc(x.len, double);
-	for ( size_t i = 0; i < x.len; ++i )
+	for ( isize i = 0; i < x.len; ++i )
 	{
 		if ( isIncomparable(x.at(i)) )
 			dev[i] = mkIncomparable<double>();
@@ -292,8 +293,8 @@ double quick_mad(const vctr<T> x, double center, double scale = 1.4826)
 //-----------------
 
 // binary search for query x in data array
-// * data must be sorted in non-decreasing order
-// * differences <= tolerance are considered matches
+// - data must be sorted in non-decreasing order
+// - differences <= tolerance are considered matches
 // returns: index of match
 template<typename T, typename Index>
 Index binary_search(
@@ -329,9 +330,9 @@ Index binary_search(
 }
 
 // binary search for multiple queries x in data array
-// * data must be sorted in non-decreasing order
-// * differences <= tolerance are considered matches
-// * returns matches via out_index
+// - data must be sorted in non-decreasing order
+// - differences <= tolerance are considered matches
+// - returns matches via out_index
 template<typename T, typename Index>
 void binary_search(
 	const vctr<T> x, 
@@ -342,7 +343,7 @@ void binary_search(
 	const bool nearest = false, 
 	const Index nomatch = -1)
 {
-	for ( size_t i = 0; i < x.len; ++i )
+	for ( isize i = 0; i < x.len; ++i )
 	{
 		if ( isIncomparable(x.at(i)) )
 			out_index[i] = nomatch;

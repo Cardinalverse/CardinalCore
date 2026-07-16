@@ -7,9 +7,9 @@
 //----------
 // All these functions should be considered unsafe
 // The caller takes responsiblity for ensuring:
-// * pointers are allocated and initialized
-// * arrays lengths are appropriate
-// * memory is later freed
+// - pointers are allocated and initialized
+// - arrays lengths are appropriate
+// - memory is later freed
 // These functions do not allocate
 
 //// Unary operations
@@ -108,10 +108,10 @@ double init_binop_accum()
 
 // kern_reduce<T,Tform,Op> -> double
 // computes Reduce(Op, w[i] * Tform(x[i] - c)^p)
-// * Tform is a Unop
-// * Op is a Binop
-// * if weights are null, then all w[i] = 1
-// * incomparables are skipped
+// - Tform is a Unop
+// - Op is a Binop
+// - if weights are null, then all w[i] = 1
+// - incomparables are skipped
 // returns: scalar double result from the reduction
 // e.g., if Op is Add, then returns the sum
 template<typename T, int Tform, int Op>
@@ -122,7 +122,7 @@ double kern_reduce(
 	const double * weights = nullptr)
 {
 	double accum = init_binop_accum<Op>();
-	for ( size_t i = 0; i < x.len; ++i )
+	for ( isize i = 0; i < x.len; ++i )
 	{
 		if ( isIncomparable(x.at(i)) )
 			continue;
@@ -137,12 +137,12 @@ double kern_reduce(
 
 // kern_accum<T,Tform,Op> -> void
 // computes out_accum[i] = Op(out_accum[i], w[i] * Tform(x[i] - c)^p))
-// * Tform is a Unop
-// * Op is a Binop
-// * out_accum MUST be initialized already
-// * out_accum MUST have length equal to x.len
-// * if weights are null, then all w[i] = 1
-// * incomparables are skipped
+// - Tform is a Unop
+// - Op is a Binop
+// - out_accum MUST be initialized already
+// - out_accum MUST have length equal to x.len
+// - if weights are null, then all w[i] = 1
+// - incomparables are skipped
 // returns: nothing
 template<typename T, int Tform, int Op>
 void kern_accum(
@@ -152,7 +152,7 @@ void kern_accum(
 	const double p = 1,
 	const double * weights = nullptr)
 {
-	for ( size_t i = 0; i < x.len; ++i )
+	for ( isize i = 0; i < x.len; ++i )
 	{
 		if ( isIncomparable(x.at(i)) )
 			continue;
@@ -167,13 +167,13 @@ void kern_accum(
 // kern_scatter<T,Tform,Op> -> void
 // computes out_accum[g] = Reduce(Op, w[i] * Tform(x[i] - c[g])^p)
 // where groups g are given by group.index[i]
-// * Tform is a Unop
-// * Op is a Binop
-// * out_accum MUST be initialized already
-// * out_accum MUST have size >= x.len
-// * if c is not null, c MUST have size >= groups.ngroups
-// * if weights are null, then all w[i] = 1
-// * incomparables are skipped
+// - Tform is a Unop
+// - Op is a Binop
+// - out_accum MUST be initialized already
+// - out_accum MUST have size >= x.len
+// - if c is not null, c MUST have size >= groups.ngroups
+// - if weights are null, then all w[i] = 1
+// - incomparables are skipped
 // returns: nothing
 template<typename T, int Tform, int Op>
 void kern_scatter(
@@ -184,12 +184,12 @@ void kern_scatter(
 	const double p = 1,
 	const double * weights = nullptr)
 {
-	for ( size_t i = 0; i < x.len; ++i )
+	for ( isize i = 0; i < x.len; ++i )
 	{
 		if ( isIncomparable(x.at(i)) )
 			continue;
 		double xi = static_cast<double>(x.at(i));
-		ptrdiff_t g = group.index[i];
+		isize g = group.index[i];
 		if ( c != nullptr )
 			xi = std::pow(do_unop<Tform>(xi - c[g]), p);
 		else
@@ -199,39 +199,5 @@ void kern_scatter(
 		out_accum[g] = do_binop<Op>(out_accum[i], xi);
 	}
 }
-
-//// Binary kernels
-//------------------
-
-// computes sum(w_i * {x_i @ y_i}^p)
-// where operation @ is a Binop given by <Op>
-// * if weights are null, then all w_i = 1
-// * if abs = true, {} is absolute value
-// returns: the sum
-// template<typename Tx, typename Ty, int Op>
-// double kern2_sum(
-// 	const vctr<Tx> x,
-// 	const vctr<Ty> y,
-// 	const double * weights = nullptr,
-// 	const bool abs = false,
-// 	const double p = 1)
-// {
-// 	double sum = 0;
-// 	for ( size_t i = 0; i < x.len; ++i )
-// 	{
-// 		if ( isIncomparable(x.at(i)) || isIncomparable(y.at(i)) )
-// 			continue;
-// 		double xi = static_cast<double>(x.at(i));
-// 		double yi = static_cast<double>(y.at(i));
-// 		double di = do_binop<Op>(xi, yi);
-// 		if ( abs )
-// 			di = std::fabs(di);
-// 		if ( weights != nullptr )
-// 			sum += weights[i] * std::pow(di, p);
-// 		else
-// 			sum += std::pow(di, p);
-// 	}
-// 	return sum;
-// }
 
 #endif // CARDINAL_CORE_KERNELS
