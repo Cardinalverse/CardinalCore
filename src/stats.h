@@ -8,7 +8,7 @@
 //---------------------
 
 template<typename T, int Tform, int Op>
-void apply_kern(
+void kern_apply(
 	const matrix<T> x,
 	const Axis axis,
 	const slice region,
@@ -28,7 +28,7 @@ void apply_kern(
 }
 
 template<typename T, int Tform, int Op>
-void par_apply_kern(
+void kern_applyt(
 	const matrix<T> x, 
 	const Axis axis,
 	double * out_values,
@@ -43,7 +43,7 @@ void par_apply_kern(
 		for ( int i = 0; i < num_threads; ++i )
 		{
 			work.tasks[i] = std::thread{
-				apply_kern<T,Tform,Op>, 
+				kern_apply<T,Tform,Op>, 
 				x, axis, c.next(), out_values
 			};
 		}
@@ -52,7 +52,7 @@ void par_apply_kern(
 	}
 	else
 	{
-		apply_kern<T,Tform,Op>(
+		kern_apply<T,Tform,Op>(
 			x, axis, x.all_along(axis), out_values);
 	}
 }

@@ -106,22 +106,22 @@ double init_binop_accum()
 //// Unary kernels
 //-----------------
 
-// kern_reduce<T,Tform,Op> -> double
-// computes Reduce(Op, w[i] * Tform(x[i] - c)^p)
+// kern_reduce<T,Tform,Reduce> -> double
+// => Reduce(..., w[i] * Tform(x[i] - c)^p)
 // - Tform is a Unop
-// - Op is a Binop
+// - Reduce is a Binop
 // - if weights are null, then all w[i] = 1
 // - incomparables are skipped
 // returns: scalar double result from the reduction
-// e.g., if Op is Add, then returns the sum
-template<typename T, int Tform, int Op>
+// e.g., if Reduce is Add, then returns the sum
+template<typename T, int Tform, int Reduce>
 double kern_reduce(
 	const vctr<T> x,
 	const double c = 0,
 	const double p = 1,
 	const double * weights = nullptr)
 {
-	double accum = init_binop_accum<Op>();
+	double accum = init_binop_accum<Reduce>();
 	for ( isize i = 0; i < x.len; ++i )
 	{
 		if ( isIncomparable(x.at(i)) )
@@ -130,21 +130,21 @@ double kern_reduce(
 		xi = std::pow(do_unop<Tform>(xi - c), p);
 		if ( weights != nullptr )
 			xi = weights[i] * xi;
-		accum = do_binop<Op>(accum, xi);
+		accum = do_binop<Reduce>(accum, xi);
 	}
 	return accum;
 }
 
-// kern_accum<T,Tform,Op> -> void
-// computes out_accum[i] = Op(out_accum[i], w[i] * Tform(x[i] - c)^p))
+// kern_accum<T,Tform,Reduce> -> void
+// => out_accum[i] = Reduce(out_accum[i], w[i] * Tform(x[i] - c)^p))
 // - Tform is a Unop
-// - Op is a Binop
+// - Reduce is a Binop
 // - out_accum MUST be initialized already
 // - out_accum MUST have length equal to x.len
 // - if weights are null, then all w[i] = 1
 // - incomparables are skipped
 // returns: nothing
-template<typename T, int Tform, int Op>
+template<typename T, int Tform, int Reduce>
 void kern_accum(
 	const vctr<T> x,
 	double * out_accum,
@@ -160,22 +160,22 @@ void kern_accum(
 		xi = std::pow(do_unop<Tform>(xi - c), p);
 		if ( weights != nullptr )
 			xi = weights[i] * xi;
-		out_accum[i] = do_binop<Op>(out_accum[i], xi);
+		out_accum[i] = do_binop<Reduce>(out_accum[i], xi);
 	}
 }
 
-// kern_scatter<T,Tform,Op> -> void
-// computes out_accum[g] = Reduce(Op, w[i] * Tform(x[i] - c[g])^p)
+// kern_scatter<T,Tform,Reduce> -> void
+// => out_accum[g] = Reduce(Reduce, w[i] * Tform(x[i] - c[g])^p)
 // where groups g are given by group.index[i]
 // - Tform is a Unop
-// - Op is a Binop
+// - Reduce is a Binop
 // - out_accum MUST be initialized already
 // - out_accum MUST have size >= x.len
 // - if c is not null, c MUST have size >= groups.ngroups
 // - if weights are null, then all w[i] = 1
 // - incomparables are skipped
 // returns: nothing
-template<typename T, int Tform, int Op>
+template<typename T, int Tform, int Reduce>
 void kern_scatter(
 	const vctr<T> x,
 	const groups group,
@@ -196,7 +196,7 @@ void kern_scatter(
 			xi = std::pow(do_unop<Tform>(xi), p);
 		if ( weights != nullptr )
 			xi = weights[i] * xi;
-		out_accum[g] = do_binop<Op>(out_accum[i], xi);
+		out_accum[g] = do_binop<Reduce>(out_accum[i], xi);
 	}
 }
 

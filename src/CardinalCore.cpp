@@ -169,7 +169,7 @@ SEXP do_col_sums(SEXP x, SEXP num_threads)
 	{
 		case INTSXP:
 		{
-			par_apply_kern<int,Noop,Add>(
+			kern_applyt<int,Noop,Add>(
 				as_matrix<int>(x), 
 				Columns,
 				REAL(result), 
@@ -177,7 +177,7 @@ SEXP do_col_sums(SEXP x, SEXP num_threads)
 		}
 		case REALSXP:
 		{
-			par_apply_kern<double,Noop,Add>(
+			kern_applyt<double,Noop,Add>(
 				as_matrix<double>(x), 
 				Columns,
 				REAL(result), 
