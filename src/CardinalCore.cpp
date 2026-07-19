@@ -119,23 +119,23 @@ SEXP do_qmad(SEXP x, SEXP center, SEXP scale)
 }
 
 SEXP do_bsearch(
+	SEXP query, 
 	SEXP x, 
-	SEXP data, 
 	SEXP tolerance, 
 	SEXP relative, 
 	SEXP nearest, 
 	SEXP nomatch)
 {
-	if ( TYPEOF(x) != TYPEOF(data) )
-		Rf_error("'x' and 'data' must have the same data type");
-	SEXP result = PROTECT(Rf_allocVector(INTSXP, LENGTH(x)));
+	if ( TYPEOF(query) != TYPEOF(x) )
+		Rf_error("'query' and 'x' must have the same data type");
+	SEXP result = PROTECT(Rf_allocVector(INTSXP, LENGTH(query)));
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
 			binary_search<int,int>(
 				INTEGER(result),
+				as_vctr<int>(query),
 				as_vctr<int>(x),
-				as_vctr<int>(data),
 				Rf_asReal(tolerance),
 				Rf_asLogical(relative),
 				Rf_asLogical(nearest),
@@ -144,8 +144,8 @@ SEXP do_bsearch(
 		case REALSXP:
 			binary_search<double,int>(
 				INTEGER(result),
+				as_vctr<double>(query),
 				as_vctr<double>(x),
-				as_vctr<double>(data),
 				Rf_asReal(tolerance),
 				Rf_asLogical(relative),
 				Rf_asLogical(nearest),
