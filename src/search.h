@@ -292,36 +292,36 @@ double quick_mad(const vctr<T> x, double center, double scale = 1.4826)
 //// Binary search
 //-----------------
 
-// binary search for query x in data array
-// - data must be sorted in non-decreasing order
+// binary search for query in x
+// - x must be sorted in non-decreasing order
 // - differences <= tolerance are considered matches
 // returns: index of match
 template<typename T, typename Index>
 Index binary_search(
-	const T x,          // query
-	const vctr<T> data, // data to search for query
+	const T query, 
+	const vctr<T> x, 
 	const double tolerance = DBL_EPSILON, 
 	const bool relative = false, 
 	const bool nearest = false,
 	const Index nomatch = -1)
 {
-	if ( data.len == 0 )
+	if ( x.len == 0 )
 		return nomatch;
 	Index lo = 0;
-	Index hi = static_cast<Index>(data.len - 1);
+	Index hi = static_cast<Index>(x.len - 1);
 	while ( lo <= hi )
 	{
 		Index mid = (lo + hi) / 2;
-		double d_mid = diff(data.at(mid), x, relative);
+		double d_mid = diff(x.at(mid), query, relative);
 		if ( d_mid < 0 )
 			lo = mid + 1;
 		else if ( d_mid > 0 )
 			hi = mid - 1;
 		else
-			return mid * data.stride;
+			return mid * x.stride;
 	}
-	double d_lo = std::fabs(diff(data.at(lo), x, relative));
-	double d_hi = std::fabs(diff(data.at(hi), x, relative));
+	double d_lo = std::fabs(diff(x.at(lo), query, relative));
+	double d_hi = std::fabs(diff(x.at(hi), query, relative));
 	if ( d_lo <= d_hi && (nearest || d_lo <= tolerance) )
 		return lo;
 	if ( d_hi <= d_lo && (nearest || d_hi <= tolerance) )
@@ -336,22 +336,22 @@ Index binary_search(
 template<typename T, typename Index>
 void binary_search(
 	Index * out_index,
-	const vctr<T> x, 
-	const vctr<T> data,
+	const vctr<T> query, 
+	const vctr<T> x,
 	const double tolerance = DBL_EPSILON, 
 	const bool relative = false,
 	const bool nearest = false, 
 	const Index nomatch = -1)
 {
-	for ( isize i = 0; i < x.len; ++i )
+	for ( isize i = 0; i < query.len; ++i )
 	{
-		if ( isIncomparable(x.at(i)) )
+		if ( isIncomparable(query.at(i)) )
 			out_index[i] = nomatch;
 		else
 		{
 			out_index[i] = binary_search<T,Index>(
-				x.at(i), 
-				data, 
+				query.at(i), 
+				x, 
 				tolerance, 
 				relative, 
 				nearest, 

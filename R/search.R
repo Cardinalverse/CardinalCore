@@ -51,15 +51,15 @@ qmad <- function(x, center = qmedian(x), constant = 1.4826)
 #### Binary search
 ## ----------------
 
-bsearch <- function(x, data, tolerance = 0,
+bsearch <- function(query, x, tolerance = 0,
 	relative = FALSE, nearest = FALSE, nomatch = NA_integer_)
 {
-	if ( is.integer(x) && is.double(data) )
+	if ( is.double(query) && is.integer(x) )
 		x <- as.double(x)
-	if ( is.double(x) && is.integer(data) )
-		data <- as.double(data)
-	if ( is.unsorted(data) )
-		stop("'data' must be sorted")
-	.Call(C_do_bsearch, x, data, tolerance,
+	if ( is.integer(query) && is.double(x) )
+		query <- as.double(query)
+	if ( is.unsorted(x) )
+		stop("'x' must be sorted")
+	.Call(C_do_bsearch, query, x, tolerance,
 		isTRUE(relative), isTRUE(nearest), as.integer(nomatch)) + 1L
 }
