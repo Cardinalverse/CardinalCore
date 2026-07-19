@@ -17,10 +17,10 @@
 // returns: pivot index
 template<typename T, typename Index>
 Index partition(
+	Index * out_index,
 	const T * x,
 	const Index lo, // index of first item to consider in x
-	const Index hi, // index of last item to consider in x
-	Index * out_index)
+	const Index hi) // index of last item to consider in x
 {
 	// we get item k via x[at[k]]
 	Index * at = out_index;
@@ -77,17 +77,17 @@ Index partition(
 // - region.width must be nonnegative
 template<typename T, typename Index>
 void quick_order(
+	Index * out_index,
 	const vctr<T> x, 
 	const slice region,
-	Index * out_index,
-	const bool init_out_index = false)
+	const bool init_index = false)
 {
 	// get the length of the slice
 	isize n = region.width();
 	if ( n == 0 )
 		return;
 	// fill out_index with sequential indices
-	if ( init_out_index )
+	if ( init_index )
 		fill_buffer<Index>(out_index, n, 0, x.stride);
 	// we get item k via x[at[k]]
 	Index * at = out_index;
@@ -120,7 +120,7 @@ void quick_order(
 			// skip to next subarray
 			continue;
 		}
-		Index pivot = partition<T,Index>(x.ptr, lo, hi, at);
+		Index pivot = partition<T,Index>(at, x.ptr, lo, hi);
 		// push larger subarray then smaller subarray
 		if ( pivot - lo < hi - pivot )
 		{
@@ -155,9 +155,9 @@ void quick_order(
 }
 
 template<typename T, typename Index>
-void quick_order(const vctr<T> x, Index * out_index)
+void quick_order(Index * out_index, const vctr<T> x)
 {
-	quick_order<T,Index>(x, x.all_elements(), out_index, true);
+	quick_order<T,Index>(out_index, x, x.all_elements(), true);
 }
 
 // find the k-th ranked item of an array x
@@ -167,14 +167,14 @@ void quick_order(const vctr<T> x, Index * out_index)
 // returns: index of k-th item
 template<typename T, typename Rank, typename Index>
 T quick_select(
+	Index * out_index,
 	const vctr<T> x,
 	const slice region,
 	const Rank k,
-	Index * out_index,
-	const bool init_out_index = false)
+	const bool init_index = false)
 {
 	// fill out_index with sequential indices
-	if ( init_out_index )
+	if ( init_index )
 		fill_buffer<Index>(out_index, region.width(), 0, x.stride);
 	// we get item k via x[at[k]]
 	Index * at = out_index;
@@ -184,7 +184,7 @@ T quick_select(
 	do {
 		if ( lo == hi )
 			return x.ptr[at[lo]];
-		Index pivot = partition<T,Index>(x.ptr, lo, hi, at);
+		Index pivot = partition<T,Index>(at, x.ptr, lo, hi);
 		// return k-th element or partition again
 		if ( k == pivot )
 			return x.ptr[at[k]];
@@ -200,27 +200,27 @@ T quick_select(
 // - incomparables rank last/highest (NA >> Inf)
 // - returns the item values via out_values
 template<typename T, typename Rank, typename Index>
-void quick_select(const vctr<T> x, const vctr<Rank> k, T * out_values)
+void quick_select(T * out_values, const vctr<T> x, const vctr<Rank> k)
 {
 	// set up working index buffer
-	Index * work_index = R_Calloc(x.len, Index);
-	fill_buffer<Index>(work_index, x.len, 0, x.stride);
+	Index * index = R_Calloc(x.len, Index);
+	fill_buffer<Index>(index, x.len, 0, x.stride);
 	// loop through k's	
 	for ( isize i = 0; i < k.len; ++i )
 	{
 		if ( i == 0 )
 			out_values[0] = quick_select<T,Index,Rank>(
-				x, slice{0, x.len}, k.at(0), work_index);
+				 index, x, slice{0, x.len}, k.at(0));
 		else if ( k.at(i) > k.at(i - 1) )
 			out_values[i] = quick_select<T,Index,Rank>(
-				x, slice{k.at(i - 1) + 1, x.len}, k.at(i), work_index);
+				index,  x, slice{k.at(i - 1) + 1, x.len}, k.at(i));
 		else if ( k.at(i) < k.at(i - 1) )
 			out_values[i] = quick_select<T,Index,Rank>(
-				x, slice{0, k.at(i - 1)}, k.at(i), work_index);
+				index, x, slice{0, k.at(i - 1)}, k.at(i));
 		else
 			out_values[i] = out_values[i - 1];
 	}
-	R_Free(work_index);
+	R_Free(index);
 }
 
 //// Median and MAD
@@ -237,8 +237,8 @@ double quick_median(const vctr<T> x)
 	if ( x.len == 0 )
 		return median;
 	// set up working index buffer
-	Index * work_index = R_Calloc(x.len, Index);
-	fill_buffer<Index>(work_index, x.len, 0, x.stride);
+	Index * index = R_Calloc(x.len, Index);
+	fill_buffer<Index>(index, x.len, 0, x.stride);
 	// find number of comparable items
 	Index n = 0;
 	for ( isize i = 0; i < x.len; ++i )
@@ -252,15 +252,15 @@ double quick_median(const vctr<T> x)
 	{
 		isize len = x.len;
 		double m1 = quick_select<T,Index,Index>(
-			x, slice{0, len}, k - 1, work_index);
+			index, x, slice{0, len}, k - 1);
 		double m2 = quick_select<T,Index,Index>(
-			x, slice{k, len}, k, work_index);
+			index, x, slice{k, len}, k);
 		median = 0.5 * (m1 + m2);
 	}
 	else
 		median = quick_select<T,Index,Index>(
-			x, x.all_elements(), k, work_index);
-	R_Free(work_index);
+			index, x, x.all_elements(), k);
+	R_Free(index);
 	return median;
 }
 
@@ -335,9 +335,9 @@ Index binary_search(
 // - returns matches via out_index
 template<typename T, typename Index>
 void binary_search(
+	Index * out_index,
 	const vctr<T> x, 
 	const vctr<T> data,
-	Index * out_index,
 	const double tolerance = DBL_EPSILON, 
 	const bool relative = false,
 	const bool nearest = false, 

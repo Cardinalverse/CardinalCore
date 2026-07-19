@@ -44,15 +44,15 @@ SEXP do_qselect(SEXP x, SEXP k)
 	{
 		case INTSXP:
 			quick_select<int,int,int>(
+				INTEGER(result),
 				as_vctr<int>(x),
-				as_vctr<int>(k),
-				INTEGER(result));
+				as_vctr<int>(k));
 			break;
 		case REALSXP:
 			quick_select<double,int,int>(
+				REAL(result),
 				as_vctr<double>(x),
-				as_vctr<int>(k),
-				REAL(result));
+				as_vctr<int>(k));
 			break;
 		default:
 			Rf_error("'x' must be integer or double");
@@ -68,13 +68,13 @@ SEXP do_qorder(SEXP x)
 	{
 		case INTSXP:
 			quick_order<int,int>(
-				as_vctr<int>(x),
-				INTEGER(result));
+				INTEGER(result),
+				as_vctr<int>(x));
 			break;
 		case REALSXP:
 			quick_order<double,int>(
-				as_vctr<double>(x),
-				INTEGER(result));
+				INTEGER(result),
+				as_vctr<double>(x));
 			break;
 		default:
 			Rf_error("'x' must be integer or double");
@@ -133,9 +133,9 @@ SEXP do_bsearch(
 	{
 		case INTSXP:
 			binary_search<int,int>(
+				INTEGER(result),
 				as_vctr<int>(x),
 				as_vctr<int>(data),
-				INTEGER(result),
 				Rf_asReal(tolerance),
 				Rf_asLogical(relative),
 				Rf_asLogical(nearest),
@@ -143,9 +143,9 @@ SEXP do_bsearch(
 			break;
 		case REALSXP:
 			binary_search<double,int>(
+				INTEGER(result),
 				as_vctr<double>(x),
 				as_vctr<double>(data),
-				INTEGER(result),
 				Rf_asReal(tolerance),
 				Rf_asLogical(relative),
 				Rf_asLogical(nearest),
