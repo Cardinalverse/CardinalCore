@@ -26,7 +26,7 @@ qdiff <- function(x, ref, relative = FALSE)
 qselect <- function(x, k = (length(x) + 1L) %/% 2L)
 {
 	if ( any(k < 1L | k > length(x)) )
-		stop("k includes out of bounds indices")
+		stop("k includes out of bounds subscripts")
 	.Call(C_do_qselect, x, as.integer(k - 1L))
 }
 
