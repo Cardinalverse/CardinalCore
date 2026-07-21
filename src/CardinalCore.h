@@ -5,6 +5,7 @@
 #include "R.h"
 #include "Rinternals.h"
 #include "search.h"
+#include "kernels.h"
 
 extern "C" {
 

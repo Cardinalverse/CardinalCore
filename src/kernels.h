@@ -1,6 +1,7 @@
 #ifndef CARDINAL_CORE_KERNELS
 #define CARDINAL_CORE_KERNELS
 
+#include <cmath>
 #include "core.h"
 
 //// Safety
@@ -53,6 +54,12 @@ double do_unop<Exp2>(double x) { return std::exp2(x); }
 template<> inline
 double do_unop<Expm1>(double x) { return std::expm1(x); }
 
+template<int Op>
+struct kern_unop
+{
+	double operator()(double x) { return do_unop<Op>(x); }
+};
+
 //// Binary operations
 //---------------------
 
@@ -87,7 +94,7 @@ template<> inline
 double do_binop<Min>(double x, double y) { return x < y ? x : y; }
 
 template<int Op>
-double init_binop_accum()
+double init_accum()
 {
 	switch(Op) {
 		case Add:
@@ -103,100 +110,53 @@ double init_binop_accum()
 	}
 }
 
-//// Unary kernels
-//-----------------
+//// Vector operations
+//---------------------
 
-// kern_reduce<T,Tform,Reduce> -> double
-// => Reduce(..., w[i] * Tform(x[i] - c)^p)
-// - Tform is a Unop
-// - Reduce is a Binop
-// - if weights are null, then all w[i] = 1
-// - incomparables are skipped
-// returns: scalar double result from the reduction
-// e.g., if Reduce is Add, then returns the sum
-template<typename T, int Tform, int Reduce>
-double kern_reduce(
-	const vctr<T> x,
-	const double c = 0,
-	const double p = 1,
-	const double * weights = nullptr)
-{
-	double accum = init_binop_accum<Reduce>();
-	for ( ptrdiff_t i = 0; i < x.len; ++i )
-	{
-		if ( isIncomparable(x.at(i)) )
-			continue;
-		double xi = static_cast<double>(x.at(i));
-		xi = std::pow(do_unop<Tform>(xi - c), p);
-		if ( weights != nullptr )
-			xi = weights[i] * xi;
-		accum = do_binop<Reduce>(accum, xi);
-	}
-	return accum;
-}
-
-// kern_accum<T,Tform,Reduce> -> void
-// => out_accum[i] = Reduce(out_accum[i], w[i] * Tform(x[i] - c)^p))
-// - Tform is a Unop
-// - Reduce is a Binop
-// - out_accum MUST be initialized already
-// - out_accum MUST have length equal to x.len
-// - if weights are null, then all w[i] = 1
-// - incomparables are skipped
-// returns: nothing
-template<typename T, int Tform, int Reduce>
-void kern_accum(
-	const vctr<T> x,
-	double * out_accum,
-	const double c = 0,
-	const double p = 1,
-	const double * weights = nullptr)
+template<int Reduce, typename Kernel, typename T>
+void elementwise(
+	vec<double> out,
+	const vec<T> x,
+	const Kernel kern = {})
 {
 	for ( ptrdiff_t i = 0; i < x.len; ++i )
 	{
-		if ( isIncomparable(x.at(i)) )
+		if ( isIncomparable(x[i]) )
 			continue;
-		double xi = static_cast<double>(x.at(i));
-		xi = std::pow(do_unop<Tform>(xi - c), p);
-		if ( weights != nullptr )
-			xi = weights[i] * xi;
-		out_accum[i] = do_binop<Reduce>(out_accum[i], xi);
+		double xi = static_cast<double>(x[i]);
+		out[i] = do_binop<Reduce>(out[i], kern(xi));
 	}
 }
 
-// kern_scatter<T,Tform,Reduce> -> void
-// => out_accum[g] = Reduce(Reduce, w[i] * Tform(x[i] - c[g])^p)
-// where groups g are given by group.index[i]
-// - Tform is a Unop
-// - Reduce is a Binop
-// - out_accum MUST be initialized already
-// - out_accum MUST have size >= x.len
-// - if c is not null, c MUST have size >= groups.ngroups
-// - if weights are null, then all w[i] = 1
-// - incomparables are skipped
-// returns: nothing
-template<typename T, int Tform, int Reduce>
-void kern_scatter(
-	const vctr<T> x,
-	const groups group,
-	double * out_accum,
-	const double * c = nullptr,
-	const double p = 1,
-	const double * weights = nullptr)
+template<int Reduce, typename Kernel, typename T>
+double reduce(
+	const vec<T> x,
+	const Kernel kern = {})
+{
+	double out = init_accum<Reduce>();
+	for ( ptrdiff_t i = 0; i < x.len; ++i )
+	{
+		if ( isIncomparable(x[i]) )
+			continue;
+		double xi = static_cast<double>(x[i]);
+		out = do_binop<Reduce>(out, kern(xi));
+	}
+	return out;
+}
+
+template<int Reduce, typename Kernel, typename Index, typename T>
+void scatter(
+	vec<double> out,
+	const Index * index,
+	const vec<T> x,
+	const Kernel kern = {})
 {
 	for ( ptrdiff_t i = 0; i < x.len; ++i )
 	{
-		if ( isIncomparable(x.at(i)) )
+		if ( isIncomparable(x[i]) )
 			continue;
-		double xi = static_cast<double>(x.at(i));
-		ptrdiff_t g = group.index[i];
-		if ( c != nullptr )
-			xi = std::pow(do_unop<Tform>(xi - c[g]), p);
-		else
-			xi = std::pow(do_unop<Tform>(xi), p);
-		if ( weights != nullptr )
-			xi = weights[i] * xi;
-		out_accum[g] = do_binop<Reduce>(out_accum[i], xi);
+		double xi = static_cast<double>(x[i]);
+		out[index[i]] = do_binop<Reduce>(out[index[i]], kern(xi));
 	}
 }
 

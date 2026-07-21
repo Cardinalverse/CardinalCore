@@ -123,27 +123,27 @@ struct vec
 	ptrdiff_t len;
 	ptrdiff_t stride;
 
-	inline T& operator[](const ptrdiff_t i)
+	T& operator[](const ptrdiff_t i)
 	{
 		return ptr[stride * i];
 	}
 
-	inline const T& operator[](const ptrdiff_t i) const
+	const T& operator[](const ptrdiff_t i) const
 	{
 		return ptr[stride * i];
 	}
 
-	inline void fill(T init = 0, T increment = 0)
+	void fill(T init = 0, T increment = 0)
 	{
 		fill_buffer(ptr, len, init, increment, stride);
 	}
 
-	inline slice all_elements() const
+	slice all_elements() const
 	{
 		return {0, len};
 	}
 
-	inline vec<T> subset(slice s) const
+	vec<T> subset(slice s) const
 	{
 		return {
 			.ptr = ptr + (stride * s.start), 
@@ -166,7 +166,7 @@ struct mat
 	ptrdiff_t row_stride;
 	ptrdiff_t col_stride;
 
-	inline vec<T> row(const ptrdiff_t i) const
+	vec<T> row(const ptrdiff_t i) const
 	{
 		return {
 			.ptr = ptr + (row_stride * i), 
@@ -175,7 +175,7 @@ struct mat
 		};
 	}
 
-	inline vec<T> col(const ptrdiff_t i) const
+	vec<T> col(const ptrdiff_t i) const
 	{
 		return {
 			.ptr = ptr + (col_stride * i), 
@@ -184,17 +184,17 @@ struct mat
 		};
 	}
 
-	inline slice all_rows() const
+	slice all_rows() const
 	{
 		return {0, nrows};
 	}
 
-	inline slice all_cols() const
+	slice all_cols() const
 	{
 		return {0, ncols};
 	}
 
-	inline mat<T> subset_rows(const slice s) const
+	mat<T> subset_rows(const slice s) const
 	{
 		return {
 			.ptr = ptr + (row_stride * s.start),
@@ -205,7 +205,7 @@ struct mat
 		};
 	}
 
-	inline mat<T> subset_cols(const slice s) const
+	mat<T> subset_cols(const slice s) const
 	{
 		return {
 			.ptr = ptr + (col_stride * s.start),
@@ -301,7 +301,7 @@ inline bool isIncomparable(double x)
 // - incomparables sort last/highest (NA >> Inf)
 // - incomparables sort equal to each other (NA == NA)
 // returns: the difference
-template<typename T> inline
+template<typename T>
 double diff(
 	const T x, 
 	const T ref, 
