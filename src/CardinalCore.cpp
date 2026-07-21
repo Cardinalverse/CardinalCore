@@ -18,13 +18,13 @@ SEXP do_qdiff(SEXP x, SEXP ref, SEXP relative)
 		switch(TYPEOF(x))
 		{
 			case INTSXP:
-				REAL(result)[i] = diff<int>(
+				REAL(result)[i] = diff(
 					INTEGER_ELT(x, i),
 					INTEGER_ELT(ref, i),
 					Rf_asLogical(relative));
 				break;
 			case REALSXP:
-				REAL(result)[i] = diff<double>(
+				REAL(result)[i] = diff(
 					REAL_ELT(x, i),
 					REAL_ELT(ref, i),
 					Rf_asLogical(relative));
@@ -43,16 +43,16 @@ SEXP do_qselect(SEXP x, SEXP k)
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
-			quick_select<int,int,int>(
+			quick_select(
 				INTEGER(result),
-				as_vctr<int>(x),
-				as_vctr<int>(k));
+				as_vec<int>(k),
+				as_vec<int>(x));
 			break;
 		case REALSXP:
-			quick_select<double,int,int>(
+			quick_select(
 				REAL(result),
-				as_vctr<double>(x),
-				as_vctr<int>(k));
+				as_vec<int>(k),
+				as_vec<double>(x));
 			break;
 		default:
 			Rf_error("'x' must be integer or double");
@@ -67,14 +67,14 @@ SEXP do_qorder(SEXP x)
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
-			quick_order<int,int>(
+			quick_order(
 				INTEGER(result),
-				as_vctr<int>(x));
+				as_vec<int>(x));
 			break;
 		case REALSXP:
-			quick_order<double,int>(
+			quick_order(
 				INTEGER(result),
-				as_vctr<double>(x));
+				as_vec<double>(x));
 			break;
 		default:
 			Rf_error("'x' must be integer or double");
@@ -88,12 +88,10 @@ SEXP do_qmedian(SEXP x)
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
-			return Rf_ScalarReal(quick_median<int,int>(
-				as_vctr<int>(x)));
+			return Rf_ScalarReal(quick_median(as_vec<int>(x)));
 			break;
 		case REALSXP:
-			return Rf_ScalarReal(quick_median<double,int>(
-				as_vctr<double>(x)));
+			return Rf_ScalarReal(quick_median(as_vec<double>(x)));
 		default:
 			Rf_error("'x' must be integer or double");
 	}
@@ -104,13 +102,13 @@ SEXP do_qmad(SEXP x, SEXP center, SEXP scale)
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
-			return Rf_ScalarReal(quick_mad<int,int>(
-				as_vctr<int>(x),
+			return Rf_ScalarReal(quick_mad(
+				as_vec<int>(x),
 				Rf_asReal(center),
 				Rf_asReal(scale)));
 		case REALSXP:
-			return Rf_ScalarReal(quick_mad<double,int>(
-				as_vctr<double>(x),
+			return Rf_ScalarReal(quick_mad(
+				as_vec<double>(x),
 				Rf_asReal(center),
 				Rf_asReal(scale)));
 		default:
@@ -132,20 +130,20 @@ SEXP do_bsearch(
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
-			binary_search<int,int>(
+			binary_search(
 				INTEGER(result),
-				as_vctr<int>(query),
-				as_vctr<int>(x),
+				as_vec<int>(query),
+				as_vec<int>(x),
 				Rf_asReal(tolerance),
 				Rf_asLogical(relative),
 				Rf_asLogical(nearest),
 				Rf_asInteger(nomatch));
 			break;
 		case REALSXP:
-			binary_search<double,int>(
+			binary_search(
 				INTEGER(result),
-				as_vctr<double>(query),
-				as_vctr<double>(x),
+				as_vec<double>(query),
+				as_vec<double>(x),
 				Rf_asReal(tolerance),
 				Rf_asLogical(relative),
 				Rf_asLogical(nearest),
@@ -161,33 +159,33 @@ SEXP do_bsearch(
 //// Matrix statistics
 //---------------------
 
-SEXP do_col_sums(SEXP x, SEXP num_threads)
-{
-	SEXP result = PROTECT(Rf_allocVector(REALSXP, Rf_ncols(x)));
-	fill_buffer<double>(REAL(result), XLENGTH(result));
-	switch(TYPEOF(x))
-	{
-		case INTSXP:
-		{
-			kern_applyt<int,Noop,Add>(
-				as_matrix<int>(x), 
-				Columns,
-				REAL(result), 
-				Rf_asInteger(num_threads));
-		}
-		case REALSXP:
-		{
-			kern_applyt<double,Noop,Add>(
-				as_matrix<double>(x), 
-				Columns,
-				REAL(result), 
-				Rf_asInteger(num_threads));
-		}
-	}
-	UNPROTECT(1);
-	return result;
-}
-
+// SEXP do_col_sums(SEXP x, SEXP num_threads)
+// {
+// 	SEXP result = PROTECT(Rf_allocVector(REALSXP, Rf_ncols(x)));
+// 	fill_buffer<double>(REAL(result), XLENGTH(result));
+// 	switch(TYPEOF(x))
+// 	{
+// 		case INTSXP:
+// 		{
+// 			kern_applyt<int,Noop,Add>(
+// 				as_mat<int>(x), 
+// 				Columns,
+// 				REAL(result), 
+// 				Rf_asInteger(num_threads));
+// 		}
+// 		case REALSXP:
+// 		{
+// 			kern_applyt<double,Noop,Add>(
+// 				as_mat<double>(x), 
+// 				Columns,
+// 				REAL(result), 
+// 				Rf_asInteger(num_threads));
+// 		}
+// 	}
+// 	UNPROTECT(1);
+// 	return result;
+// }
+//
 //// Matrix distances
 //--------------------
 

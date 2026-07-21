@@ -1,7 +1,7 @@
 #ifndef CARDINAL_CORE_KERNELS
 #define CARDINAL_CORE_KERNELS
 
-#include "prelude.h"
+#include "core.h"
 
 //// Safety
 //----------
@@ -122,7 +122,7 @@ double kern_reduce(
 	const double * weights = nullptr)
 {
 	double accum = init_binop_accum<Reduce>();
-	for ( isize i = 0; i < x.len; ++i )
+	for ( ptrdiff_t i = 0; i < x.len; ++i )
 	{
 		if ( isIncomparable(x.at(i)) )
 			continue;
@@ -152,7 +152,7 @@ void kern_accum(
 	const double p = 1,
 	const double * weights = nullptr)
 {
-	for ( isize i = 0; i < x.len; ++i )
+	for ( ptrdiff_t i = 0; i < x.len; ++i )
 	{
 		if ( isIncomparable(x.at(i)) )
 			continue;
@@ -184,12 +184,12 @@ void kern_scatter(
 	const double p = 1,
 	const double * weights = nullptr)
 {
-	for ( isize i = 0; i < x.len; ++i )
+	for ( ptrdiff_t i = 0; i < x.len; ++i )
 	{
 		if ( isIncomparable(x.at(i)) )
 			continue;
 		double xi = static_cast<double>(x.at(i));
-		isize g = group.index[i];
+		ptrdiff_t g = group.index[i];
 		if ( c != nullptr )
 			xi = std::pow(do_unop<Tform>(xi - c[g]), p);
 		else

@@ -16,9 +16,7 @@ static const R_CallMethodDef callMethods[] = {
 	CALLDEF(do_qmad, 3),
 	CALLDEF(do_bsearch, 6),
 	// matrix statistics
-	CALLDEF(do_col_sums, 2),
-	// matrix distances
-	// TODO
+	// CALLDEF(do_col_sums, 2),
 	{NULL, NULL, 0}
 };
 

@@ -14,7 +14,7 @@ void kern_apply(
 	const slice region,
 	double * out_values)
 {
-	for ( isize i = region.start; i < region.stop; ++i )
+	for ( ptrdiff_t i = region.start; i < region.stop; ++i )
 	{
 		switch(axis) {
 			case Rows:
