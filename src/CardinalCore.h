@@ -6,6 +6,7 @@
 #include "Rinternals.h"
 #include "search.h"
 #include "kernels.h"
+#include "stats.h"
 
 extern "C" {
 
@@ -21,7 +22,7 @@ SEXP do_bsearch(SEXP x, SEXP data, SEXP tolerance,
 
 //// Matrix statistics
 //---------------------
-// SEXP do_col_sums(SEXP x, SEXP num_threads);
+SEXP do_col_sums(SEXP x, SEXP num_threads);
 
 //// Matrix distances
 //-------------------

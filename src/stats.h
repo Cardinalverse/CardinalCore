@@ -7,44 +7,48 @@
 //// Matrix statistics
 //---------------------
 
-template<typename T, int Tform, int Op>
-void kern_apply(
-	const matrix<T> x,
-	const Axis axis,
-	const slice region,
-	double * out_values)
+template<typename Kernel, typename T>
+struct kern_col_sums
 {
-	for ( ptrdiff_t i = region.start; i < region.stop; ++i )
+	vec<double> out;
+	const mat<T> x;
+	const Kernel kern = {};
+
+	void operator()()
 	{
-		switch(axis) {
-			case Rows:
-				out_values[i] = kern_reduce<T,Tform,Op>(x.row_vctr(i));
-				break;
-			case Columns:
-				out_values[i] = kern_reduce<T,Tform,Op>(x.col_vctr(i));
-				break;
+		if ( x.row_stride > x.col_stride )
+		{
+			// row-major
+			for ( ptrdiff_t i = 0; i < x.nrows; ++i )
+				elementwise<Add>(out, x.row(i), kern);
+		}
+		else
+		{
+			// col-major
+			for ( ptrdiff_t j = 0; j < x.ncols; ++j )
+				out[j] = reduce<Add>(x.col(j), kern);
 		}
 	}
-}
+};
 
-template<typename T, int Tform, int Op>
-void kern_applyt(
-	const matrix<T> x, 
-	const Axis axis,
-	double * out_values,
+template<typename Kernel, typename T>
+void col_sums(
+	vec<double> out,
+	const mat<T> x, 
+	const Kernel kern = {},
 	int num_threads = 1)
 {
-	num_threads = MIN2(num_threads, x.dim(axis));
+	num_threads = MIN2(num_threads, x.ncols);
 	if ( num_threads > 1 )
 	{
 		bool ok = true;
 		threads work{num_threads, &ok};
-		chunks c{0, x.dim(axis), num_threads};
+		chunks chunk{num_threads, x.ncols};
 		for ( int i = 0; i < num_threads; ++i )
 		{
+			slice s = chunk(i);
 			work.tasks[i] = std::thread{
-				kern_apply<T,Tform,Op>, 
-				x, axis, c.next(), out_values
+				kern_col_sums{out.subset(s), x.subset_cols(s), kern}
 			};
 		}
 		if ( !work.join_all() )
@@ -52,8 +56,7 @@ void kern_applyt(
 	}
 	else
 	{
-		kern_apply<T,Tform,Op>(
-			x, axis, x.all_along(axis), out_values);
+		kern_col_sums{out, x, kern}();
 	}
 }
 

@@ -159,36 +159,31 @@ SEXP do_bsearch(
 //// Matrix statistics
 //---------------------
 
-// SEXP do_col_sums(SEXP x, SEXP num_threads)
-// {
-// 	SEXP result = PROTECT(Rf_allocVector(REALSXP, Rf_ncols(x)));
-// 	fill_buffer<double>(REAL(result), XLENGTH(result));
-// 	switch(TYPEOF(x))
-// 	{
-// 		case INTSXP:
-// 		{
-// 			kern_applyt<int,Noop,Add>(
-// 				as_mat<int>(x), 
-// 				Columns,
-// 				REAL(result), 
-// 				Rf_asInteger(num_threads));
-// 		}
-// 		case REALSXP:
-// 		{
-// 			kern_applyt<double,Noop,Add>(
-// 				as_mat<double>(x), 
-// 				Columns,
-// 				REAL(result), 
-// 				Rf_asInteger(num_threads));
-// 		}
-// 	}
-// 	UNPROTECT(1);
-// 	return result;
-// }
-//
-//// Matrix distances
-//--------------------
-
-// TODO
+SEXP do_col_sums(SEXP x, SEXP num_threads)
+{
+	SEXP result = PROTECT(Rf_allocVector(REALSXP, Rf_ncols(x)));
+	fill_buffer<double>(REAL(result), XLENGTH(result));
+	switch(TYPEOF(x))
+	{
+		case INTSXP:
+		{
+			col_sums(
+				as_vec<double>(result),
+				as_mat<int>(x),
+				kern_unop<Noop>{});
+			break;
+		}
+		case REALSXP:
+		{
+			col_sums(
+				as_vec<double>(result),
+				as_mat<int>(x),
+				kern_unop<Noop>{});
+			break;
+		}
+	}
+	UNPROTECT(1);
+	return result;
+}
 
 } // extern "C"

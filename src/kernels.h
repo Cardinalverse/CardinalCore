@@ -57,7 +57,10 @@ double do_unop<Expm1>(double x) { return std::expm1(x); }
 template<int Op>
 struct kern_unop
 {
-	double operator()(double x) { return do_unop<Op>(x); }
+	double operator()(double x) const 
+	{
+		return do_unop<Op>(x);
+	}
 };
 
 //// Binary operations
