@@ -170,15 +170,17 @@ SEXP do_col_sums(SEXP x, SEXP num_threads)
 			col_sums(
 				as_vec<double>(result),
 				as_mat<int>(x),
-				kern_unop<Noop>{});
+				kern_unop<Noop>{},
+				Rf_asInteger(num_threads));
 			break;
 		}
 		case REALSXP:
 		{
 			col_sums(
 				as_vec<double>(result),
-				as_mat<int>(x),
-				kern_unop<Noop>{});
+				as_mat<double>(x),
+				kern_unop<Noop>{},
+				Rf_asInteger(num_threads));
 			break;
 		}
 	}
