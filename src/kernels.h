@@ -1,23 +1,13 @@
 #ifndef CARDINAL_CORE_KERNELS
 #define CARDINAL_CORE_KERNELS
 
-#include <cmath>
 #include "core.h"
-
-//// Safety
-//----------
-// All these functions should be considered unsafe
-// The caller takes responsiblity for ensuring:
-// - pointers are allocated and initialized
-// - arrays lengths are appropriate
-// - memory is later freed
-// These functions do not allocate
 
 //// Unary operations
 //--------------------
 
 enum Unop {
-	Noop,
+	Identity,
 	Abs,
 	Log,
 	Log2,
@@ -31,7 +21,7 @@ template<int Op>
 double do_unop(double x);
 
 template<> inline
-double do_unop<Noop>(double x) { return x; }
+double do_unop<Identity>(double x) { return x; }
 
 template<> inline
 double do_unop<Abs>(double x) { return std::abs(x); }
@@ -115,6 +105,16 @@ double init_accum()
 
 //// Vector operations
 //---------------------
+
+template<int Reduce, typename Kernel>
+void elementwise(
+	vec<double> out,
+	const bounds b,
+	const Kernel kern = {})
+{
+	for ( ptrdiff_t i = b.start; i < b.stop; ++i )
+		out[i] = do_binop<Reduce>(out[i], kern(i));
+}
 
 template<int Reduce, typename Kernel, typename T>
 void elementwise(

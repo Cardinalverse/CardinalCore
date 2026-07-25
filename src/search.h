@@ -80,11 +80,11 @@ template<typename Index, typename T>
 void quick_order(
 	Index * out_index,
 	const vec<T> x, 
-	const slice s,
+	const bounds b,
 	const bool init_index = false)
 {
 	// check length of slice
-	if ( s.len() <= 0 )
+	if ( b.len() <= 0 )
 		return;
 	// fill out_index with sequential indices
 	if ( init_index )
@@ -93,11 +93,11 @@ void quick_order(
 	Index * at = out_index;
 	// initialize the stack
 	int stack_n = 2; // lo, hi
-	int stack_size = stack_n * std::bit_width(static_cast<size_t>(s.len()));
+	int stack_size = stack_n * std::bit_width(static_cast<size_t>(b.len()));
 	Index * stack = SAFE_ALLOC(stack_size, Index);
 	Index top = -1;
-	Index lo = s.start;
-	Index hi = s.stop - 1;
+	Index lo = b.start;
+	Index hi = b.stop - 1;
 	stack[++top] = lo;
 	stack[++top] = hi;
 	// recursively partition the array
@@ -174,7 +174,7 @@ T quick_select(
 	Index * out_index,
 	const Rank k,
 	const vec<T> x,
-	const slice s,
+	const bounds b,
 	const bool init_index = false)
 {
 	// fill out_index with sequential indices
@@ -183,8 +183,8 @@ T quick_select(
 	// we get item k via x[at[k]]
 	Index * at = out_index;
 	// recursively partition the array
-	Index lo = s.start;
-	Index hi = s.stop - 1;
+	Index lo = b.start;
+	Index hi = b.stop - 1;
 	do {
 		if ( lo == hi )
 			return x[at[lo]];

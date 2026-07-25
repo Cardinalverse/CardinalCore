@@ -1,11 +1,9 @@
 #ifndef CARDINAL_CORE_CORE
 #define CARDINAL_CORE_CORE
 
-//// Sizes
-//---------
-
-using std::size_t;
-using std::ptrdiff_t;
+#include <cassert>
+#include <cstddef>
+#include <cmath>
 
 //// Memory and errors
 //---------------------
@@ -34,37 +32,13 @@ double * data_ptr<double>(SEXP x)
 	return REAL(x);
 }
 
-//// Utility
-//-----------
-// Common idioms
-
-#define MIN2(x, y) ((x) < (y) ? (x) : (y))
-#define MIN3(x, y, z) (MIN2(MIN2((x), (y)), (z)))
-#define MAX2(x, y) ((x) > (y) ? (x) : (y))
-#define MAX3(x, y, z) (MAX2(MAX2((x), (y)), (z)))
-
-template<typename T>
-void fill_buffer(
-	T * buffer,            // buffer to fill
-	const ptrdiff_t size,     // size of buffer
-	const T init = 0,            // value to use to initialize
-	const T increment = 0,
-	const ptrdiff_t stride = 1) // increment init for each item
-{
-	for ( ptrdiff_t i = 0; i < size; i += stride )
-	{
-		buffer[i] = init + (i * increment);
-	}
-}
-
 //// Structs
 //-----------
 // Containers for common object types
 
-// A range of indices
+// Index bounds
 // - The interval is half-open: [start, stop)
-// - Owner MUST guarantee: start <= stop
-struct slice 
+struct bounds 
 {
 	ptrdiff_t start;
 	ptrdiff_t stop;
@@ -72,43 +46,6 @@ struct slice
 	inline ptrdiff_t len() const
 	{
 		return stop - start;
-	}
-};
-
-// Chunked slices over a number of items
-// - The nchunks is the number of chunks and MUST be >= 0
-// - The size is the number of items and MUST be >= 0
-// - Callable yields [start, stop) for ith chunk
-struct chunks
-{
-	ptrdiff_t nchunks;
-	ptrdiff_t size;
-
-	inline slice operator()(const ptrdiff_t i) const
-	{
-		if ( i < 0 )
-			return {0, 0};
-		if ( i >= nchunks )
-			return {size, size};
-		if ( nchunks <= 1 || size <= nchunks )
-			return {0, size};
-		ptrdiff_t chunksize = size / nchunks;
-		ptrdiff_t remainder = size % nchunks;
-		if ( i < remainder ) {
-			if ( remainder > 0 )
-				++chunksize;
-			return {
-				.start = chunksize * i,
-				.stop = chunksize * (i + 1),
-			};
-		}
-		else {
-			ptrdiff_t offset = (chunksize + 1) * remainder;
-			return {
-				.start = offset + (chunksize * (i - remainder)),
-				.stop = offset + (chunksize * (i - remainder + 1)),
-			};
-		}
 	}
 };
 
@@ -133,21 +70,16 @@ struct vec
 		return ptr[stride * i];
 	}
 
-	void fill(T init = 0, T increment = 0)
-	{
-		fill_buffer(ptr, len, init, increment, stride);
-	}
-
-	slice all_elements() const
+	bounds all_elements() const
 	{
 		return {0, len};
 	}
 
-	vec<T> subset(slice s) const
+	vec<T> subset(bounds b) const
 	{
 		return {
-			.ptr = ptr + (stride * s.start), 
-			.len = s.len(),
+			.ptr = ptr + (stride * b.start), 
+			.len = b.len(),
 			.stride = stride,
 		};
 	}
@@ -184,33 +116,33 @@ struct mat
 		};
 	}
 
-	slice all_rows() const
+	bounds all_rows() const
 	{
 		return {0, nrows};
 	}
 
-	slice all_cols() const
+	bounds all_cols() const
 	{
 		return {0, ncols};
 	}
 
-	mat<T> subset_rows(const slice s) const
+	mat<T> subset_rows(const bounds b) const
 	{
 		return {
-			.ptr = ptr + (row_stride * s.start),
-			.nrows = s.len(),
+			.ptr = ptr + (row_stride * b.start),
+			.nrows = b.len(),
 			.ncols = ncols,
 			.row_stride = row_stride,
 			.col_stride = col_stride,
 		};
 	}
 
-	mat<T> subset_cols(const slice s) const
+	mat<T> subset_cols(const bounds b) const
 	{
 		return {
-			.ptr = ptr + (col_stride * s.start),
+			.ptr = ptr + (col_stride * b.start),
 			.nrows = nrows,
-			.ncols = s.len(),
+			.ncols = b.len(),
 			.row_stride = row_stride,
 			.col_stride = col_stride,
 		};
@@ -328,5 +260,28 @@ double diff(
 #define GREATER_EQUAL(x, y) (diff((x), (y)) >= 0)
 #define EQUAL(x, y) (diff((x), (y)) == 0)
 #define NOT_EQUAL(x, y) (diff((x), (y)) != 0)
+
+//// Utility
+//-----------
+// Common idioms
+
+#define MIN2(x, y) ((x) < (y) ? (x) : (y))
+#define MIN3(x, y, z) (MIN2(MIN2((x), (y)), (z)))
+#define MAX2(x, y) ((x) > (y) ? (x) : (y))
+#define MAX3(x, y, z) (MAX2(MAX2((x), (y)), (z)))
+
+template<typename T>
+void fill_buffer(
+	T * buffer,            // buffer to fill
+	const ptrdiff_t size,     // size of buffer
+	const T init = 0,            // value to use to initialize
+	const T increment = 0,
+	const ptrdiff_t stride = 1) // increment init for each item
+{
+	for ( ptrdiff_t i = 0; i < size; i += stride )
+	{
+		buffer[i] = init + (i * increment);
+	}
+}
 
 #endif // CARDINAL_CORE_CORE
