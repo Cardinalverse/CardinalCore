@@ -3,6 +3,7 @@
 
 #include <bit>
 #include "core.h"
+#include "order.h"
 
 //// Binary search
 //-----------------

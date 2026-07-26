@@ -44,12 +44,12 @@ SEXP do_qorder(SEXP x)
 	{
 		case INTSXP:
 			quick_order(
-				as_vec<int>(result),
+				as_vec<int>(result).fill(0, 1),
 				as_vec<int>(x));
 			break;
 		case REALSXP:
 			quick_order(
-				as_vec<int>(result),
+				as_vec<int>(result).fill(0, 1),
 				as_vec<double>(x));
 			break;
 		default:
@@ -63,7 +63,7 @@ SEXP do_qselect(SEXP x, SEXP k)
 {
 	SEXP result = PROTECT(Rf_allocVector(TYPEOF(x), LENGTH(k)));
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, LENGTH(x)));
-	for ( R_len_t i = 0; i < LENGTH(x); ++i )
+	for ( R_len_t i = 0; i < LENGTH(k); ++i )
 	{
 		switch(TYPEOF(x))
 		{
@@ -77,13 +77,13 @@ SEXP do_qselect(SEXP x, SEXP k)
 				REAL(result)[i] = quick_select(
 					as_vec<int>(index).fill(0, 1),
 					as_vec<double>(x),
-					REAL_ELT(k, i));
+					INTEGER_ELT(k, i));
 				break;
 			default:
 				Rf_error("'x' must be integer or double");
 		}
 	}
-	UNPROTECT(1);
+	UNPROTECT(2);
 	return result;
 }
 

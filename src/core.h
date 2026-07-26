@@ -71,7 +71,7 @@ struct vec
 		return ptr[stride * i];
 	}
 
-	vec<T>& fill(
+	vec<T> fill(
 		const T value = 0,
 		const T step = 0)
 	{
