@@ -37,6 +37,28 @@ SEXP do_qdiff(SEXP x, SEXP ref, SEXP relative)
 	return result;
 }
 
+SEXP do_qorder(SEXP x)
+{
+	SEXP result = PROTECT(Rf_allocVector(INTSXP, LENGTH(x)));
+	switch(TYPEOF(x))
+	{
+		case INTSXP:
+			quick_order(
+				INTEGER(result),
+				as_vec<int>(x));
+			break;
+		case REALSXP:
+			quick_order(
+				INTEGER(result),
+				as_vec<double>(x));
+			break;
+		default:
+			Rf_error("'x' must be integer or double");
+	}
+	UNPROTECT(1);
+	return result;
+}
+
 SEXP do_qselect(SEXP x, SEXP k)
 {
 	SEXP result = PROTECT(Rf_allocVector(TYPEOF(x), LENGTH(k)));
@@ -52,28 +74,6 @@ SEXP do_qselect(SEXP x, SEXP k)
 			quick_select(
 				REAL(result),
 				as_vec<int>(k),
-				as_vec<double>(x));
-			break;
-		default:
-			Rf_error("'x' must be integer or double");
-	}
-	UNPROTECT(1);
-	return result;
-}
-
-SEXP do_qorder(SEXP x)
-{
-	SEXP result = PROTECT(Rf_allocVector(INTSXP, LENGTH(x)));
-	switch(TYPEOF(x))
-	{
-		case INTSXP:
-			quick_order(
-				INTEGER(result),
-				as_vec<int>(x));
-			break;
-		case REALSXP:
-			quick_order(
-				INTEGER(result),
 				as_vec<double>(x));
 			break;
 		default:

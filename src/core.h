@@ -218,49 +218,6 @@ inline bool isIncomparable(double x)
 	return ISNAN(x);
 }
 
-//// Infinities
-//-----------------
-// Define infinite values
-#define POS_INF R_PosInf
-#define NEG_INF R_NegInf 
-
-//// Comparison
-//--------------
-// Comparisons handling incomparables (NAs and NaNs)
-
-// compute signed absolute or relative difference
-// - safe to use with incomparables (NAs and NaNs)
-// - incomparables sort last/highest (NA >> Inf)
-// - incomparables sort equal to each other (NA == NA)
-// returns: the difference
-template<typename T>
-double diff(
-	const T x, 
-	const T ref, 
-	const bool relative = false)
-{
-	if ( isIncomparable(x) && isIncomparable(ref) )
-		return 0.0;
-	else if ( isIncomparable(x) )
-		return POS_INF; // NAs sort last so (x - ref) => +Inf
-	else if ( isIncomparable(ref) )
-		return NEG_INF; // NAs sort last so (x - ref) => -Inf
-	else
-	{
-		if ( relative )
-			return static_cast<double>(x - ref) / ref;
-		else
-			return static_cast<double>(x - ref);
-	}
-}
-
-#define LESSER(x, y) (diff((x), (y)) < 0)
-#define GREATER(x, y) (diff((x), (y)) > 0)
-#define LESSER_EQUAL(x, y) (diff((x), (y)) <= 0)
-#define GREATER_EQUAL(x, y) (diff((x), (y)) >= 0)
-#define EQUAL(x, y) (diff((x), (y)) == 0)
-#define NOT_EQUAL(x, y) (diff((x), (y)) != 0)
-
 //// Utility
 //-----------
 // Common idioms

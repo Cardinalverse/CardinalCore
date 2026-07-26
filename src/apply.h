@@ -137,10 +137,7 @@ struct kern_col_sums
 
 	void operator()(bounds b)
 	{
-		kern_col_sums<T>{
-			.out = out.subset(b),
-			.x = x.subset_cols(b),
-		}();
+		kern_col_sums<T>{out.subset(b), x.subset_cols(b)}();
 	}
 };
 

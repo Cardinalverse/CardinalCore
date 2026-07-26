@@ -97,9 +97,9 @@ double init_accum()
 		case Divide:
 			return 1;
 		case Max:
-			return NEG_INF;
+			return -INFINITY;
 		case Min:
-			return POS_INF;
+			return +INFINITY;
 	}
 }
 

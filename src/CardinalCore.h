@@ -4,19 +4,23 @@
 #define R_NO_REMAP
 #include "R.h"
 #include "Rinternals.h"
+#include "order.h"
 #include "search.h"
 #include "kernels.h"
 #include "apply.h"
 
 extern "C" {
 
-//// Search and selection
-//------------------------
+//// Sort and order
+//------------------
 SEXP do_qdiff(SEXP x, SEXP ref, SEXP relative);
-SEXP do_qselect(SEXP x, SEXP k);
 SEXP do_qorder(SEXP x);
+SEXP do_qselect(SEXP x, SEXP k);
 SEXP do_qmedian(SEXP x);
 SEXP do_qmad(SEXP x, SEXP center, SEXP constant);
+
+//// Search and nearest neighbors
+//--------------------------------
 SEXP do_bsearch(SEXP x, SEXP data, SEXP tolerance, 
 	SEXP relative, SEXP nearest, SEXP nomatch);
 
