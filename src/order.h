@@ -2,9 +2,9 @@
 #define CARDINAL_CORE_ORDER
 
 #include <bit>
+#include <memory>
 #include "core.h"
 
-#define SWAP(x, y, T) do { T swap = x; x = y; y = swap; } while (false)
 #define LINEAR_THRESHOLD 8
 
 //// Comparison
@@ -46,6 +46,20 @@ double diff(
 
 //// Quicksort and Quickselect
 //----------------------------
+// Sorting and selection routines
+
+// Swap items at indices i and j
+// - Returns the vec for convenience
+template<typename Index, typename T>
+void swap(
+	vec<T> x,
+	const Index i,
+	const Index j)
+{
+	T tmp = x[i];
+	x[i] = x[j];
+	x[j] = tmp;
+}
 
 // Select a pivot and partition x around the pivot such that
 // - Caller MUST initialize out_index with valid indices of x
@@ -55,22 +69,23 @@ double diff(
 // returns: pivot index
 template<typename Index, typename T>
 Index partition(
-	Index * out_index,
+	vec<Index> index,
 	const vec<T> x,
 	const Index lo, // index of first item to consider in x
 	const Index hi) // index of last item to consider in x
 {
-	// we get item k via x[at[k]]
-	Index * at = out_index;
+	// checks (debug only)
+	assert(lo <= hi);
+	assert(0 <= lo && lo < index.len);
+	assert(0 <= hi && hi < index.len);
 	// find pivot by median of 1st/mid/last
 	Index pivot = (lo + hi) / 2;
-	if ( LESSER(x[at[pivot]], x[at[lo]]) )
-		SWAP(at[pivot], at[lo], Index);
-	if ( GREATER(x[at[pivot]], x[at[hi]]) )
-	{
-		SWAP(at[pivot], at[hi], Index);
-		if ( LESSER(x[at[pivot]], x[at[lo]]) )
-			SWAP(at[pivot], at[lo], Index);
+	if ( LESSER(x[index[pivot]], x[index[lo]]) )
+		swap(index, pivot, lo);
+	if ( GREATER(x[index[pivot]], x[index[hi]]) ) {
+		swap(index, pivot, hi);
+		if ( LESSER(x[index[pivot]], x[index[lo]]) )
+			swap(index, pivot, lo);
 	}
 	// lo and hi are now partitioned so skip them
 	Index i = lo + 1;
@@ -78,13 +93,13 @@ Index partition(
 	// use Hoare's partition method 
 	do {
 		// find next item less than pivot
-		while ( LESSER(x[at[i]], x[at[pivot]]) ) ++i;
+		while ( LESSER(x[index[i]], x[index[pivot]]) ) ++i;
 		// find next item greater than pivot
-		while ( GREATER(x[at[j]], x[at[pivot]]) ) --j;
+		while ( GREATER(x[index[j]], x[index[pivot]]) ) --j;
 		// swap items (only if pointers haven't crossed)
-		if ( i < j && NOT_EQUAL(x[at[i]], x[at[j]]) )
+		if ( i < j && NOT_EQUAL(x[index[i]], x[index[j]]) )
 		{
-			SWAP(at[i], at[j], Index);
+			swap(index, i, j);
 			if ( pivot == i )
 				pivot = j;
 			else if ( pivot == j )
@@ -114,23 +129,18 @@ Index partition(
 // - Incomparables rank last/highest (NA >> Inf)
 template<typename Index, typename T>
 void quick_order(
-	Index * out_index,
+	vec<Index> index,
 	const vec<T> x, 
-	const bounds b,
-	const bool init_index = false)
+	const bounds b)
 {
-	// check length of slice
-	if ( b.len() <= 0 )
-		return;
-	// fill out_index with sequential indices
-	if ( init_index )
-		fill_buffer<Index>(out_index, x.len, 0, 1);
-	// we get item k via x[at[k]]
-	Index * at = out_index;
+	// checks (debug only)
+	assert(0 <= b.start && b.start < index.len);
+	assert(0 <= b.stop && b.stop <= index.len);
+	assert(b.len() >= 0);
 	// initialize the stack
 	int stack_n = 2; // lo, hi
 	int stack_size = stack_n * std::bit_width(static_cast<size_t>(b.len()));
-	Index * stack = SAFE_ALLOC(stack_size, Index);
+	std::unique_ptr<Index[]> stack = std::make_unique<Index[]>(stack_size);
 	Index top = -1;
 	Index lo = b.start;
 	Index hi = b.stop - 1;
@@ -148,16 +158,16 @@ void quick_order(
 			for ( Index i = lo + 1; i <= hi; ++i )
 			{
 				Index j = i;
-				while ( j > lo && LESSER(x[at[j]], x[at[j - 1]]) )
+				while ( j > lo && LESSER(x[index[j]], x[index[j - 1]]) )
 				{
-					SWAP(at[j], at[j - 1], Index);
+					swap(index, j, j - 1);
 					--j;
 				}
 			}
 			// skip to next subarray
 			continue;
 		}
-		Index pivot = partition(at, x, lo, hi);
+		Index pivot = partition(index, x, lo, hi);
 		// push larger subarray then smaller subarray
 		if ( pivot - lo < hi - pivot )
 		{
@@ -189,15 +199,14 @@ void quick_order(
 			}
 		}
 	}
-	SAFE_FREE(stack);
 }
 
 template<typename Index, typename T>
 void quick_order(
-	Index * out_index,
+	vec<Index> index,
 	const vec<T> x)
 {
-	quick_order(out_index, x, x.all_elements(), true);
+	quick_order(index, x, index.all_elements());
 }
 
 // Find the k-th ranked item of an array x
@@ -207,27 +216,26 @@ void quick_order(
 // returns: value of k-th item
 template<typename Index, typename Rank, typename T>
 T quick_select(
-	Index * out_index,
-	const Rank k,
+	vec<Index> index,
 	const vec<T> x,
-	const bounds b,
-	const bool init_index = false)
+	const Rank k,
+	const bounds b)
 {
-	// fill out_index with sequential indices
-	if ( init_index )
-		fill_buffer<Index>(out_index, x.len, 0, 1);
-	// we get item k via x[at[k]]
-	Index * at = out_index;
+	// checks (debug only)
+	assert(0 <= k && k < index.len);
+	assert(0 <= b.start && b.start < index.len);
+	assert(0 <= b.stop && b.stop <= index.len);
+	assert(b.len() >= 0);
 	// recursively partition the array
 	Index lo = b.start;
 	Index hi = b.stop - 1;
 	do {
 		if ( lo == hi )
-			return x[at[lo]];
-		Index pivot = partition(at, x, lo, hi);
+			return x[index[lo]];
+		Index pivot = partition(index, x, lo, hi);
 		// return k-th element or partition again
 		if ( k == pivot )
-			return x[at[k]];
+			return x[index[k]];
 		else if ( k < pivot )
 			hi = pivot - 1;
 		else
@@ -236,35 +244,13 @@ T quick_select(
 	while (true);
 }
 
-// Find the k-th ranked items of an array for multiple k's
-// - Caller SHOULD initialize out_index with valid indices of x
-// - Partially sorts indices of x such that x[out_index[k]] is a pivot
-// - Incomparables rank last/highest (NA >> Inf)
-template<typename Rank, typename T>
-void quick_select(
-	T * out_values, 
-	const vec<Rank> k,
-	const vec<T> x)
+template<typename Index, typename Rank, typename T>
+T quick_select(
+	vec<Index> index,
+	const vec<T> x,
+	const Rank k)
 {
-	// set up working index buffer
-	ptrdiff_t * index = SAFE_ALLOC(x.len, ptrdiff_t);
-	fill_buffer<ptrdiff_t>(index, x.len, 0, 1);
-	// loop through k's	
-	for ( ptrdiff_t i = 0; i < k.len; ++i )
-	{
-		if ( i == 0 )
-			out_values[0] = quick_select(
-				index, k[0], x, {0, x.len});
-		else if ( k[i] < k[i - 1] )
-			out_values[i] = quick_select(
-				index, k[i], x, {0, k[i - 1]});
-		else if ( k[i] > k[i - 1] )
-			out_values[i] = quick_select(
-				index, k[i], x, {k[i - 1] + 1, x.len});
-		else
-			out_values[i] = out_values[i - 1];
-	}
-	SAFE_FREE(index);
+	return quick_select(index, x, k, index.all_elements());
 }
 
 //// Median and MAD
@@ -273,7 +259,7 @@ void quick_select(
 // Computes median of array x
 // - Incomparables are ignored/removed
 // returns: the median
-template<typename T>
+template<typename Index = ptrdiff_t, typename T>
 double quick_median(const vec<T> x)
 {
 	// initialize result
@@ -281,52 +267,49 @@ double quick_median(const vec<T> x)
 	if ( x.len == 0 )
 		return median;
 	// set up working index buffer
-	ptrdiff_t * index = SAFE_ALLOC(x.len, ptrdiff_t);
-	fill_buffer<ptrdiff_t>(index, x.len, 0, 1);
+	std::unique_ptr<Index[]> pindex = std::make_unique<Index[]>(x.len);
+	vec<Index> index = vec{pindex.get(), x.len, 1}.fill(0, 1);
 	// find count of comparable items
-	ptrdiff_t count = 0;
-	for ( ptrdiff_t i = 0; i < x.len; ++i )
+	Index n = 0;
+	for ( Index i = 0; i < x.len; ++i )
 	{
 		if ( !isIncomparable(x[i]) )
-			++count;
+			++n;
 	}
 	// compute median
-	ptrdiff_t k = count / 2;
+	Index k = n / 2;
 	if ( x.len % 2 == 0 )
 	{
-		double m1 = quick_select(index, k - 1, x, {0, x.len});
-		double m2 = quick_select(index, k, x, {k, x.len});
-		median = 0.5 * (m1 + m2);
+		double m1 = quick_select(index, x, k - 1, {0, x.len});
+		double m2 = quick_select(index, x, k, {k, x.len});
+		return 0.5 * (m1 + m2);
 	}
 	else
-		median = quick_select(index, k, x, x.all_elements());
-	SAFE_FREE(index);
-	return median;
+	{
+		return quick_select(index, x, k, index.all_elements());
+	}
 }
 
 // Computes MAD (Median Absolute Deviation) of array x
 // - Incomparables are ignored/removed
 // - Default scale is chosen so SD ~= MAD for if x ~ Normal
 // returns: the MAD
-template<typename T>
-double quick_mad(const vec<T> x, double center, double scale = 1.4826)
+template<typename Index = ptrdiff_t, typename T>
+double quick_mad(const vec<T> x, double center, double constant = 1.4826)
 {
-	// initialize result
-	double mad = mkIncomparable<double>();
 	if ( x.len == 0 )
-		return mad;
+		return mkIncomparable<double>();
 	// compute absolute deviations
-	double * dev = SAFE_ALLOC(x.len, double);
-	for ( ptrdiff_t i = 0; i < x.len; ++i )
+	std::unique_ptr<double[]> pdevs = std::make_unique<double[]>(x.len);
+	vec<double> devs = {pdevs.get(), x.len, 1};
+	for ( Index i = 0; i < x.len; ++i )
 	{
 		if ( isIncomparable(x[i]) )
-			dev[i] = mkIncomparable<double>();
+			devs[i] = mkIncomparable<double>();
 		else
-			dev[i] = std::fabs(x[i] - center);
+			devs[i] = std::fabs(x[i] - center);
 	}
-	mad = scale * quick_median(vec{dev, x.len, 1});
-	SAFE_FREE(dev);
-	return mad;
+	return constant * quick_median<Index>(devs);
 }
 
 #endif // CARDINAL_CORE_ORDER

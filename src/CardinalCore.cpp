@@ -44,12 +44,12 @@ SEXP do_qorder(SEXP x)
 	{
 		case INTSXP:
 			quick_order(
-				INTEGER(result),
+				as_vec<int>(result),
 				as_vec<int>(x));
 			break;
 		case REALSXP:
 			quick_order(
-				INTEGER(result),
+				as_vec<int>(result),
 				as_vec<double>(x));
 			break;
 		default:
@@ -62,22 +62,26 @@ SEXP do_qorder(SEXP x)
 SEXP do_qselect(SEXP x, SEXP k)
 {
 	SEXP result = PROTECT(Rf_allocVector(TYPEOF(x), LENGTH(k)));
-	switch(TYPEOF(x))
+	SEXP index = PROTECT(Rf_allocVector(INTSXP, LENGTH(x)));
+	for ( R_len_t i = 0; i < LENGTH(x); ++i )
 	{
-		case INTSXP:
-			quick_select(
-				INTEGER(result),
-				as_vec<int>(k),
-				as_vec<int>(x));
-			break;
-		case REALSXP:
-			quick_select(
-				REAL(result),
-				as_vec<int>(k),
-				as_vec<double>(x));
-			break;
-		default:
-			Rf_error("'x' must be integer or double");
+		switch(TYPEOF(x))
+		{
+			case INTSXP:
+				INTEGER(result)[i] = quick_select(
+					as_vec<int>(index).fill(0, 1),
+					as_vec<int>(x),
+					INTEGER_ELT(k, i));
+				break;
+			case REALSXP:
+				REAL(result)[i] = quick_select(
+					as_vec<int>(index).fill(0, 1),
+					as_vec<double>(x),
+					REAL_ELT(k, i));
+				break;
+			default:
+				Rf_error("'x' must be integer or double");
+		}
 	}
 	UNPROTECT(1);
 	return result;
@@ -97,7 +101,7 @@ SEXP do_qmedian(SEXP x)
 	}
 }
 
-SEXP do_qmad(SEXP x, SEXP center, SEXP scale)
+SEXP do_qmad(SEXP x, SEXP center, SEXP constant)
 {
 	switch(TYPEOF(x))
 	{
@@ -105,12 +109,12 @@ SEXP do_qmad(SEXP x, SEXP center, SEXP scale)
 			return Rf_ScalarReal(quick_mad(
 				as_vec<int>(x),
 				Rf_asReal(center),
-				Rf_asReal(scale)));
+				Rf_asReal(constant)));
 		case REALSXP:
 			return Rf_ScalarReal(quick_mad(
 				as_vec<double>(x),
 				Rf_asReal(center),
-				Rf_asReal(scale)));
+				Rf_asReal(constant)));
 		default:
 			Rf_error("'x' must be integer or double");
 	}
@@ -162,14 +166,13 @@ SEXP do_bsearch(
 SEXP do_col_sums(SEXP x, SEXP num_threads)
 {
 	SEXP result = PROTECT(Rf_allocVector(REALSXP, Rf_ncols(x)));
-	fill_buffer<double>(REAL(result), XLENGTH(result));
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
 		{
 			chunk_apply(
 				kern_col_sums<int>{
-					as_vec<double>(result),
+					as_vec<double>(result).fill(),
 					as_mat<int>(x)},
 				Rf_asInteger(num_threads),
 				XLENGTH(result));
@@ -179,7 +182,7 @@ SEXP do_col_sums(SEXP x, SEXP num_threads)
 		{
 			chunk_apply(
 				kern_col_sums<double>{
-					as_vec<double>(result),
+					as_vec<double>(result).fill(),
 					as_mat<double>(x)},
 				Rf_asInteger(num_threads),
 				XLENGTH(result));

@@ -5,13 +5,14 @@
 #include <cstddef>
 #include <cmath>
 
-//// Memory and errors
-//---------------------
-// Allocation and errors handled by managing runtime
+//// Utility
+//-----------
+// Common idioms
 
-#define SAFE_ALLOC R_Calloc
-#define SAFE_FREE R_Free
-#define SAFE_ERROR Rf_error
+#define MIN2(x, y) ((x) < (y) ? (x) : (y))
+#define MIN3(x, y, z) (MIN2(MIN2((x), (y)), (z)))
+#define MAX2(x, y) ((x) > (y) ? (x) : (y))
+#define MAX3(x, y, z) (MAX2(MAX2((x), (y)), (z)))
 
 //// Data Pointer
 //----------------
@@ -70,18 +71,27 @@ struct vec
 		return ptr[stride * i];
 	}
 
-	bounds all_elements() const
+	vec<T>& fill(
+		const T value = 0,
+		const T step = 0)
 	{
-		return {0, len};
+		for ( ptrdiff_t i = 0; i < len; ++i )
+			(*this)[i] = value + (i * step);
+		return (*this);
 	}
 
-	vec<T> subset(bounds b) const
+	vec<T> slice(bounds b) const
 	{
 		return {
 			.ptr = ptr + (stride * b.start), 
 			.len = b.len(),
 			.stride = stride,
 		};
+	}
+	
+	bounds all_elements() const
+	{
+		return {0, len};
 	}
 };
 
@@ -115,18 +125,8 @@ struct mat
 			.stride = row_stride
 		};
 	}
-
-	bounds all_rows() const
-	{
-		return {0, nrows};
-	}
-
-	bounds all_cols() const
-	{
-		return {0, ncols};
-	}
-
-	mat<T> subset_rows(const bounds b) const
+	
+	mat<T> slice_rows(const bounds b) const
 	{
 		return {
 			.ptr = ptr + (row_stride * b.start),
@@ -137,7 +137,7 @@ struct mat
 		};
 	}
 
-	mat<T> subset_cols(const bounds b) const
+	mat<T> slice_cols(const bounds b) const
 	{
 		return {
 			.ptr = ptr + (col_stride * b.start),
@@ -146,6 +146,15 @@ struct mat
 			.row_stride = row_stride,
 			.col_stride = col_stride,
 		};
+	}
+	bounds all_rows() const
+	{
+		return {0, nrows};
+	}
+
+	bounds all_cols() const
+	{
+		return {0, ncols};
 	}
 };
 
@@ -216,29 +225,6 @@ inline bool isIncomparable(int x)
 inline bool isIncomparable(double x)
 {
 	return ISNAN(x);
-}
-
-//// Utility
-//-----------
-// Common idioms
-
-#define MIN2(x, y) ((x) < (y) ? (x) : (y))
-#define MIN3(x, y, z) (MIN2(MIN2((x), (y)), (z)))
-#define MAX2(x, y) ((x) > (y) ? (x) : (y))
-#define MAX3(x, y, z) (MAX2(MAX2((x), (y)), (z)))
-
-template<typename T>
-void fill_buffer(
-	T * buffer,            // buffer to fill
-	const ptrdiff_t size,     // size of buffer
-	const T init = 0,            // value to use to initialize
-	const T increment = 0,
-	const ptrdiff_t stride = 1) // increment init for each item
-{
-	for ( ptrdiff_t i = 0; i < size; i += stride )
-	{
-		buffer[i] = init + (i * increment);
-	}
 }
 
 #endif // CARDINAL_CORE_CORE
