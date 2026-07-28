@@ -6,17 +6,17 @@
 //// Unary operations
 //--------------------
 
-enum Unop {
-	Identity,
-	Abs,
-	Log,
-	Log2,
-	Log1p,
-	Exp,
-	Exp2,
-	Expm1
-};
-
+// enum Unop {
+// 	Identity,
+// 	Abs,
+// 	Log,
+// 	Log2,
+// 	Log1p,
+// 	Exp,
+// 	Exp2,
+// 	Expm1
+// };
+//
 template<int Op>
 double do_unop(double x);
 
@@ -56,15 +56,15 @@ struct kern_unop
 //// Binary operations
 //---------------------
 
-enum Binop {
-	Add,
-	Subtract,
-	Multiply,
-	Divide,
-	Max,
-	Min
-};
-
+// enum Binop {
+// 	Add,
+// 	Subtract,
+// 	Multiply,
+// 	Divide,
+// 	Max,
+// 	Min
+// };
+//
 template<int Op>
 double do_binop(double x, double y);
 

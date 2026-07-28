@@ -74,6 +74,162 @@ template<> inline
 double * data_ptr<double>(SEXP x) { return REAL(x); }
 #endif // USING_R
 
+//// Unary operations
+//--------------------
+// Generic unary functors
+
+enum Unop {
+	Identity,
+	Abs,
+	Log,
+	Log2,
+	Log1p,
+	Exp,
+	Exp2,
+	Expm1
+};
+
+template<Unop Op, typename T = double>
+struct unop {
+	T invoke(T x);
+	T operator()(T x)
+	{
+		if ( is_incomparable(x) )
+			return make_incomparable<T>();
+		else
+			return unop<Op,T>::invoke(x);
+	}
+};
+template<typename T>
+struct unop<Identity,T> { 
+	T invoke(T x) { return x; }
+};
+template<typename T>
+struct unop<Abs,T> {
+	T invoke(T x) { return std::abs(x); } 
+};
+template<typename T>
+struct unop<Log,T> {
+	T invoke(T x) { return std::log(x); } 
+};
+template<typename T>
+struct unop<Log2,T> {
+	T invoke(T x) { return std::log2(x); }
+};
+template<typename T>
+struct unop<Log1p,T> {
+	T invoke(T x) { return std::log1p(x); }
+};
+template<typename T>
+struct unop<Exp,T> {
+	T invoke(T x) { return std::exp(x); } 
+};
+template<typename T>
+struct unop<Exp2,T> {
+	T invoke(T x) { return std::exp2(x); } 
+};
+template<typename T>
+struct unop<Expm1,T> {
+	T invoke(T x) { return std::expm1(x); } 
+};
+
+//// Binary operations
+//---------------------
+// Generic binary functors
+
+enum Binop {
+	LHS,
+	RHS,
+	Add,
+	Subtract,
+	Multiply,
+	Divide,
+	Max,
+	Min
+};
+
+template<Binop Op, typename T = double>
+struct binop {
+	T invoke(T lhs, T rhs);
+	T operator()(T lhs, T rhs)
+	{
+		if ( is_incomparable(lhs) || is_incomparable(rhs) )
+			return make_incomparable<T>();
+		else
+			return binop<Op,T>::invoke(lhs, rhs);
+	}
+};
+template<typename T>
+struct binop<LHS,T> {
+	T invoke(T lhs, T rhs) { return lhs; }
+};
+template<typename T>
+struct binop<RHS,T> {
+	T invoke(T lhs, T rhs) { return rhs; }
+};
+template<typename T>
+struct binop<Add,T> {
+	T invoke(T lhs, T rhs) { return lhs + rhs; }
+};
+template<typename T>
+struct binop<Subtract,T> {
+	T invoke(T lhs, T rhs) { return lhs - rhs; }
+};
+template<typename T>
+struct binop<Multiply,T> {
+	T invoke(T lhs, T rhs) { return lhs * rhs; }
+};
+template<typename T>
+struct binop<Divide,T> {
+	T invoke(T lhs, T rhs) { return lhs / rhs; }
+};
+template<typename T>
+struct binop<Max,T> {
+	T invoke(T lhs, T rhs) { return lhs > rhs ? lhs : rhs; }
+};
+template<typename T>
+struct binop<Min,T> {
+	T invoke(T lhs, T rhs) { return lhs < rhs ? lhs : rhs; }
+};
+
+template<Binop Op, typename T = double>
+T binop_init()
+{
+	switch(Op) {
+		case LHS:
+		case RHS:
+		case Add:
+		case Subtract:
+			return coerce_cast<T>(0);
+		case Multiply:
+		case Divide:
+			return coerce_cast<T>(1);
+		case Max:
+			return coerce_cast<T>(-INFINITY);
+		case Min:
+			return coerce_cast<T>(+INFINITY);
+	}
+}
+
+//// Kernel operations
+// -------------------
+// Apply functions and kernels
+
+template<typename Vec, typename Reduce, typename T>
+T reduce(Vec input, Reduce op, T init) 
+{
+	T output = init;
+	for ( size_t i = 0; i < input.size(); ++i )
+		output = op(output, coerce_cast<T>(input[i]));
+	return output;
+}
+
+template<Binop Op, typename Vec, typename T>
+T reduce(Vec input) 
+{
+	return reduce(input, binop<Op,T>{}, init_binop<Op,T>());
+}
+
 //// Structs
 //-----------
 // Containers for common object types
@@ -102,6 +258,8 @@ struct vec
 	ptrdiff_t len;
 	ptrdiff_t stride;
 
+	size_t size() const { return static_cast<size_t>(len); }
+
 	T& operator[](const ptrdiff_t i)
 	{
 		return ptr[stride * i];
@@ -121,6 +279,26 @@ struct vec
 		return (*this);
 	}
 
+	template<typename Tform>
+	void transform(Tform op)
+	{
+		for ( size_t i = 0; i < size(); ++i )
+			(*this)[i] = coerce_cast<T>(op((*this)[i]));
+	}
+	
+	template<Unop Op>
+	void transform()
+	{
+		transform(unop<Op,T>{});
+	}
+
+	// template<typename Vec, typename Index, typename Reduce>
+	// void gather(Vec src, vec<Index> index, Reduce op)
+	// {
+	// 	assert(size() == index.size());
+	// 	for ( size_t i = 0; i < size(); ++i )
+	// 		(*this)[i] = 
+	//
 	vec<T> slice(bounds b) const
 	{
 		return {
