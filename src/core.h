@@ -4,6 +4,8 @@
 #include <cassert>
 #include <cstddef>
 #include <cmath>
+#include <limits>
+#include <type_traits>
 
 //// Utility
 //-----------
@@ -14,24 +16,63 @@
 #define MAX2(x, y) ((x) > (y) ? (x) : (y))
 #define MAX3(x, y, z) (MAX2(MAX2((x), (y)), (z)))
 
+//// Data types
+//--------------
+// Coercion and incomparables
+
+template<typename T>
+constexpr T make_incomparable()
+{
+	if constexpr ( std::is_floating_point_v<T> )
+		return std::numeric_limits<T>::quiet_NaN();
+	else
+		return std::numeric_limits<T>::lowest();
+}
+
+#ifdef USING_R
+template<>
+inline int make_incomparable<int>() { return NA_INTEGER; }
+template<>
+inline double make_incomparable<double>() { return NA_REAL; }
+#endif // USING_R
+
+template<typename T>
+constexpr bool is_incomparable(T v)
+{
+	if constexpr ( std::is_floating_point_v<T> )
+		return std::isnan(v);
+	else
+		return v == make_incomparable<T>();
+}
+
+#ifdef USING_R
+template<>
+inline bool is_incomparable<int>(int v) { return v == NA_INTEGER; }
+template<>
+inline bool is_incomparable<double>(double v) { return ISNAN(v); }
+#endif // USING_R
+
+template<typename Out, typename In>
+Out coerce_cast(In v)
+{
+	if ( is_incomparable(v) )
+		return make_incomparable<Out>();
+	else
+		return static_cast<Out>(v);
+}
+
 //// Data Pointer
 //----------------
 // Get a mutable data pointer from a managed object
 
+#ifdef USING_R
 template<typename T>
 T * data_ptr(SEXP x);
-
 template<> inline
-int * data_ptr<int>(SEXP x)
-{
-	return INTEGER(x);
-}
-
+int * data_ptr<int>(SEXP x) { return INTEGER(x); }
 template<> inline
-double * data_ptr<double>(SEXP x)
-{
-	return REAL(x);
-}
+double * data_ptr<double>(SEXP x) { return REAL(x); }
+#endif // USING_R
 
 //// Structs
 //-----------
@@ -72,11 +113,11 @@ struct vec
 	}
 
 	vec<T> fill(
-		const T value = 0,
-		const T step = 0)
+		const T start = 0,
+		const T increment = 0)
 	{
 		for ( ptrdiff_t i = 0; i < len; ++i )
-			(*this)[i] = value + (i * step);
+			(*this)[i] = start + (i * increment);
 		return (*this);
 	}
 
@@ -162,6 +203,7 @@ struct mat
 //--------------
 // Initialize struct from R object
 
+#ifdef USING_R
 template<typename T>
 vec<T> as_vec(SEXP x)
 {
@@ -178,7 +220,6 @@ vec<T> as_vec(SEXP x)
 		return {nullptr, 0, 0};
 	}
 }
-
 template<typename T>
 mat<T> as_mat(SEXP x)
 {
@@ -197,34 +238,6 @@ mat<T> as_mat(SEXP x)
 		return {nullptr, 0, 0, 0, 0};
 	}
 }
-
-//// Incomparables
-//-----------------
-// Handle incomparable values (NAs and NaNs)
-
-template<typename T>
-T mkIncomparable();
-
-template<> inline
-int mkIncomparable<int>()
-{
-	return NA_INTEGER;
-}
-
-template<> inline
-double mkIncomparable<double>()
-{
-	return NA_REAL;
-}
-
-inline bool isIncomparable(int x)
-{
-	return x == NA_INTEGER;
-}
-
-inline bool isIncomparable(double x)
-{
-	return ISNAN(x);
-}
+#endif // USING_R
 
 #endif // CARDINAL_CORE_CORE

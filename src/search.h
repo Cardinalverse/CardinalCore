@@ -60,7 +60,7 @@ void binary_search(
 {
 	for ( ptrdiff_t i = 0; i < query.len; ++i )
 	{
-		if ( isIncomparable(query[i]) )
+		if ( is_incomparable(query[i]) )
 			out_index[i] = nomatch;
 		else
 		{

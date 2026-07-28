@@ -124,7 +124,7 @@ void elementwise(
 {
 	for ( ptrdiff_t i = 0; i < x.len; ++i )
 	{
-		if ( isIncomparable(x[i]) )
+		if ( is_incomparable(x[i]) )
 			continue;
 		double xi = static_cast<double>(x[i]);
 		out[i] = do_binop<Reduce>(out[i], kern(xi));
@@ -139,7 +139,7 @@ double reduce(
 	double out = init_accum<Reduce>();
 	for ( ptrdiff_t i = 0; i < x.len; ++i )
 	{
-		if ( isIncomparable(x[i]) )
+		if ( is_incomparable(x[i]) )
 			continue;
 		double xi = static_cast<double>(x[i]);
 		out = do_binop<Reduce>(out, kern(xi));
@@ -156,7 +156,7 @@ void scatter(
 {
 	for ( ptrdiff_t i = 0; i < x.len; ++i )
 	{
-		if ( isIncomparable(x[i]) )
+		if ( is_incomparable(x[i]) )
 			continue;
 		double xi = static_cast<double>(x[i]);
 		out[index[i]] = do_binop<Reduce>(out[index[i]], kern(xi));
