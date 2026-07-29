@@ -6,7 +6,6 @@
 #include "Rinternals.h"
 #include "order.h"
 #include "search.h"
-#include "kernels.h"
 #include "apply.h"
 
 extern "C" {

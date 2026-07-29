@@ -37,28 +37,28 @@ inline double make_incomparable<double>() { return NA_REAL; }
 #endif // USING_R
 
 template<typename T>
-constexpr bool is_incomparable(T v)
+constexpr bool is_incomparable(T x)
 {
 	if constexpr ( std::is_floating_point_v<T> )
-		return std::isnan(v);
+		return std::isnan(x);
 	else
-		return v == make_incomparable<T>();
+		return x == make_incomparable<T>();
 }
 
 #ifdef USING_R
 template<>
-inline bool is_incomparable<int>(int v) { return v == NA_INTEGER; }
+inline bool is_incomparable<int>(int x) { return x == NA_INTEGER; }
 template<>
-inline bool is_incomparable<double>(double v) { return ISNAN(v); }
+inline bool is_incomparable<double>(double x) { return ISNAN(x); }
 #endif // USING_R
 
 template<typename Out, typename In>
-Out coerce_cast(In v)
+Out coerce_cast(In x)
 {
-	if ( is_incomparable(v) )
+	if ( is_incomparable(x) )
 		return make_incomparable<Out>();
 	else
-		return static_cast<Out>(v);
+		return static_cast<Out>(x);
 }
 
 //// Data Pointer
@@ -76,7 +76,7 @@ double * data_ptr<double>(SEXP x) { return REAL(x); }
 
 //// Unary operations
 //--------------------
-// Generic unary functors
+// Universal unary functions
 
 enum Unop {
 	Identity,
@@ -90,56 +90,51 @@ enum Unop {
 };
 
 template<Unop Op, typename T = double>
-struct unop {
-	T invoke(T x);
-	T operator()(T x)
+T ufunc(T x)
+{
+	if constexpr ( Op != Identity )
 	{
 		if ( is_incomparable(x) )
 			return make_incomparable<T>();
-		else
-			return unop<Op,T>::invoke(x);
 	}
-};
-template<typename T>
-struct unop<Identity,T> { 
-	T invoke(T x) { return x; }
-};
-template<typename T>
-struct unop<Abs,T> {
-	T invoke(T x) { return std::abs(x); } 
-};
-template<typename T>
-struct unop<Log,T> {
-	T invoke(T x) { return std::log(x); } 
-};
-template<typename T>
-struct unop<Log2,T> {
-	T invoke(T x) { return std::log2(x); }
-};
-template<typename T>
-struct unop<Log1p,T> {
-	T invoke(T x) { return std::log1p(x); }
-};
-template<typename T>
-struct unop<Exp,T> {
-	T invoke(T x) { return std::exp(x); } 
-};
-template<typename T>
-struct unop<Exp2,T> {
-	T invoke(T x) { return std::exp2(x); } 
-};
-template<typename T>
-struct unop<Expm1,T> {
-	T invoke(T x) { return std::expm1(x); } 
+	if constexpr ( Op == Identity )
+		return x;
+	else if constexpr ( Op == Abs )
+		return std::abs(x);
+	else if constexpr ( Op == Log )
+		return std::log(x);
+	else if constexpr ( Op == Log2 )
+		return std::log2(x);
+	else if constexpr ( Op == Log1p )
+		return std::log1p(x);
+	else if constexpr ( Op == Exp )
+		return std::exp(x);
+	else if constexpr ( Op == Exp2)
+		return std::exp2(x);
+	else if constexpr ( Op == Expm1 )
+		return std::expm1(x);
+	else
+		static_assert(Op != Op, "ufunc: unsupported unary op");
+}
+
+template<Unop Op, typename Out = double, typename In = Out>
+struct unop {
+	Out operator()(In x) const
+	{
+		if constexpr ( std::is_same_v<Out,In> )
+			return ufunc<Op,Out>(x);
+		else
+			return coerce_cast<Out>(ufunc<Op,In>(x));
+	}
 };
 
 //// Binary operations
 //---------------------
-// Generic binary functors
+// Universal binary functions
 
 enum Binop {
-	LHS,
-	RHS,
+	Lhs,
+	Rhs,
 	Add,
 	Subtract,
 	Multiply,
@@ -149,90 +144,74 @@ enum Binop {
 };
 
 template<Binop Op, typename T = double>
-struct binop {
-	T invoke(T lhs, T rhs);
-	T operator()(T lhs, T rhs)
+T ufunc(T lhs, T rhs)
+{
+	if constexpr ( Op != Lhs && Op != Rhs )
 	{
 		if ( is_incomparable(lhs) || is_incomparable(rhs) )
 			return make_incomparable<T>();
+	}
+	if constexpr ( Op == Lhs )
+		return lhs;
+	else if constexpr ( Op == Rhs )
+		return rhs;
+	else if constexpr ( Op == Add )
+		return lhs + rhs;
+	else if constexpr ( Op == Subtract )
+		return lhs - rhs;
+	else if constexpr ( Op == Multiply )
+		return lhs * rhs;
+	else if constexpr ( Op == Divide )
+		return lhs / rhs;
+	else if constexpr ( Op == Max )
+		return lhs > rhs ? lhs : rhs;
+	else if constexpr ( Op == Min )
+		return lhs < rhs ? lhs : rhs;
+	else
+		static_assert(Op != Op, "ufunc: unsupported binary op");
+}
+
+template<Binop Op, typename Out = double, typename In = Out>
+struct binop {
+	static Out identity()
+	{
+		if constexpr ( Op == Add )
+			return 0;
+		else if constexpr ( Op == Subtract )
+			return 0;
+		else if constexpr ( Op == Multiply )
+			return 1;
+		else if constexpr ( Op == Divide )
+			return 1;
+		else if constexpr ( Op == Max )
+		{
+			if constexpr ( std::numeric_limits<Out>::has_infinity )
+				return -std::numeric_limits<Out>::infinity();
+			else
+				return std::numeric_limits<Out>::lowest();
+		}
+		else if constexpr ( Op == Min )
+		{
+			if constexpr ( std::numeric_limits<Out>::has_infinity )
+				return std::numeric_limits<Out>::infinity();
+			else
+				return std::numeric_limits<Out>::max();
+		}
 		else
-			return binop<Op,T>::invoke(lhs, rhs);
+			return make_incomparable<Out>();
+	}
+	Out operator()(In lhs, In rhs) const
+	{
+		if constexpr ( std::is_same_v<Out,In> )
+			return ufunc<Op,Out>(lhs, rhs);
+		else
+			return coerce_cast<Out>(ufunc<Op,In>(lhs, rhs));
 	}
 };
-template<typename T>
-struct binop<LHS,T> {
-	T invoke(T lhs, T rhs) { return lhs; }
-};
-template<typename T>
-struct binop<RHS,T> {
-	T invoke(T lhs, T rhs) { return rhs; }
-};
-template<typename T>
-struct binop<Add,T> {
-	T invoke(T lhs, T rhs) { return lhs + rhs; }
-};
-template<typename T>
-struct binop<Subtract,T> {
-	T invoke(T lhs, T rhs) { return lhs - rhs; }
-};
-template<typename T>
-struct binop<Multiply,T> {
-	T invoke(T lhs, T rhs) { return lhs * rhs; }
-};
-template<typename T>
-struct binop<Divide,T> {
-	T invoke(T lhs, T rhs) { return lhs / rhs; }
-};
-template<typename T>
-struct binop<Max,T> {
-	T invoke(T lhs, T rhs) { return lhs > rhs ? lhs : rhs; }
-};
-template<typename T>
-struct binop<Min,T> {
-	T invoke(T lhs, T rhs) { return lhs < rhs ? lhs : rhs; }
-};
 
-template<Binop Op, typename T = double>
-T binop_init()
-{
-	switch(Op) {
-		case LHS:
-		case RHS:
-		case Add:
-		case Subtract:
-			return coerce_cast<T>(0);
-		case Multiply:
-		case Divide:
-			return coerce_cast<T>(1);
-		case Max:
-			return coerce_cast<T>(-INFINITY);
-		case Min:
-			return coerce_cast<T>(+INFINITY);
-	}
-}
-
-//// Kernel operations
-// -------------------
-// Apply functions and kernels
-
-template<typename Vec, typename Reduce, typename T>
-T reduce(Vec input, Reduce op, T init) 
-{
-	T output = init;
-	for ( size_t i = 0; i < input.size(); ++i )
-		output = op(output, coerce_cast<T>(input[i]));
-	return output;
-}
-
-template<Binop Op, typename Vec, typename T>
-T reduce(Vec input) 
-{
-	return reduce(input, binop<Op,T>{}, init_binop<Op,T>());
-}
-
-//// Structs
+//// Vectors
 //-----------
-// Containers for common object types
+// 1D array operations
 
 // Index bounds
 // - The interval is half-open: [start, stop)
@@ -250,7 +229,6 @@ struct bounds
 // A non-owning strided vector
 // - Owner is responsible for managing memory
 // - Owner MUST guarantee len >= 0
-// - Callers MAY choose to handle stride < 0
 template<typename T>
 struct vec 
 {
@@ -258,7 +236,10 @@ struct vec
 	ptrdiff_t len;
 	ptrdiff_t stride;
 
-	size_t size() const { return static_cast<size_t>(len); }
+	size_t size() const 
+	{
+		return static_cast<size_t>(len);
+	}
 
 	T& operator[](const ptrdiff_t i)
 	{
@@ -279,26 +260,43 @@ struct vec
 		return (*this);
 	}
 
-	template<typename Tform>
-	void transform(Tform op)
+	template<Unop Op, typename Tform = unop<Op,T>>
+	vec<T> transform(Tform op = Tform{})
 	{
 		for ( size_t i = 0; i < size(); ++i )
-			(*this)[i] = coerce_cast<T>(op((*this)[i]));
+			(*this)[i] = op((*this)[i]);
+		return (*this);
 	}
 	
-	template<Unop Op>
-	void transform()
+	template<Binop Op, typename Vec, typename Tform = binop<Op,T>>
+	vec<T> transform(Vec src, Tform op = Tform{})
 	{
-		transform(unop<Op,T>{});
+		assert(this->size() == src.size());
+		for ( size_t i = 0; i < size(); ++i )
+			(*this)[i] = op((*this)[i], coerce_cast<T>(src[i]));
+		return (*this);
 	}
 
-	// template<typename Vec, typename Index, typename Reduce>
-	// void gather(Vec src, vec<Index> index, Reduce op)
-	// {
-	// 	assert(size() == index.size());
-	// 	for ( size_t i = 0; i < size(); ++i )
-	// 		(*this)[i] = 
-	//
+	template<Binop Op = Rhs, typename Index, typename Vec>
+	vec<T> gather(vec<Index> index, Vec src)
+	{
+		assert(this->size() == index.size());
+		binop<Op,T> op{};
+		for ( size_t i = 0; i < size(); ++i )
+			(*this)[i] = op((*this)[i], coerce_cast<T>(src[index[i]]));
+		return (*this);
+	}
+
+	template<Binop Op = Rhs, typename Index, typename Vec>
+	vec<T> scatter(vec<Index> index, Vec src)
+	{
+		assert(src.size() == index.size());
+		binop<Op,T> op{};
+		for ( size_t i = 0; i < index.size(); ++i )
+			(*this)[index[i]] = op((*this)[i], coerce_cast<T>(src[i]));
+		return (*this);
+	}
+
 	vec<T> slice(bounds b) const
 	{
 		return {
@@ -314,12 +312,30 @@ struct vec
 	}
 };
 
+template<typename Vec, typename Reduce, typename T = double>
+T reduce(Vec input, Reduce op, T init) 
+{
+	T output = init;
+	for ( size_t i = 0; i < input.size(); ++i )
+		output = op(output, coerce_cast<T>(input[i]));
+	return output;
+}
+
+template<Binop Op, typename Vec, typename T = double>
+T reduce(Vec input) 
+{
+	return reduce(input, binop<Op,T>{}, binop<Op,T>::identity());
+}
+
+//// Matrices
+//------------
+// 2D array operations
+
 // A non-owning strided matrix
 // - Owner is responsible for managing memory
 // - Owner MUST guarantee nrows >= 0 and ncols >= 0
-// - Callers MAY choose to handle row_stride < 0 and col_stride < 0
 template<typename T>
-struct mat 
+struct mat
 {
 	T * ptr;
 	ptrdiff_t nrows;

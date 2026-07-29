@@ -2,6 +2,7 @@
 #define CARDINAL_CORE_APPLY
 
 #include <thread>
+#include "core.h"
 
 //// Parallel apply
 //-------------------
@@ -119,25 +120,24 @@ void chunk_apply(
 //---------------------
 
 template<typename T>
-struct kern_col_sums
+struct col_sums
 {
 	vec<double> out;
 	const mat<T> x;
 
 	void operator()()
 	{
-		kern_unop<Identity> kernel{};
 		if ( x.row_stride > x.col_stride )
 			for ( ptrdiff_t i = 0; i < x.nrows; ++i )
-				elementwise<Add>(out, x.row(i), kernel);
+				out.transform<Add>(x.row(i));
 		else
 			for ( ptrdiff_t j = 0; j < x.ncols; ++j )
-				out[j] = reduce<Add>(x.col(j), kernel);
+				out[j] = reduce<Add>(x.col(j));
 	}
 
 	void operator()(bounds b)
 	{
-		kern_col_sums<T>{out.slice(b), x.slice_cols(b)}();
+		col_sums<T>{out.slice(b), x.slice_cols(b)}();
 	}
 };
 
