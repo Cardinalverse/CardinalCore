@@ -282,7 +282,7 @@ struct vec
 	template<Binop Op, typename Vec, typename Tform = binop<Op,T>>
 	vec<T> transform(Vec src, Tform op = Tform{})
 	{
-		assert(this->ssize() == src.ssize());
+		assert(src.ssize() == this->ssize());
 		for ( ptrdiff_t i = 0; i < ssize(); ++i )
 			(*this)[i] = op((*this)[i], coerce_cast<T>(src[i]));
 		return (*this);
@@ -292,7 +292,7 @@ struct vec
 	template<Binop Op = Rhs, typename Index, typename Vec>
 	vec<T> gather(vec<Index> index, Vec src)
 	{
-		assert(this->ssize() == index.ssize());
+		assert(index.ssize() == this->ssize());
 		for ( ptrdiff_t i = 0; i < index.ssize(); ++i )
 			(*this)[i] = ufunc<Op,T>((*this)[i], coerce_cast<T>(src[index[i]]));
 		return (*this);
@@ -302,7 +302,7 @@ struct vec
 	template<Binop Op = Rhs, typename Index, typename Vec>
 	vec<T> scatter(vec<Index> index, Vec src)
 	{
-		assert(src.ssize() == index.ssize());
+		assert(index.ssize() == src.ssize());
 		for ( ptrdiff_t i = 0; i < index.ssize(); ++i )
 			(*this)[index[i]] = ufunc<Op,T>((*this)[i], coerce_cast<T>(src[i]));
 		return (*this);
