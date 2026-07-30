@@ -17,6 +17,8 @@ static const R_CallMethodDef callMethods[] = {
 	CALLDEF(do_bsearch, 6),
 	// matrix statistics
 	CALLDEF(do_col_sums, 2),
+	// test expressions
+	CALLDEF(do_test_expression, 2),
 	{NULL, NULL, 0}
 };
 

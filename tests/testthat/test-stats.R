@@ -1,6 +1,20 @@
 require(CardinalCore)
 require(testthat)
 
+test_that("test_expression", {
+
+	test <- function(x, i) {
+		.Call(CardinalCore:::C_do_test_expression, x, i)
+	}
+	x <- runif(100)
+	i <- c(1L, 2L, 3L, 4L, 5L)
+
+	bench::mark(
+		log1p(x + x)[i],
+		test(x, i - 1L))
+
+})
+
 test_that("col_sums works", {
 
 	set.seed(1)
@@ -28,3 +42,4 @@ test_that("col_sums works", {
 	# 	rowsum(x, group=g, na.rm=TRUE))
 	#
 })
+

@@ -210,9 +210,9 @@ struct binop {
 	}
 };
 
-//// Vector operations
+//// Vector expressions
 //---------------------
-// Universal binary functions
+// Generic operations on vectors
 
 // Index bounds
 // - The interval is half-open: [start, stop)
@@ -266,6 +266,24 @@ struct vec_binop
 	}
 };
 
+// Vector subscripted at the given indices
+// - MUST implement (ptrdiff_t)ssize() and (T)operator()(ptrdiff_t)
+template<class Vec, class Index, class T = double>
+struct vec_indexed
+{
+	Vec x;
+	Index index;
+
+	ptrdiff_t ssize() const
+	{
+		return index.ssize();
+	}
+
+	T operator[](ptrdiff_t i) const
+	{
+		return coerce_cast<T>(x[index[i]]);
+	}
+};
 
 // Check for incomparables
 template<class Vec>
@@ -277,7 +295,7 @@ bool any_incomparable(const Vec input)
 	return false;
 }
 
-// Apply unary operation elementwise
+// Transform with elementwise unary functor
 template<Unop Op, 
 	class T = double, 
 	class Vec, 
@@ -290,7 +308,7 @@ vec_unop<Vec,Tform,T> transform(
 	return {input, op};
 }
 
-// Apply binary operation elementwise
+// Transform with elementwise binary functor
 template<
 	Binop Op, 
 	class T = double, 
@@ -303,10 +321,24 @@ vec_binop<LVec,RVec,Tform,T> transform(
 	const RVec rhs,
 	const Tform op = Tform{})
 {
+	assert(lhs.ssize() == rhs.ssize());
 	return {lhs, rhs, op};
 }
 
-// Reduce elementwise
+// Gather vector elements and given indices
+template<
+	class T = double,
+	class Index,
+	class Vec
+	>
+vec_indexed<Vec,Index,T> gather(
+	const Index index,
+	const Vec input)
+{
+	return {input, index};
+}
+
+// Reduce vector elements with binary functor
 template<
 	Binop Op, 
 	class T = double, 
@@ -345,11 +377,13 @@ struct vec
 
 	T& operator[](const ptrdiff_t i)
 	{
+		assert(0 <= i && i < len);
 		return ptr[stride * i];
 	}
 
 	const T& operator[](const ptrdiff_t i) const
 	{
+		assert(0 <= i && i < len);
 		return ptr[stride * i];
 	}
 
@@ -364,6 +398,7 @@ struct vec
 	template<class Vec>
 	vec<T> assign(const Vec src)
 	{
+		assert(src.ssize() == this->ssize());
 		for ( ptrdiff_t i = 0; i < ssize(); ++i )
 			(*this)[i] = coerce_cast<T>(src[i]);
 		return (*this);

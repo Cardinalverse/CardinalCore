@@ -1,6 +1,10 @@
 #ifndef CARDINAL_CORE
 #define CARDINAL_CORE
 
+// #ifdef NDEBUG
+// #undef NDEBUG
+// #endif
+
 #define R_NO_REMAP
 #include "R.h"
 #include "Rinternals.h"
@@ -27,9 +31,9 @@ SEXP do_bsearch(SEXP x, SEXP data, SEXP tolerance,
 //---------------------
 SEXP do_col_sums(SEXP x, SEXP num_threads);
 
-//// Matrix distances
-//-------------------
-// TODO
+//// Test expressions
+//--------------------
+SEXP do_test_expression(SEXP x, SEXP index);
 
 } // extern "C"
 

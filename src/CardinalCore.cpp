@@ -193,4 +193,33 @@ SEXP do_col_sums(SEXP x, SEXP num_threads)
 	return result;
 }
 
+//// Test expressions
+//--------------------
+
+SEXP do_test_expression(SEXP x, SEXP index)
+{
+	SEXP result = PROTECT(Rf_allocVector(TYPEOF(x), XLENGTH(index)));
+	switch(TYPEOF(x))
+	{
+		case INTSXP:
+		{
+			test_expression(
+				as_vec<int>(result),
+				as_vec<int>(x),
+				as_vec<int>(index));
+			break;
+		}
+		case REALSXP:
+		{
+			test_expression(
+				as_vec<double>(result),
+				as_vec<double>(x),
+				as_vec<int>(index));
+			break;
+		}
+	}
+	UNPROTECT(1);
+	return result;
+}
+
 } // extern "C"
