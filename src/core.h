@@ -236,9 +236,9 @@ struct vec
 	ptrdiff_t len;
 	ptrdiff_t stride;
 
-	size_t size() const 
+	ptrdiff_t ssize() const
 	{
-		return static_cast<size_t>(len);
+		return len;
 	}
 
 	T& operator[](const ptrdiff_t i)
@@ -255,7 +255,7 @@ struct vec
 		const T start = 0,
 		const T increment = 0)
 	{
-		for ( ptrdiff_t i = 0; i < len; ++i )
+		for ( ptrdiff_t i = 0; i < ssize(); ++i )
 			(*this)[i] = start + (i * increment);
 		return (*this);
 	}
@@ -263,7 +263,7 @@ struct vec
 	template<Unop Op, typename Tform = unop<Op,T>>
 	vec<T> transform(Tform op = Tform{})
 	{
-		for ( size_t i = 0; i < size(); ++i )
+		for ( ptrdiff_t i = 0; i < ssize(); ++i )
 			(*this)[i] = op((*this)[i]);
 		return (*this);
 	}
@@ -271,8 +271,8 @@ struct vec
 	template<Binop Op, typename Vec, typename Tform = binop<Op,T>>
 	vec<T> transform(Vec src, Tform op = Tform{})
 	{
-		assert(this->size() == src.size());
-		for ( size_t i = 0; i < size(); ++i )
+		assert(this->ssize() == src.ssize());
+		for ( ptrdiff_t i = 0; i < ssize(); ++i )
 			(*this)[i] = op((*this)[i], coerce_cast<T>(src[i]));
 		return (*this);
 	}
@@ -280,9 +280,9 @@ struct vec
 	template<Binop Op = Rhs, typename Index, typename Vec>
 	vec<T> gather(vec<Index> index, Vec src)
 	{
-		assert(this->size() == index.size());
+		assert(this->ssize() == index.ssize());
 		binop<Op,T> op{};
-		for ( size_t i = 0; i < size(); ++i )
+		for ( ptrdiff_t i = 0; i < index.ssize(); ++i )
 			(*this)[i] = op((*this)[i], coerce_cast<T>(src[index[i]]));
 		return (*this);
 	}
@@ -290,9 +290,9 @@ struct vec
 	template<Binop Op = Rhs, typename Index, typename Vec>
 	vec<T> scatter(vec<Index> index, Vec src)
 	{
-		assert(src.size() == index.size());
+		assert(src.ssize() == index.ssize());
 		binop<Op,T> op{};
-		for ( size_t i = 0; i < index.size(); ++i )
+		for ( ptrdiff_t i = 0; i < index.ssize(); ++i )
 			(*this)[index[i]] = op((*this)[i], coerce_cast<T>(src[i]));
 		return (*this);
 	}
@@ -316,7 +316,7 @@ template<typename Vec, typename Reduce, typename T = double>
 T reduce(Vec input, Reduce op, T init) 
 {
 	T output = init;
-	for ( size_t i = 0; i < input.size(); ++i )
+	for ( ptrdiff_t i = 0; i < input.ssize(); ++i )
 		output = op(output, coerce_cast<T>(input[i]));
 	return output;
 }
