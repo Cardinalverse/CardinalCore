@@ -45,20 +45,18 @@ constexpr bool is_incomparable(T x)
 		return x == make_incomparable<T>();
 }
 
-#ifdef USING_R
-template<>
-inline bool is_incomparable<int>(int x) { return x == NA_INTEGER; }
-template<>
-inline bool is_incomparable<double>(double x) { return ISNAN(x); }
-#endif // USING_R
-
 template<typename Out, typename In>
 Out coerce_cast(In x)
 {
-	if ( is_incomparable(x) )
-		return make_incomparable<Out>();
+	if constexpr ( std::is_same_v<Out,In> )
+		return x;
 	else
-		return static_cast<Out>(x);
+	{
+		if ( is_incomparable(x) )
+			return make_incomparable<Out>();
+		else
+			return static_cast<Out>(x);
+	}
 }
 
 //// Data Pointer
@@ -151,10 +149,13 @@ T ufunc(T lhs, T rhs)
 		if ( is_incomparable(lhs) || is_incomparable(rhs) )
 			return make_incomparable<T>();
 	}
-	if constexpr ( Op == Lhs )
-		return lhs;
-	else if constexpr ( Op == Rhs )
-		return rhs;
+	if constexpr ( Op == Lhs || Op == Rhs )
+	{
+		if constexpr ( Op == Lhs )
+			return lhs;
+		if constexpr ( Op == Rhs )
+			return rhs;
+	}
 	else if constexpr ( Op == Add )
 		return lhs + rhs;
 	else if constexpr ( Op == Subtract )
@@ -323,6 +324,15 @@ struct vec
 		return {0, len};
 	}
 };
+
+template<typename Vec>
+bool any_incomparable(Vec input)
+{
+	for ( ptrdiff_t i = 0; i < input.ssize(); ++i )
+		if ( is_incomparable(input[i]) )
+			return true;
+	return false;
+}
 
 template<typename Vec, typename Reduce, typename T = double>
 T reduce(Vec input, Reduce op, T init) 
