@@ -227,6 +227,8 @@ struct bounds
 	}
 };
 
+// Vector with elementwise unary transformation
+// - MUST implement (ptrdiff_t)ssize() and (T)operator()(ptrdiff_t)
 template<class Vec, class Tform, class T = double>
 struct vec_unop
 {
@@ -244,6 +246,8 @@ struct vec_unop
 	}
 };
 
+// Vector with elementwise binary transformation
+// - MUST implement (ptrdiff_t) ssize() and (T) operator()(ptrdiff_t)
 template<class LVec, class RVec, class Tform, class T = double>
 struct vec_binop
 {
@@ -273,6 +277,7 @@ bool any_incomparable(const Vec input)
 	return false;
 }
 
+// Apply unary operation elementwise
 template<Unop Op, 
 	class T = double, 
 	class Vec, 
@@ -285,6 +290,7 @@ vec_unop<Vec,Tform,T> transform(
 	return {input, op};
 }
 
+// Apply binary operation elementwise
 template<
 	Binop Op, 
 	class T = double, 
@@ -300,7 +306,7 @@ vec_binop<LVec,RVec,Tform,T> transform(
 	return {lhs, rhs, op};
 }
 
-// Elementwise vector reduction
+// Reduce elementwise
 template<
 	Binop Op, 
 	class T = double, 
