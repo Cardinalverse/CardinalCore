@@ -20,7 +20,7 @@
 //--------------
 // Coercion and incomparables
 
-template<typename T>
+template<class T>
 constexpr T make_incomparable()
 {
 	if constexpr ( std::is_floating_point_v<T> )
@@ -36,7 +36,7 @@ template<>
 inline double make_incomparable<double>() { return NA_REAL; }
 #endif // USING_R
 
-template<typename T>
+template<class T>
 constexpr bool is_incomparable(T x)
 {
 	if constexpr ( std::is_floating_point_v<T> )
@@ -45,7 +45,7 @@ constexpr bool is_incomparable(T x)
 		return x == make_incomparable<T>();
 }
 
-template<typename Out, typename In>
+template<class Out, class In>
 Out coerce_cast(In x)
 {
 	if constexpr ( std::is_same_v<Out,In> )
@@ -64,7 +64,7 @@ Out coerce_cast(In x)
 // Get a mutable data pointer from a managed object
 
 #ifdef USING_R
-template<typename T>
+template<class T>
 T * data_ptr(SEXP x);
 template<> inline
 int * data_ptr<int>(SEXP x) { return INTEGER(x); }
@@ -87,7 +87,7 @@ enum Unop {
 	Expm1
 };
 
-template<Unop Op, typename T = double>
+template<Unop Op, class T = double>
 T ufunc(T x)
 {
 	if constexpr ( Op != Identity )
@@ -115,7 +115,7 @@ T ufunc(T x)
 		static_assert(Op != Op, "ufunc: unsupported unary op");
 }
 
-template<Unop Op, typename Out = double, typename In = Out>
+template<Unop Op, class Out = double, class In = Out>
 struct unop {
 	Out operator()(In x) const
 	{
@@ -141,7 +141,7 @@ enum Binop {
 	Min
 };
 
-template<Binop Op, typename T = double>
+template<Binop Op, class T = double>
 T ufunc(T lhs, T rhs)
 {
 	if constexpr ( Op != Lhs && Op != Rhs )
@@ -172,7 +172,7 @@ T ufunc(T lhs, T rhs)
 		static_assert(Op != Op, "ufunc: unsupported binary op");
 }
 
-template<Binop Op, typename Out = double, typename In = Out>
+template<Binop Op, class Out = double, class In = Out>
 struct binop {
 	static Out identity()
 	{
@@ -210,9 +210,9 @@ struct binop {
 	}
 };
 
-//// Vectors
-//-----------
-// 1D array operations
+//// Vector operations
+//---------------------
+// Universal binary functions
 
 // Index bounds
 // - The interval is half-open: [start, stop)
@@ -227,10 +227,37 @@ struct bounds
 	}
 };
 
+// Check for incomparables
+template<class Vec>
+bool any_incomparable(const Vec input)
+{
+	for ( ptrdiff_t i = 0; i < input.ssize(); ++i )
+		if ( is_incomparable(input[i]) )
+			return true;
+	return false;
+}
+
+// Elementwise vector reduction
+template<Binop Op, class T = double, class Vec, class Reduce = binop<Op,T>>
+T reduce(
+	const Vec input,
+	const Reduce op = Reduce{},
+	const T init = Reduce::identity()) 
+{
+	T output = init;
+	for ( ptrdiff_t i = 0; i < input.ssize(); ++i )
+		output = op(output, coerce_cast<T>(input[i]));
+	return output;
+}
+
+//// Vectors
+//-----------
+// 1D array operations
+
 // A non-owning strided vector
 // - Owner is responsible for managing memory
 // - Owner MUST guarantee len >= 0
-template<typename T>
+template<class T>
 struct vec 
 {
 	T * ptr;
@@ -252,9 +279,7 @@ struct vec
 		return ptr[stride * i];
 	}
 
-	vec<T> fill(
-		const T start = 0,
-		const T increment = 0)
+	vec<T> fill(const T start = 0, const T increment = 0)
 	{
 		for ( ptrdiff_t i = 0; i < ssize(); ++i )
 			(*this)[i] = start + (i * increment);
@@ -262,8 +287,8 @@ struct vec
 	}
 
 	// Elementwise assignment
-	template<typename Vec>
-	vec<T> assign(Vec src)
+	template<class Vec>
+	vec<T> assign(const Vec src)
 	{
 		for ( ptrdiff_t i = 0; i < ssize(); ++i )
 			(*this)[i] = coerce_cast<T>(src[i]);
@@ -271,8 +296,8 @@ struct vec
 	}
 
 	// Elementwise in-place unary transformations
-	template<Unop Op, typename Tform = unop<Op,T>>
-	vec<T> transform(Tform op = Tform{})
+	template<Unop Op, class Tform = unop<Op,T>>
+	vec<T> transform(const Tform op = Tform{})
 	{
 		for ( ptrdiff_t i = 0; i < ssize(); ++i )
 			(*this)[i] = op((*this)[i]);
@@ -280,8 +305,8 @@ struct vec
 	}
 	
 	// Elementwise in-place binary transformations
-	template<Binop Op, typename Vec, typename Tform = binop<Op,T>>
-	vec<T> transform(Vec src, Tform op = Tform{})
+	template<Binop Op, class Vec, class Tform = binop<Op,T>>
+	vec<T> transform(const Vec src, const Tform op = Tform{})
 	{
 		assert(src.ssize() == this->ssize());
 		for ( ptrdiff_t i = 0; i < ssize(); ++i )
@@ -289,9 +314,9 @@ struct vec
 		return (*this);
 	}
 
-	// Assign Op((*this)[i], src[index[i]]) for i in index
-	template<Binop Op = Rhs, typename Index, typename Vec>
-	vec<T> gather(vec<Index> index, Vec src)
+	// Assign (*this)[i] = src[index[i]] for i in index
+	template<Binop Op = Rhs, class Index, class Vec>
+	vec<T> gather(const vec<Index> index, const Vec src)
 	{
 		assert(index.ssize() == this->ssize());
 		for ( ptrdiff_t i = 0; i < index.ssize(); ++i )
@@ -299,9 +324,9 @@ struct vec
 		return (*this);
 	}
 
-	// Assign Op((*this)[index[i]], src[i]) for i in index
-	template<Binop Op = Rhs, typename Index, typename Vec>
-	vec<T> scatter(vec<Index> index, Vec src)
+	// Assign (*this)[index[i]] = src[i] for i in index
+	template<Binop Op = Rhs, class Index, class Vec>
+	vec<T> scatter(const vec<Index> index, const Vec src)
 	{
 		assert(index.ssize() == src.ssize());
 		for ( ptrdiff_t i = 0; i < index.ssize(); ++i )
@@ -310,7 +335,7 @@ struct vec
 	}
 
 	// Return a sliced view from b.start to b.stop
-	vec<T> slice(bounds b) const
+	vec<T> slice(const bounds b) const
 	{
 		return {
 			.ptr = ptr + (stride * b.start), 
@@ -325,30 +350,6 @@ struct vec
 	}
 };
 
-template<typename Vec>
-bool any_incomparable(Vec input)
-{
-	for ( ptrdiff_t i = 0; i < input.ssize(); ++i )
-		if ( is_incomparable(input[i]) )
-			return true;
-	return false;
-}
-
-template<typename Vec, typename Reduce, typename T = double>
-T reduce(Vec input, Reduce op, T init) 
-{
-	T output = init;
-	for ( ptrdiff_t i = 0; i < input.ssize(); ++i )
-		output = op(output, coerce_cast<T>(input[i]));
-	return output;
-}
-
-template<Binop Op, typename Vec, typename T = double>
-T reduce(Vec input) 
-{
-	return reduce(input, binop<Op,T>{}, binop<Op,T>::identity());
-}
-
 //// Matrices
 //------------
 // 2D array operations
@@ -356,7 +357,7 @@ T reduce(Vec input)
 // A non-owning strided matrix
 // - Owner is responsible for managing memory
 // - Owner MUST guarantee nrows >= 0 and ncols >= 0
-template<typename T>
+template<class T>
 struct mat
 {
 	T * ptr;
@@ -420,7 +421,7 @@ struct mat
 // Initialize struct from R object
 
 #ifdef USING_R
-template<typename T>
+template<class T>
 vec<T> as_vec(SEXP x)
 {
 	if ( x != R_NilValue )
@@ -436,7 +437,7 @@ vec<T> as_vec(SEXP x)
 		return {nullptr, 0, 0};
 	}
 }
-template<typename T>
+template<class T>
 mat<T> as_mat(SEXP x)
 {
 	if ( x != R_NilValue )
