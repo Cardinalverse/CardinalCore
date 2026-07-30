@@ -288,7 +288,7 @@ struct vec
 		return (*this);
 	}
 
-	// Assign (*this)[i] = src[index[i]] for i in index
+	// Assign Op((*this)[i], src[index[i]]) for i in index
 	template<Binop Op = Rhs, typename Index, typename Vec>
 	vec<T> gather(vec<Index> index, Vec src)
 	{
@@ -298,7 +298,7 @@ struct vec
 		return (*this);
 	}
 
-	// Assign (*this)[i] = src[index[i]] for i in index
+	// Assign Op((*this)[index[i]], src[i]) for i in index
 	template<Binop Op = Rhs, typename Index, typename Vec>
 	vec<T> scatter(vec<Index> index, Vec src)
 	{
