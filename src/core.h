@@ -227,6 +227,42 @@ struct bounds
 	}
 };
 
+template<class Vec, class Tform, class T = double>
+struct vec_unop
+{
+	Vec x;
+	Tform op;
+
+	ptrdiff_t ssize() const
+	{
+		return x.ssize();
+	}
+
+	T operator[](ptrdiff_t i) const
+	{
+		return coerce_cast<T>(op(x[i]));
+	}
+};
+
+template<class LVec, class RVec, class Tform, class T = double>
+struct vec_binop
+{
+	LVec lhs;
+	RVec rhs;
+	Tform op;
+
+	ptrdiff_t ssize() const
+	{
+		return lhs.ssize();
+	}
+
+	T operator[](ptrdiff_t i) const
+	{
+		return coerce_cast<T>(op(lhs[i], rhs[i]));
+	}
+};
+
+
 // Check for incomparables
 template<class Vec>
 bool any_incomparable(const Vec input)
@@ -237,8 +273,40 @@ bool any_incomparable(const Vec input)
 	return false;
 }
 
+template<Unop Op, 
+	class T = double, 
+	class Vec, 
+	class Tform = unop<Op,T>
+	>
+vec_unop<Vec,Tform,T> transform(
+	const Vec input, 
+	const Tform op = Tform{})
+{
+	return {input, op};
+}
+
+template<
+	Binop Op, 
+	class T = double, 
+	class LVec, 
+	class RVec, 
+	class Tform = binop<Op,T>
+	>
+vec_binop<LVec,RVec,Tform,T> transform(
+	const LVec lhs, 
+	const RVec rhs,
+	const Tform op = Tform{})
+{
+	return {lhs, rhs, op};
+}
+
 // Elementwise vector reduction
-template<Binop Op, class T = double, class Vec, class Reduce = binop<Op,T>>
+template<
+	Binop Op, 
+	class T = double, 
+	class Vec, 
+	class Reduce = binop<Op,T>
+	>
 T reduce(
 	const Vec input,
 	const Reduce op = Reduce{},
