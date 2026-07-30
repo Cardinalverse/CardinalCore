@@ -260,6 +260,16 @@ struct vec
 		return (*this);
 	}
 
+	// Elementwise assignment
+	template<typename Vec>
+	vec<T> assign(Vec src)
+	{
+		for ( ptrdiff_t i = 0; i < ssize(); ++i )
+			(*this)[i] = coerce_cast<T>(src[i]);
+		return (*this);
+	}
+
+	// Elementwise in-place unary transformations
 	template<Unop Op, typename Tform = unop<Op,T>>
 	vec<T> transform(Tform op = Tform{})
 	{
@@ -268,6 +278,7 @@ struct vec
 		return (*this);
 	}
 	
+	// Elementwise in-place binary transformations
 	template<Binop Op, typename Vec, typename Tform = binop<Op,T>>
 	vec<T> transform(Vec src, Tform op = Tform{})
 	{
@@ -277,26 +288,27 @@ struct vec
 		return (*this);
 	}
 
+	// Assign (*this)[i] = src[index[i]] for i in index
 	template<Binop Op = Rhs, typename Index, typename Vec>
 	vec<T> gather(vec<Index> index, Vec src)
 	{
 		assert(this->ssize() == index.ssize());
-		binop<Op,T> op{};
 		for ( ptrdiff_t i = 0; i < index.ssize(); ++i )
-			(*this)[i] = op((*this)[i], coerce_cast<T>(src[index[i]]));
+			(*this)[i] = ufunc<Op,T>((*this)[i], coerce_cast<T>(src[index[i]]));
 		return (*this);
 	}
 
+	// Assign (*this)[i] = src[index[i]] for i in index
 	template<Binop Op = Rhs, typename Index, typename Vec>
 	vec<T> scatter(vec<Index> index, Vec src)
 	{
 		assert(src.ssize() == index.ssize());
-		binop<Op,T> op{};
 		for ( ptrdiff_t i = 0; i < index.ssize(); ++i )
-			(*this)[index[i]] = op((*this)[i], coerce_cast<T>(src[i]));
+			(*this)[index[i]] = ufunc<Op,T>((*this)[i], coerce_cast<T>(src[i]));
 		return (*this);
 	}
 
+	// Return a sliced view from b.start to b.stop
 	vec<T> slice(bounds b) const
 	{
 		return {
