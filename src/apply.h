@@ -147,7 +147,8 @@ struct col_sums
 template<typename T>
 void test_expression(vec<T> result, const vec<T> x, const vec<int> index)
 {
-	result.assign(gather(index, transform<Log1p>(transform<Add>(x, x))));
+	// result.assign(gather(index, transform<Log1p>(transform<Add>(x, x))));
+	result.assign(gather(index, transform<Log1p>(x + x)));
 }
 
 #endif // CARDINAL_CORE_APPLY

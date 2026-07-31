@@ -8,6 +8,8 @@ test_that("test_expression", {
 	}
 	x <- runif(100)
 	i <- c(1L, 2L, 3L, 4L, 5L)
+	log1p(x + x)[i]
+	test(x, i - 1L)
 
 	bench::mark(
 		log1p(x + x)[i],
