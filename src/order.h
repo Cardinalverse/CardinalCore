@@ -263,7 +263,7 @@ template<typename Index = ptrdiff_t, typename T>
 double quick_median(const vec<T> x)
 {
 	// initialize result
-	double median = make_incomparable<double>();
+	double median = incomparable<double>();
 	if ( x.len == 0 )
 		return median;
 	// set up working index buffer
@@ -298,14 +298,14 @@ template<typename Index = ptrdiff_t, typename T>
 double quick_mad(const vec<T> x, double center, double constant = 1.4826)
 {
 	if ( x.len == 0 )
-		return make_incomparable<double>();
+		return incomparable<double>();
 	// compute absolute deviations
 	std::unique_ptr<double[]> pdevs = std::make_unique<double[]>(x.len);
 	vec<double> devs = {pdevs.get(), x.len, 1};
 	for ( Index i = 0; i < x.len; ++i )
 	{
 		if ( is_incomparable(x[i]) )
-			devs[i] = make_incomparable<double>();
+			devs[i] = incomparable<double>();
 		else
 			devs[i] = std::fabs(x[i] - center);
 	}

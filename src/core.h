@@ -32,7 +32,7 @@ concept Vec =
 template<class T>
 concept Num = std::is_arithmetic_v<T>;
 
-// Needed to constrain UnaryOp and BinaryOp
+// Proxy type to define UnaryOp and BinaryOp
 struct num_arg {
 	template<Num T>
 	operator T() const;
@@ -46,37 +46,57 @@ concept UnaryOp = std::invocable<Tform, num_arg>;
 template<class Tform>
 concept BinaryOp = std::invocable<Tform, num_arg, num_arg>;
 
-//// Data types
-//--------------
-// Coercion and missingness
+//// Data traits
+//---------------
+// Coercion and incomparable (missing) values
 
+// Proxy type to define incomparables
 template<Num T>
-constexpr T make_incomparable() noexcept
-{
-	if constexpr ( std::is_floating_point_v<T> )
-		return std::numeric_limits<T>::quiet_NaN();
-	else
-		return std::numeric_limits<T>::lowest();
-}
+struct num_traits;
 
+// NaNs are always incomparable
+template<Num T>
+struct num_traits {
+	static constexpr T incomparable() noexcept {
+		return std::numeric_limits<T>::quiet_NaN();
+	}
+};
+
+// R NAs
 #ifdef USING_R
 template<>
-inline int make_incomparable<int>() noexcept { return NA_INTEGER; }
+struct num_traits<int> {
+	static int incomparable() noexcept { return NA_INTEGER; }
+};
 template<>
-inline double make_incomparable<double>() noexcept { return NA_REAL; }
+struct num_traits<double> {
+	static double incomparable() noexcept { return NA_REAL; }
+};
 #endif // USING_R
 
+// Incomparable values
 template<Num T>
-constexpr bool is_incomparable(T x) noexcept
+constexpr T incomparable() noexcept {
+	return num_traits<T>::incomparable();
+}
+
+// A MaybeIncomparble type might be incomparable
+template<class T>
+concept MaybeIncomparable = requires { num_traits<T>::incomparable(); };
+
+// Check if a value is comparable
+template<Num T>
+constexpr bool is_incomparable(const T x) noexcept
 {
 	if constexpr ( std::is_floating_point_v<T> )
 		return std::isnan(x);
-	else if constexpr ( std::is_integral_v<T> )
-		return x == make_incomparable<T>();
+	else if constexpr ( MaybeIncomparable<T> )
+		return x == incomparable<T>();
 	else
 		return false;
 }
 
+// Coerce while preserving incomparables across types
 template<Num Out, Num In>
 constexpr Out coerce_cast(In x) noexcept
 {
@@ -85,7 +105,7 @@ constexpr Out coerce_cast(In x) noexcept
 	else
 	{
 		if ( is_incomparable(x) )
-			return make_incomparable<Out>();
+			return incomparable<Out>();
 		else
 			return static_cast<Out>(x);
 	}
@@ -122,13 +142,11 @@ enum Unop {
 template<Unop Op, Num T = double>
 constexpr T ufunc(T x) noexcept
 {
-	if constexpr ( Op != Identity )
-	{
-		if ( is_incomparable(x) )
-			return make_incomparable<T>();
-	}
+
 	if constexpr ( Op == Identity )
 		return x;
+	if ( is_incomparable(x) )
+		return incomparable<T>();
 	else if constexpr ( Op == Abs )
 		return std::abs(x);
 	else if constexpr ( Op == Log )
@@ -181,7 +199,7 @@ constexpr T ufunc(T lhs, T rhs) noexcept
 	if constexpr ( Op == Rhs )
 		return rhs;
 	if ( is_incomparable(lhs) || is_incomparable(rhs) )
-		return make_incomparable<T>();
+		return incomparable<T>();
 	else if constexpr ( Op == Add )
 		return lhs + rhs;
 	else if constexpr ( Op == Subtract )
@@ -220,12 +238,12 @@ struct binop {
 		else if constexpr ( Op == Min )
 		{
 			if constexpr ( std::numeric_limits<Out>::has_infinity )
-				return std::numeric_limits<Out>::infinity();
+				return +std::numeric_limits<Out>::infinity();
 			else
 				return std::numeric_limits<Out>::max();
 		}
 		else
-			return make_incomparable<Out>();
+			return incomparable<Out>();
 	}
 	Out operator()(In lhs, In rhs) const noexcept
 	{
@@ -268,7 +286,7 @@ struct vec_indexed
 	{
 		auto ii = index[i];
 		if ( is_incomparable(ii) )
-			return make_incomparable<T>();
+			return incomparable<T>();
 		else
 			return coerce_cast<T>(x[ii]);
 	}
@@ -363,33 +381,50 @@ T reduce(
 	return output;
 }
 
-template<Vec L, Vec R, Num T = double>
-constexpr auto operator+(L lhs, R rhs) noexcept
+// Universal unary functions for Vecs
+template<Unop Op, Num T = double, Vec V>
+auto ufunc(V x)
 {
-	return transform<Add,T>(lhs, rhs);
+	return transform<Op,T>(x);
 }
 
-// template<Unop Op, class T = double, class Vec>
-// auto ufunc(Vec x)
-// {
-// 	return transform<Op,T>(x);
-// }
-//
-// template<Binop Op, class T = double, class LVec, class RVec>
-// auto ufunc(LVec lhs, RVec rhs)
-// {
-// 	return transform<Op,T>(lhs, rhs);
-// }
-//
-
-// Check for incomparables
-template<Vec V>
-bool any_incomparable(const V input) noexcept
+// Universal binary functions for Vecs
+template<Binop Op, Num T = double, Vec L, Vec R>
+auto ufunc(L lhs, R rhs)
 {
-	for ( ptrdiff_t i = 0; i < input.ssize(); ++i )
-		if ( is_incomparable(input[i]) )
-			return true;
-	return false;
+	return transform<Op,T>(lhs, rhs);
+}
+
+//// Vector operators
+//---------------------
+// Deferred vectorized arithmetic
+
+// Vec + Vec
+template<Num T = double, Vec L, Vec R>
+constexpr auto operator+(L lhs, R rhs) noexcept
+{
+	return ufunc<Add,T>(lhs, rhs);
+}
+
+// Vec - Vec
+template<Num T = double, Vec L, Vec R>
+constexpr auto operator-(L lhs, R rhs) noexcept
+{
+	return ufunc<Subtract,T>(lhs, rhs);
+}
+
+// Vec * Vec
+template<Num T = double, Vec L, Vec R>
+constexpr auto operator*(L lhs, R rhs) noexcept
+{
+	return ufunc<Multiply,T>(lhs, rhs);
+}
+
+// Vec / Vec
+template<Num T = double, Vec L, Vec R>
+constexpr auto operator/(L lhs, R rhs) noexcept
+{
+	return ufunc<Divide,T>(lhs, rhs);
 }
 
 //// Vectors
@@ -423,7 +458,7 @@ struct vec
 		return ptr[stride * i];
 	}
 
-	vec<T> fill(const T start = 0, const T increment = 0) noexcept
+	vec<T>& fill(const T start = 0, const T increment = 0) noexcept
 	{
 		for ( ptrdiff_t i = 0; i < len; ++i )
 			(*this)[i] = start + (i * increment);
@@ -432,7 +467,7 @@ struct vec
 
 	// Elementwise assignment
 	template<Vec V>
-	vec<T> assign(const V src) noexcept
+	vec<T>& assign(const V src) noexcept
 	{
 		assert(src.ssize() == len);
 		for ( ptrdiff_t i = 0; i < len; ++i )
@@ -442,27 +477,26 @@ struct vec
 
 	// Elementwise in-place unary transformations
 	template<Unop Op, UnaryOp Tform = unop<Op,T>>
-	vec<T> transform(
+	vec<T>& transform(
 		const Tform op = Tform{}) noexcept
 	{
 		for ( ptrdiff_t i = 0; i < len; ++i )
 			(*this)[i] = op((*this)[i]);
 		return (*this);
 	}
-	
+
 	// Elementwise in-place binary transformations
 	template<Binop Op, Vec Src, BinaryOp Tform = binop<Op,T>>
-	vec<T> transform(const Src src, const Tform op = Tform{}) noexcept
+	vec<T>& transform(const Src src, const Tform op = Tform{}) noexcept
 	{
 		assert(src.ssize() == len);
 		for ( ptrdiff_t i = 0; i < len; ++i )
 			(*this)[i] = op((*this)[i], coerce_cast<T>(src[i]));
 		return (*this);
 	}
-
 	// Assign (*this)[i] = src[index[i]] for i in index
 	template<Binop Op = Rhs, Vec Index, Vec Src>
-	vec<T> gather(const Index index, const Src src) noexcept
+	vec<T>& gather(const Index index, const Src src) noexcept
 	{
 		assert(index.ssize() == len);
 		for ( ptrdiff_t i = 0; i < len; ++i )
@@ -470,7 +504,7 @@ struct vec
 			auto ii = index[i];
 			if ( is_incomparable(ii) )
 			{
-				(*this)[i] = make_incomparable<T>;
+				(*this)[i] = incomparable<T>;
 				continue;
 			}
 			(*this)[i] = ufunc<Op,T>((*this)[i], coerce_cast<T>(src[ii]));
@@ -480,7 +514,7 @@ struct vec
 
 	// Assign (*this)[index[i]] = src[i] for i in index
 	template<Binop Op = Rhs, Vec Index, Vec Src>
-	vec<T> scatter(const Index index, const Src src) noexcept
+	vec<T>& scatter(const Index index, const Src src) noexcept
 	{
 		assert(index.ssize() == src.ssize());
 		for ( ptrdiff_t i = 0; i < src.ssize(); ++i )
@@ -491,6 +525,34 @@ struct vec
 			(*this)[ii] = ufunc<Op,T>((*this)[ii], coerce_cast<T>(src[i]));
 		}
 		return (*this);
+	}
+
+	// vec + vec
+	template<Vec Src>
+	vec<T>& operator+=(const Src src) noexcept
+	{
+		return this->transform<Add>(src);
+	}
+	
+	// vec - vec
+	template<Vec Src>
+	vec<T>& operator-=(const Src src) noexcept
+	{
+		return this->transform<Subtract>(src);
+	}
+
+	// vec * vec
+	template<Vec Src>
+	vec<T>& operator*=(const Src src) noexcept
+	{
+		return this->transform<Multiply>(src);
+	}
+
+	// vec / vec
+	template<Vec Src>
+	vec<T>& operator/=(const Src src) noexcept
+	{
+		return this->transform<Divide>(src);
 	}
 
 	// Return a sliced view from b.start to b.stop
