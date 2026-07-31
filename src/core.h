@@ -431,6 +431,45 @@ constexpr auto operator/(L lhs, R rhs) noexcept
 //-----------
 // 1D array operations
 
+// Generator vector repeating a constant
+template<Num T = double>
+struct rep
+{
+	T x;
+	ptrdiff_t len;
+
+	constexpr ptrdiff_t ssize() const noexcept
+	{
+		return len;
+	}
+
+	constexpr T operator[](const ptrdiff_t i) const noexcept
+	{
+		assert(0 <= i && i < len);
+		return x;
+	}
+};
+
+// Generator vector yielding a sequence
+template<Num T = double>
+struct seq
+{
+	T start;
+	ptrdiff_t len;
+	T increment = 1;
+
+	constexpr ptrdiff_t ssize() const noexcept
+	{
+		return len;
+	}
+
+	constexpr T operator[](const ptrdiff_t i) const noexcept
+	{
+		assert(0 <= i && i < len);
+		return start + (i * increment);
+	}
+};
+
 // A non-owning strided vector
 // - Owner is responsible for managing memory
 // - Owner MUST guarantee len >= 0
@@ -463,6 +502,11 @@ struct vec
 		for ( ptrdiff_t i = 0; i < len; ++i )
 			(*this)[i] = start + (i * increment);
 		return (*this);
+	}
+
+	vec<T>& seq_fill() noexcept
+	{
+		return this->fill(0, 1);
 	}
 
 	// Elementwise assignment
