@@ -15,6 +15,10 @@ using ptrdiff_t = std::ptrdiff_t;
 //------------
 // Traits supporting template dispatch
 
+// A Num supports arithmetic operations
+template<class T>
+concept Num = std::is_arithmetic_v<std::remove_cvref_t<T>>;
+
 // A Vec supports 1D tensor operations
 // - MUST be trivially copyable as a struct
 // - MUST implement ssize() -> ptrdiff_t
@@ -25,12 +29,8 @@ concept Vec =
 	std::is_standard_layout_v<V> &&
 	requires (const std::remove_cvref_t<V>& v, ptrdiff_t i) {
 		{ v.ssize() } -> std::convertible_to<ptrdiff_t>;
-		{ v[i] };
+		{ v[i] } -> Num;
 	};
-
-// A Num supports arithmetic operations
-template<class T>
-concept Num = std::is_arithmetic_v<T>;
 
 // Proxy type to define UnaryOp and BinaryOp
 struct num_arg {

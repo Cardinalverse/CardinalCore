@@ -1,5 +1,5 @@
-#ifndef CARDINAL_CORE_APPLY
-#define CARDINAL_CORE_APPLY
+#ifndef CARDINAL_CORE_KERNELS
+#define CARDINAL_CORE_KERNELS
 
 #include <thread>
 #include "core.h"
@@ -151,4 +151,4 @@ void test_expression(vec<T> result, const vec<T> x, const vec<int> index)
 	result.assign(gather(index, transform<Log1p>(x + x)));
 }
 
-#endif // CARDINAL_CORE_APPLY
+#endif // CARDINAL_CORE_KERNELS

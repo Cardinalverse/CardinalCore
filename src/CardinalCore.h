@@ -10,7 +10,7 @@
 #include "Rinternals.h"
 #include "order.h"
 #include "search.h"
-#include "apply.h"
+#include "kernels.h"
 
 extern "C" {
 
