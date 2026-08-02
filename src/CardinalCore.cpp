@@ -170,22 +170,20 @@ SEXP do_col_sums(SEXP x, SEXP num_threads)
 	{
 		case INTSXP:
 		{
-			chunk_apply(
+			compute(
 				col_sums<int>{
 					as_vec<double>(result).fill(),
 					as_mat<int>(x)},
-				Rf_asInteger(num_threads),
-				XLENGTH(result));
+				Rf_asInteger(num_threads));
 			break;
 		}
 		case REALSXP:
 		{
-			chunk_apply(
+			compute(
 				col_sums<double>{
 					as_vec<double>(result).fill(),
 					as_mat<double>(x)},
-				Rf_asInteger(num_threads),
-				XLENGTH(result));
+				Rf_asInteger(num_threads));
 			break;
 		}
 	}

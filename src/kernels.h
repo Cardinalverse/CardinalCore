@@ -1,71 +1,137 @@
 #ifndef CARDINAL_CORE_KERNELS
 #define CARDINAL_CORE_KERNELS
 
+#include <atomic>
 #include <thread>
 #include "core.h"
 
-//// Parallel apply
-//-------------------
-// Apply a callable over chunks in parallel
+//// Kernels
+//-----------
+// Distribute kernels to runners for computation
 
-// Array of threads
-// - Threads are joined at the end of the scope
-struct threads
-{
-	std::thread * tasks;
-	int nthreads;
-
-	explicit threads(int n) : 
-		tasks(new std::thread[n]), nthreads(n) {}
-
-	~threads()
+// A Kernel supports distributed computation
+// - MUST be trivially copyable as a struct
+// - MUST implement ssize() -> ptrdiff_t
+// - MUST implement operator()(ptrdiff_t i)
+template<class F>
+concept Kernel = 
+	std::is_standard_layout_v<F> &&
+	std::is_trivially_copyable_v<F> &&
+	requires (std::remove_cvref_t<F>& f, ptrdiff_t i)
 	{
-		collect();
-		delete[] tasks;
+		{ f.ssize() } -> std::convertible_to<ptrdiff_t>;
+		{ f(i) };
+	};
+
+template<Num T = ptrdiff_t>
+struct counter
+{
+	std::atomic<T> count;
+	std::atomic<T> limit;
+
+	T next() noexcept
+	{
+		return count.fetch_add(1, std::memory_order_relaxed);
 	}
 
-	threads(const threads&) = delete;
-	threads(threads&&) noexcept = delete;
-	threads& operator=(const threads&) = delete;
-	threads& operator=(threads&&) noexcept = delete;
-
-	bool collect() noexcept
+	T max() noexcept
 	{
-		bool ok = true;
-		for ( int i = 0; i < nthreads; ++i )
+		return limit.load(std::memory_order_relaxed);
+	}
+
+	void reset(T n) noexcept
+	{
+		count.store(0, std::memory_order_relaxed);
+		limit.store(n, std::memory_order_relaxed);
+	}
+
+	void stop() noexcept
+	{
+		limit.store(0, std::memory_order_relaxed);
+	}
+};
+
+// Execute a Kernel on an exclusive index
+template<Kernel F>
+struct runner
+{
+	F kernel;
+	counter<> * queue;
+	
+	void operator()()
+	{
+		do
 		{
-			if ( !tasks[i].joinable() )
-				continue;
-			try {
-				tasks[i].join();
-			} catch (...) {
-				ok = false;
-			}
+			ptrdiff_t i = queue->next();
+			if ( 0 <= i && i < queue->max() )
+				kernel(i);
+			else
+				return;
 		}
-		return ok;
+		while (true);
+	}
+};
+
+// Dispatch a Kernel to parallel runners
+struct dispatcher
+{
+	counter<> queue;
+	std::thread * workers;
+	int nthreads;
+
+	explicit dispatcher(int n) : 
+		workers(new std::thread[n]), nthreads(n) {}
+
+	~dispatcher()
+	{
+		collect(false);
+		delete[] workers;
+	}
+
+	dispatcher(const dispatcher&) = delete;
+	dispatcher(dispatcher&&) noexcept = delete;
+	dispatcher& operator=(const dispatcher&) = delete;
+	dispatcher& operator=(dispatcher&&) noexcept = delete;
+
+	template<Kernel F>
+	void apply(F kernel)
+	{
+		collect(true);
+		queue.reset(kernel.ssize());
+		for ( int i = 0; i < nthreads; ++i )
+			workers[i] = std::thread{runner{kernel, &queue}};
+	}
+
+	void collect(bool force = false) noexcept
+	{
+		if ( force )
+			queue.stop();
+		for ( int i = 0; i < nthreads; ++i )
+			if ( workers[i].joinable() )
+				workers[i].join();
 	}
 };
 
 // Chunk items for processing
-// - The nchunks is the number of chunks and MUST be >= 0
-// - The size is the number of items and MUST be >= 0
-// - Callable yields [start, stop) for ith chunk
-template<typename Index = ptrdiff_t>
-struct chunks
+struct chunker
 {
-	int nchunks;
-	Index size;
+	ptrdiff_t nchunks;
+	ptrdiff_t nitems;
 
-	bounds operator()(const Index i) const noexcept
+	bounds operator()(const ptrdiff_t i) const noexcept
 	{
-		if ( i < 0 )
-			return {0, 0};
-		if ( i >= nchunks )
-			return {size, size};
-		if ( nchunks <= 1 || size <= nchunks )
-			return {0, size};
-		Index chunksize = size / nchunks;
-		Index remainder = size % nchunks;
+		if ( nitems <= nchunks ) {
+			if ( i == 1 )
+				return {0, nitems};
+			else
+				return {0, 0};
+		}
+		else if ( nchunks <= 1 )
+			return {0, nitems};
+		else if ( nchunks <= i )
+			return {nitems, nitems};
+		ptrdiff_t chunksize = nitems / nchunks;
+		ptrdiff_t remainder = nitems % nchunks;
 		if ( i < remainder ) {
 			if ( remainder > 0 )
 				++chunksize;
@@ -75,7 +141,7 @@ struct chunks
 			};
 		}
 		else {
-			Index offset = (chunksize + 1) * remainder;
+			ptrdiff_t offset = (chunksize + 1) * remainder;
 			return {
 				.start = offset + (chunksize * (i - remainder)),
 				.stop = offset + (chunksize * (i - remainder + 1)),
@@ -84,60 +150,46 @@ struct chunks
 	}
 };
 
-//// Apply a callable Kernel to chunks in parallel
-// - Each chunk gets its own thread
-// - Each chunk gets mutually exclusive [start, stop) bounds
-// - The Kernel must implement operator(bounds)
-template<typename Kernel, typename Index = ptrdiff_t>
-void chunk_apply(
-	Kernel kernel,
-	const int nchunks,
-	const Index size,
-	const bool parallel = true)
+// Compute a Kernel over indices
+template<Kernel F>
+void compute(F kernel, int nthreads = 1)
 {
-	if ( nchunks > 1 )
-	{
-		chunks chunk{nchunks, size};
-		if ( parallel )
-		{
-			threads work{nchunks};
-			for ( int i = 0; i < nchunks; ++i )
-				work.tasks[i] = std::thread{kernel, chunk(i)};
-		}
-		else
-		{
-			for ( int i = 0; i < nchunks; ++i )
-				kernel(chunk(i));
-		}
+	if ( nthreads >= 1 ) {
+		dispatcher mc{nthreads};
+		mc.apply(kernel);
 	}
-	else
-	{
-		kernel(bounds{0, size});
+	else {
+		for ( int i = 0; i < nthreads; ++i )
+			kernel(i);
 	}
 }
 
-////// Matrix statistics
+//// Matrix statistics
 //---------------------
 
 template<typename T>
 struct col_sums
 {
-	vec<double> out;
-	const mat<T> x;
+	vec<double> sums;
+	mat<T> x;
+	int nchunks = 1;
+
+	ptrdiff_t ssize() const { return sums.len; }
 
 	void operator()()
 	{
 		if ( x.row_stride > x.col_stride )
 			for ( ptrdiff_t i = 0; i < x.nrows; ++i )
-				out += x.row(i);
+				sums += x.row(i);
 		else
 			for ( ptrdiff_t j = 0; j < x.ncols; ++j )
-				out[j] = reduce<Add>(x.col(j));
+				sums[j] = reduce<Add>(x.col(j));
 	}
 
-	void operator()(bounds b)
+	void operator()(ptrdiff_t i)
 	{
-		col_sums<T>{out.slice(b), x.slice_cols(b)}();
+		bounds b = chunker{nchunks, sums.len}(i);
+		col_sums<T>{sums.slice(b), x.slice_cols(b)}();
 	}
 };
 

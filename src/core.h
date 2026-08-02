@@ -25,9 +25,10 @@ concept Num = std::is_arithmetic_v<std::remove_cvref_t<T>>;
 // - MUST implement operator[](ptrdiff_t i)
 template<class V>
 concept Vec = 
-	std::is_trivial_v<V> &&
 	std::is_standard_layout_v<V> &&
-	requires (const std::remove_cvref_t<V>& v, ptrdiff_t i) {
+	std::is_trivially_copyable_v<V> &&
+	requires (const std::remove_cvref_t<V>& v, ptrdiff_t i)
+	{
 		{ v.ssize() } -> std::convertible_to<ptrdiff_t>;
 		{ v[i] } -> Num;
 	};
@@ -39,12 +40,12 @@ struct num_arg {
 };
 
 // A callable with one arithmetic argument
-template<class Tform>
-concept UnaryOp = std::invocable<Tform, num_arg>;
+template<class F>
+concept UnaryOp = std::invocable<F, num_arg>;
 
 // A callable with two arithmetic arguments
-template<class Tform>
-concept BinaryOp = std::invocable<Tform, num_arg, num_arg>;
+template<class F>
+concept BinaryOp = std::invocable<F, num_arg, num_arg>;
 
 //// Data traits
 //---------------
@@ -57,7 +58,8 @@ struct num_traits;
 // NaNs are always incomparable
 template<Num T>
 struct num_traits {
-	static constexpr T incomparable() noexcept {
+	static constexpr T incomparable() noexcept
+	{
 		return std::numeric_limits<T>::quiet_NaN();
 	}
 };
