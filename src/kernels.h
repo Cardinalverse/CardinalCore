@@ -23,47 +23,18 @@ concept Kernel =
 		{ f(i) };
 	};
 
-template<Num T = ptrdiff_t>
-struct counter
-{
-	std::atomic<T> count;
-	std::atomic<T> limit;
-
-	T next() noexcept
-	{
-		return count.fetch_add(1, std::memory_order_relaxed);
-	}
-
-	T max() noexcept
-	{
-		return limit.load(std::memory_order_relaxed);
-	}
-
-	void reset(T n) noexcept
-	{
-		count.store(0, std::memory_order_relaxed);
-		limit.store(n, std::memory_order_relaxed);
-	}
-
-	void stop() noexcept
-	{
-		limit.store(0, std::memory_order_relaxed);
-	}
-};
-
 // Execute a Kernel on an exclusive index
 template<Kernel F>
 struct runner
 {
 	F kernel;
-	counter<> * queue;
+	std::atomic<ptrdiff_t> * counter;
 	
 	void operator()()
 	{
-		do
-		{
-			ptrdiff_t i = queue->next();
-			if ( 0 <= i && i < queue->max() )
+		do {
+			ptrdiff_t i = counter->fetch_add(1, std::memory_order_relaxed);
+			if ( 0 <= i && i < kernel.ssize() )
 				kernel(i);
 			else
 				return;
@@ -75,7 +46,7 @@ struct runner
 // Dispatch a Kernel to parallel runners
 struct dispatcher
 {
-	counter<> queue;
+	std::atomic<ptrdiff_t> counter = 0;
 	std::thread * workers;
 	int nthreads;
 
@@ -84,7 +55,7 @@ struct dispatcher
 
 	~dispatcher()
 	{
-		collect(false);
+		collect();
 		delete[] workers;
 	}
 
@@ -96,16 +67,15 @@ struct dispatcher
 	template<Kernel F>
 	void apply(F kernel)
 	{
-		collect(true);
-		queue.reset(kernel.ssize());
-		for ( int i = 0; i < nthreads; ++i )
-			workers[i] = std::thread{runner{kernel, &queue}};
+		if ( nthreads > 0 )
+			for ( int i = 0; i < nthreads; ++i )
+				workers[i] = std::thread{runner{kernel, &counter}};
+		else
+			runner{kernel, &counter}();
 	}
 
-	void collect(bool force = false) noexcept
+	void collect() noexcept
 	{
-		if ( force )
-			queue.stop();
 		for ( int i = 0; i < nthreads; ++i )
 			if ( workers[i].joinable() )
 				workers[i].join();
@@ -120,15 +90,11 @@ struct chunker
 
 	bounds operator()(const ptrdiff_t i) const noexcept
 	{
-		if ( nitems <= nchunks ) {
-			if ( i == 1 )
-				return {0, nitems};
-			else
-				return {0, 0};
-		}
-		else if ( nchunks <= 1 )
+		if ( i < 0 )
+			return {0, 0};
+		else if ( i == 0 && (nchunks <= 1 || nitems <= nchunks) )
 			return {0, nitems};
-		else if ( nchunks <= i )
+		else if ( i >= nchunks )
 			return {nitems, nitems};
 		ptrdiff_t chunksize = nitems / nchunks;
 		ptrdiff_t remainder = nitems % nchunks;
@@ -154,14 +120,10 @@ struct chunker
 template<Kernel F>
 void compute(F kernel, int nthreads = 1)
 {
-	if ( nthreads >= 1 ) {
-		dispatcher mc{nthreads};
-		mc.apply(kernel);
-	}
-	else {
-		for ( int i = 0; i < nthreads; ++i )
-			kernel(i);
-	}
+	if ( nthreads < 0 )
+		nthreads = kernel.ssize();
+	dispatcher mc{nthreads};
+	mc.apply(kernel);
 }
 
 //// Matrix statistics
@@ -174,7 +136,7 @@ struct col_sums
 	mat<T> x;
 	int nchunks = 1;
 
-	ptrdiff_t ssize() const { return sums.len; }
+	ptrdiff_t ssize() const { return nchunks; }
 
 	void operator()()
 	{
