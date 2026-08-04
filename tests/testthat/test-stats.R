@@ -5,7 +5,7 @@ test_that("col_sums works", {
 
 	set.seed(1)
 	nr <- 1e6
-	nc <- 20
+	nc <- 32
 	x <- matrix(runif(nr * nc), nrow=nr, ncol=nc)
 	g <- sample(8, nrow(x), replace=TRUE)
 
@@ -16,6 +16,8 @@ test_that("col_sums works", {
 	bench::mark(col_sums(x, num.threads=2), colSums(x, na.rm=TRUE))
 	bench::mark(col_sums(x, num.threads=4), colSums(x, na.rm=TRUE))
 	bench::mark(col_sums(x, num.threads=8), colSums(x, na.rm=TRUE))
+	bench::mark(col_sums(x, num.threads=16), colSums(x, na.rm=TRUE))
+	bench::mark(col_sums(x, num.threads=32), colSums(x, na.rm=TRUE))
 
 	# bench::mark(
 	# 	col_sums(x, group=g, num.threads=1), 

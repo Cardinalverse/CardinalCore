@@ -173,8 +173,7 @@ SEXP do_col_sums(SEXP x, SEXP num_threads)
 			compute(
 				col_sums<int>{
 					as_vec<double>(result).fill(),
-					as_mat<int>(x),
-					Rf_asInteger(num_threads)},
+					as_mat<int>(x)},
 				Rf_asInteger(num_threads));
 			break;
 		}
@@ -183,8 +182,7 @@ SEXP do_col_sums(SEXP x, SEXP num_threads)
 			compute(
 				col_sums<double>{
 					as_vec<double>(result).fill(),
-					as_mat<double>(x),
-					Rf_asInteger(num_threads)},
+					as_mat<double>(x)},
 				Rf_asInteger(num_threads));
 			break;
 		}

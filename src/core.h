@@ -260,18 +260,6 @@ struct binop {
 //---------------------
 // Generic operations on vectors
 
-// Half-open [start, stop) index bounds
-struct bounds 
-{
-	ptrdiff_t start;
-	ptrdiff_t stop;
-
-	inline ptrdiff_t len() const noexcept
-	{
-		return stop - start;
-	}
-};
-
 // Vector subscripted at the given indices
 template<Vec V, Vec Index, Num T = double>
 struct vec_indexed
@@ -383,48 +371,48 @@ T reduce(
 	return output;
 }
 
+//// Vector operators
+//---------------------
+// Deferred math and arithmetic
+
 // Universal unary functions for Vecs
 template<Unop Op, Num T = double, Vec V>
-auto ufunc(V x)
+Vec auto ufunc(V x) noexcept
 {
 	return transform<Op,T>(x);
 }
 
 // Universal binary functions for Vecs
 template<Binop Op, Num T = double, Vec L, Vec R>
-auto ufunc(L lhs, R rhs)
+Vec auto ufunc(L lhs, R rhs) noexcept
 {
 	return transform<Op,T>(lhs, rhs);
 }
 
-//// Vector operators
-//---------------------
-// Deferred vectorized arithmetic
-
 // Vec + Vec
 template<Num T = double, Vec L, Vec R>
-constexpr auto operator+(L lhs, R rhs) noexcept
+constexpr Vec auto operator+(L lhs, R rhs) noexcept
 {
 	return ufunc<Add,T>(lhs, rhs);
 }
 
 // Vec - Vec
 template<Num T = double, Vec L, Vec R>
-constexpr auto operator-(L lhs, R rhs) noexcept
+constexpr Vec auto operator-(L lhs, R rhs) noexcept
 {
 	return ufunc<Subtract,T>(lhs, rhs);
 }
 
 // Vec * Vec
 template<Num T = double, Vec L, Vec R>
-constexpr auto operator*(L lhs, R rhs) noexcept
+constexpr Vec auto operator*(L lhs, R rhs) noexcept
 {
 	return ufunc<Multiply,T>(lhs, rhs);
 }
 
 // Vec / Vec
 template<Num T = double, Vec L, Vec R>
-constexpr auto operator/(L lhs, R rhs) noexcept
+constexpr Vec auto operator/(L lhs, R rhs) noexcept
 {
 	return ufunc<Divide,T>(lhs, rhs);
 }
@@ -432,6 +420,18 @@ constexpr auto operator/(L lhs, R rhs) noexcept
 //// Vectors
 //-----------
 // 1D array operations
+
+// Half-open [start, stop) index bounds
+struct bounds 
+{
+	ptrdiff_t start;
+	ptrdiff_t stop;
+
+	inline ptrdiff_t len() const noexcept
+	{
+		return stop - start;
+	}
+};
 
 // Generator vector repeating a constant
 template<Num T = double>

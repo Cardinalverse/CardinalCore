@@ -9,33 +9,72 @@
 //-----------
 // Distribute kernels to runners for computation
 
-// A Kernel supports distributed computation
+// A Kernel supports distributed computation on a range of indices
 // - MUST be trivially copyable as a struct
 // - MUST implement ssize() -> ptrdiff_t
-// - MUST implement operator()(ptrdiff_t i)
+// - MUST implement operator()(bounds b)
 template<class F>
 concept Kernel = 
 	std::is_standard_layout_v<F> &&
 	std::is_trivially_copyable_v<F> &&
-	requires (std::remove_cvref_t<F>& f, ptrdiff_t i)
+	requires (std::remove_cvref_t<F>& f, ptrdiff_t i, bounds b)
 	{
 		{ f.ssize() } -> std::convertible_to<ptrdiff_t>;
-		{ f(i) };
+		{ f(b) };
 	};
 
-// Execute a Kernel on an exclusive index
+// Chunk items for processing
+struct chunker
+{
+	ptrdiff_t nchunks;
+	ptrdiff_t nitems;
+
+	bounds operator()(const ptrdiff_t i) const noexcept
+	{
+		// return early on special cases
+		if ( i < 0 )
+			return {0, 0};
+		if ( i >= nchunks )
+			return {nitems, nitems};
+		// number of items per chunk
+		ptrdiff_t chunksize = nitems / nchunks;
+		// leftover items remaining
+		ptrdiff_t remainder = nitems % nchunks;
+		// distribute remainder across chunks
+		if ( i < remainder ) {
+			// put a remainder in this chunk
+			if ( remainder > 0 )
+				++chunksize;
+			return {
+				.start = chunksize * i,
+				.stop = chunksize * (i + 1),
+			};
+		}
+		else {
+			// don't put a remainder in this chunk
+			ptrdiff_t offset = (chunksize + 1) * remainder;
+			return {
+				.start = offset + (chunksize * (i - remainder)),
+				.stop = offset + (chunksize * (i - remainder + 1)),
+			};
+		}
+	}
+};
+
+// Executes a Kernel on exclusive index ranges
 template<Kernel F>
 struct runner
 {
 	F kernel;
 	std::atomic<ptrdiff_t> * counter;
+	chunker irange;
 	
 	void operator()()
 	{
 		do {
 			ptrdiff_t i = counter->fetch_add(1, std::memory_order_relaxed);
-			if ( 0 <= i && i < kernel.ssize() )
-				kernel(i);
+			if ( 0 <= i && i < irange.nchunks )
+				kernel(irange(i));
 			else
 				return;
 		}
@@ -44,14 +83,21 @@ struct runner
 };
 
 // Dispatch a Kernel to parallel runners
+// - Each thread's runner executes work chunked into ntasks
+// - Runs on *this* thread if nthreads = 0
 struct dispatcher
 {
-	std::atomic<ptrdiff_t> counter = 0;
+	std::atomic<ptrdiff_t> counter;
 	std::thread * workers;
 	int nthreads;
+	int ntasks;
+	bool active;
 
-	explicit dispatcher(int n) : 
-		workers(new std::thread[n]), nthreads(n) {}
+	dispatcher(int nthreads = 1, int ntasks = 1) : 
+		workers(new std::thread[nthreads]),
+		nthreads(nthreads),
+		ntasks(ntasks),
+		active(false) {}
 
 	~dispatcher()
 	{
@@ -65,65 +111,56 @@ struct dispatcher
 	dispatcher& operator=(dispatcher&&) noexcept = delete;
 
 	template<Kernel F>
-	void apply(F kernel)
+	void dispatch(F kernel)
 	{
-		if ( nthreads > 0 )
-			for ( int i = 0; i < nthreads; ++i )
-				workers[i] = std::thread{runner{kernel, &counter}};
-		else
-			runner{kernel, &counter}();
+		if ( !active )
+		{
+			active = true;
+			counter.store(0, std::memory_order_relaxed);
+			chunker irange = { .nchunks = ntasks, .nitems = kernel.ssize() };
+			if ( nthreads > 0 )
+				for ( int i = 0; i < nthreads; ++i )
+					workers[i] = std::thread{runner{kernel, &counter, irange}};
+			else
+				runner{kernel, &counter, irange}();
+		}
 	}
 
 	void collect() noexcept
 	{
-		for ( int i = 0; i < nthreads; ++i )
-			if ( workers[i].joinable() )
-				workers[i].join();
+		if ( active )
+		{
+			for ( int i = 0; i < nthreads; ++i )
+				if ( workers[i].joinable() )
+					workers[i].join();
+			active = false;
+		}
 	}
-};
 
-// Chunk items for processing
-struct chunker
-{
-	ptrdiff_t nchunks;
-	ptrdiff_t nitems;
-
-	bounds operator()(const ptrdiff_t i) const noexcept
+	void stop() noexcept
 	{
-		if ( i < 0 )
-			return {0, 0};
-		else if ( i == 0 && (nchunks <= 1 || nitems <= nchunks) )
-			return {0, nitems};
-		else if ( i >= nchunks )
-			return {nitems, nitems};
-		ptrdiff_t chunksize = nitems / nchunks;
-		ptrdiff_t remainder = nitems % nchunks;
-		if ( i < remainder ) {
-			if ( remainder > 0 )
-				++chunksize;
-			return {
-				.start = chunksize * i,
-				.stop = chunksize * (i + 1),
-			};
-		}
-		else {
-			ptrdiff_t offset = (chunksize + 1) * remainder;
-			return {
-				.start = offset + (chunksize * (i - remainder)),
-				.stop = offset + (chunksize * (i - remainder + 1)),
-			};
-		}
+		counter.store(-1, std::memory_order_relaxed);
+		collect();
 	}
 };
 
 // Compute a Kernel over indices
+// - Kernels receive mutually exclusive [start, stop) bounds
+// - Kernels MUST exclusively modify data within these bounds
+// - Limit nthreads and ntasks to the size of the kernel
+// - If ntasks < nthreads, sets ntasks = nthreads
+// - Runs on *this* thread if nthreads = 0
 template<Kernel F>
-void compute(F kernel, int nthreads = 1)
+void compute(F kernel, int nthreads = 1, int ntasks = 1)
 {
 	if ( nthreads < 0 )
+		nthreads = 0;
+	if ( nthreads > kernel.ssize() )
 		nthreads = kernel.ssize();
-	dispatcher mc{nthreads};
-	mc.apply(kernel);
+	if ( ntasks < nthreads )
+		ntasks = (nthreads == 0) ? 1 : nthreads;
+	dispatcher work{nthreads, ntasks};
+	work.dispatch(kernel);
 }
 
 //// Matrix statistics
@@ -134,9 +171,8 @@ struct col_sums
 {
 	vec<double> sums;
 	mat<T> x;
-	int nchunks = 1;
 
-	ptrdiff_t ssize() const { return nchunks; }
+	ptrdiff_t ssize() const { return sums.len; }
 
 	void operator()()
 	{
@@ -148,9 +184,8 @@ struct col_sums
 				sums[j] = reduce<Add>(x.col(j));
 	}
 
-	void operator()(ptrdiff_t i)
+	void operator()(bounds b)
 	{
-		bounds b = chunker{nchunks, sums.len}(i);
 		col_sums<T>{sums.slice(b), x.slice_cols(b)}();
 	}
 };
