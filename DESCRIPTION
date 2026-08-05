@@ -26,7 +26,7 @@ Depends: R (>= 4.6)
 Imports: methods
 Suggests: 
     BiocStyle,
-    testthat (>= 3.0.0),
+    tinytest,
     knitr,
     rmarkdown
 VignetteBuilder: knitr
@@ -37,4 +37,4 @@ biocViews:
 	Normalization
 URL: http://www.cardinalmsi.org
 BugReports: https://github.com/kuwisdelu/CardinalCore/issues
-Config/testthat/edition: 3
+
