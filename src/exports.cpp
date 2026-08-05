@@ -1,5 +1,11 @@
 
-#include "CardinalCore.h"
+#define R_NO_REMAP
+#include <R.h>
+#include <Rinternals.h>
+
+#include "order.h"
+#include "search.h"
+#include "kernels.h"
 
 extern "C" {
 

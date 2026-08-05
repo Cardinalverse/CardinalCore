@@ -1,23 +1,59 @@
 
+#define R_NO_REMAP
+#include <R.h>
+#include <Rinternals.h>
 #include <R_ext/Rdynload.h>
-
-#include "CardinalCore.h"
-
-#define CALLDEF(name, n)  {#name, (DL_FUNC) &name, n}
 
 extern "C" {
 
+//// Sort and order
+//------------------
+SEXP do_qdiff(
+	SEXP x,
+	SEXP ref,
+	SEXP relative);
+SEXP do_qorder(SEXP x);
+SEXP do_qselect(SEXP x, SEXP k);
+SEXP do_qmedian(SEXP x);
+SEXP do_qmad(
+	SEXP x,
+	SEXP center,
+	SEXP constant);
+
+//// Search and nearest neighbors
+//--------------------------------
+SEXP do_bsearch(
+	SEXP x,
+	SEXP data,
+	SEXP tolerance,
+	SEXP relative,
+	SEXP nearest,
+	SEXP nomatch);
+
+//// Matrix statistics
+//---------------------
+SEXP do_col_sums(SEXP x, SEXP num_threads);
+
+//// Test expressions
+//--------------------
+SEXP do_test_expression(SEXP x, SEXP index);
+
+//// Register with R
+//--------------------
+#define CALLDEF(name, n)  {#name, (DL_FUNC) &name, n}
+
 static const R_CallMethodDef callMethods[] = {
-	// sort and search
+	// Sort and order
 	CALLDEF(do_qdiff, 3),
 	CALLDEF(do_qselect, 2),
 	CALLDEF(do_qorder, 1),
 	CALLDEF(do_qmedian, 1),
 	CALLDEF(do_qmad, 3),
+	// Search and nearest neighbors
 	CALLDEF(do_bsearch, 6),
-	// matrix statistics
+	// Matrix statistics
 	CALLDEF(do_col_sums, 2),
-	// test expressions
+	// Test expressions
 	CALLDEF(do_test_expression, 2),
 	{NULL, NULL, 0}
 };
