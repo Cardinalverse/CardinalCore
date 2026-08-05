@@ -47,8 +47,8 @@ concept UnaryOp = std::invocable<F, num_arg>;
 template<class F>
 concept BinaryOp = std::invocable<F, num_arg, num_arg>;
 
-//// Data traits
-//---------------
+//// Specials
+//------------
 // Coercion and incomparable (missing) values
 
 // Proxy type to define incomparables
@@ -485,7 +485,7 @@ struct seq
 
 // A non-owning strided vector
 // - Owner is responsible for managing memory
-// - Owner MUST guarantee len >= 0
+// - Owner is responsible for data validity
 template<Num T>
 struct vec
 {
@@ -626,13 +626,40 @@ struct vec
 	}
 };
 
+// An owning locally-scoped vector
+template<Num T>
+struct local_vec : vec<T>
+{
+	explicit local_vec(ptrdiff_t n) :
+		vec<T>{
+			.ptr = new T[n],
+			.len = n,
+			.stride = 1,
+		} {}
+	~local_vec() { delete[] this->ptr; }
+
+	local_vec(const local_vec&) = delete;
+	local_vec(local_vec&&) = delete;
+	local_vec& operator=(const local_vec&) = delete;
+	local_vec& operator=(local_vec&&) = delete;
+
+	vec<T> borrow() const noexcept
+	{
+		return {
+			.ptr = this->ptr,
+			.len = this->len,
+			.stride = 1,
+		};
+	}
+};
+
 //// Matrices
 //------------
 // 2D array operations
 
 // A non-owning strided matrix
 // - Owner is responsible for managing memory
-// - Owner MUST guarantee nrows >= 0 and ncols >= 0
+// - Owner is responsible for data validity
 template<Num T>
 struct mat
 {

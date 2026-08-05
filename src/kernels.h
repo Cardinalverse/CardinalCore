@@ -106,9 +106,9 @@ struct dispatcher
 	}
 
 	dispatcher(const dispatcher&) = delete;
-	dispatcher(dispatcher&&) noexcept = delete;
+	dispatcher(dispatcher&&) = delete;
 	dispatcher& operator=(const dispatcher&) = delete;
-	dispatcher& operator=(dispatcher&&) noexcept = delete;
+	dispatcher& operator=(dispatcher&&) = delete;
 
 	template<Kernel F>
 	void dispatch(F kernel)
