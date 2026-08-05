@@ -58,8 +58,7 @@ struct num_traits;
 // NaNs are always incomparable
 template<Num T>
 struct num_traits {
-	static constexpr T incomparable() noexcept
-	{
+	static constexpr T incomparable() noexcept {
 		return std::numeric_limits<T>::quiet_NaN();
 	}
 };
@@ -76,29 +75,33 @@ struct num_traits<double> {
 };
 #endif // USING_R
 
-// Incomparable values
-template<Num T>
-constexpr T incomparable() noexcept {
-	return num_traits<T>::incomparable();
-}
-
 // A MaybeIncomparable type might be incomparable
 template<class T>
 concept MaybeIncomparable = requires { num_traits<T>::incomparable(); };
 
-// Check if a value is comparable
+// Incomparable values (lowest if not defined)
+template<Num T>
+constexpr T incomparable() noexcept
+{
+	if constexpr ( MaybeIncomparable<T> )
+		return num_traits<T>::incomparable();
+	else
+		return std::numeric_limits<T>::lowest();
+}
+
+// Check if a value is (explicitly) incomparable
 template<Num T>
 constexpr bool is_incomparable(const T x) noexcept
 {
 	if constexpr ( std::is_floating_point_v<T> )
 		return std::isnan(x);
 	else if constexpr ( MaybeIncomparable<T> )
-		return x == incomparable<T>();
+		return x == num_traits<T>::incomparable();
 	else
 		return false;
 }
 
-// Coerce while preserving incomparables across types
+// Coerce while preserving incomparables across types if possible
 template<Num Out, Num In>
 constexpr Out coerce_cast(In x) noexcept
 {
@@ -167,7 +170,6 @@ enum Unop {
 template<Unop Op, Num T = double>
 constexpr T ufunc(T x) noexcept
 {
-
 	if constexpr ( Op == Identity )
 		return x;
 	if ( is_incomparable(x) )
@@ -541,8 +543,8 @@ struct vec
 	}
 
 	// Elementwise in-place binary transformations
-	template<Binop Op, Vec Src, BinaryOp Tform = binop<Op,T>>
-	vec<T>& transform(const Src src, const Tform op = Tform{}) noexcept
+	template<Binop Op, Vec V, BinaryOp Tform = binop<Op,T>>
+	vec<T>& transform(const V src, const Tform op = Tform{}) noexcept
 	{
 		assert(src.ssize() == len);
 		for ( ptrdiff_t i = 0; i < len; ++i )
@@ -550,8 +552,8 @@ struct vec
 		return (*this);
 	}
 	// Assign (*this)[i] = src[index[i]] for i in index
-	template<Binop Op = Rhs, Vec Index, Vec Src>
-	vec<T>& gather(const Index index, const Src src) noexcept
+	template<Binop Op = Rhs, Vec Index, Vec V>
+	vec<T>& gather(const Index index, const V src) noexcept
 	{
 		assert(index.ssize() == len);
 		for ( ptrdiff_t i = 0; i < len; ++i )
@@ -568,8 +570,8 @@ struct vec
 	}
 
 	// Assign (*this)[index[i]] = src[i] for i in index
-	template<Binop Op = Rhs, Vec Index, Vec Src>
-	vec<T>& scatter(const Index index, const Src src) noexcept
+	template<Binop Op = Rhs, Vec Index, Vec V>
+	vec<T>& scatter(const Index index, const V src) noexcept
 	{
 		assert(index.ssize() == src.ssize());
 		for ( ptrdiff_t i = 0; i < src.ssize(); ++i )
@@ -582,30 +584,30 @@ struct vec
 		return (*this);
 	}
 
-	// vec + vec
-	template<Vec Src>
-	vec<T>& operator+=(const Src src) noexcept
+	// vec<T> += Vec
+	template<Vec V>
+	vec<T>& operator+=(const V src) noexcept
 	{
 		return this->transform<Add>(src);
 	}
 	
-	// vec - vec
-	template<Vec Src>
-	vec<T>& operator-=(const Src src) noexcept
+	// vec<T> -= Vec
+	template<Vec V>
+	vec<T>& operator-=(const V src) noexcept
 	{
 		return this->transform<Subtract>(src);
 	}
 
-	// vec * vec
-	template<Vec Src>
-	vec<T>& operator*=(const Src src) noexcept
+	// vec<T> *= Vec
+	template<Vec V>
+	vec<T>& operator*=(const V src) noexcept
 	{
 		return this->transform<Multiply>(src);
 	}
 
-	// vec / vec
-	template<Vec Src>
-	vec<T>& operator/=(const Src src) noexcept
+	// vec<T> /= Vec
+	template<Vec V>
+	vec<T>& operator/=(const V src) noexcept
 	{
 		return this->transform<Divide>(src);
 	}
