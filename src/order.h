@@ -136,10 +136,10 @@ void quick_order(
 	// checks (debug only)
 	assert(0 <= b.start && b.start < index.len);
 	assert(0 <= b.stop && b.stop <= index.len);
-	assert(b.len() >= 0);
+	assert(b.width() >= 0);
 	// initialize the stack
 	int stack_n = 2; // lo, hi
-	int stack_size = stack_n * std::bit_width(static_cast<size_t>(b.len()));
+	int stack_size = stack_n * std::bit_width(static_cast<size_t>(b.width()));
 	std::unique_ptr<Index[]> stack = std::make_unique<Index[]>(stack_size);
 	Index top = -1;
 	Index lo = b.start;
@@ -225,7 +225,7 @@ T quick_select(
 	assert(0 <= k && k < index.len);
 	assert(0 <= b.start && b.start < index.len);
 	assert(0 <= b.stop && b.stop <= index.len);
-	assert(b.len() >= 0);
+	assert(b.width() >= 0);
 	// recursively partition the array
 	Index lo = b.start;
 	Index hi = b.stop - 1;
@@ -268,7 +268,7 @@ double quick_median(const vec<T> x)
 		return median;
 	// set up working index buffer
 	std::unique_ptr<Index[]> pindex = std::make_unique<Index[]>(x.len);
-	vec<Index> index = vec{pindex.get(), x.len, 1}.fill(0, 1);
+	vec<Index> index = vec{pindex.get(), x.len, 1}.seqfill();
 	// find count of comparable items
 	Index n = 0;
 	for ( Index i = 0; i < x.len; ++i )

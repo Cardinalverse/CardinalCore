@@ -82,7 +82,7 @@ constexpr T incomparable() noexcept {
 	return num_traits<T>::incomparable();
 }
 
-// A MaybeIncomparble type might be incomparable
+// A MaybeIncomparable type might be incomparable
 template<class T>
 concept MaybeIncomparable = requires { num_traits<T>::incomparable(); };
 
@@ -125,6 +125,29 @@ inline int * data_ptr<int>(SEXP x) noexcept { return INTEGER(x); }
 template<>
 inline double * data_ptr<double>(SEXP x) noexcept { return REAL(x); }
 #endif // USING_R
+
+//// Indexing
+//-----------
+// Indexes and bounds
+
+// Half-open [start, stop) index bounds
+struct bounds
+{
+	ptrdiff_t start;
+	ptrdiff_t stop;
+
+	inline ptrdiff_t width() const noexcept
+	{
+		return stop - start;
+	}
+};
+
+// Multidimensional index
+template<int N>
+struct loc
+{
+	ptrdiff_t index[N];
+};
 
 //// Unary operations
 //--------------------
@@ -421,23 +444,11 @@ constexpr Vec auto operator/(L lhs, R rhs) noexcept
 //-----------
 // 1D array operations
 
-// Half-open [start, stop) index bounds
-struct bounds 
-{
-	ptrdiff_t start;
-	ptrdiff_t stop;
-
-	inline ptrdiff_t len() const noexcept
-	{
-		return stop - start;
-	}
-};
-
 // Generator vector repeating a constant
 template<Num T = double>
 struct rep
 {
-	T x;
+	T value;
 	ptrdiff_t len;
 
 	constexpr ptrdiff_t ssize() const noexcept
@@ -448,7 +459,7 @@ struct rep
 	constexpr T operator[](const ptrdiff_t i) const noexcept
 	{
 		assert(0 <= i && i < len);
-		return x;
+		return value;
 	}
 };
 
@@ -458,7 +469,7 @@ struct seq
 {
 	T start;
 	ptrdiff_t len;
-	T increment = 1;
+	T step = 1;
 
 	constexpr ptrdiff_t ssize() const noexcept
 	{
@@ -468,7 +479,7 @@ struct seq
 	constexpr T operator[](const ptrdiff_t i) const noexcept
 	{
 		assert(0 <= i && i < len);
-		return start + (i * increment);
+		return start + (i * step);
 	}
 };
 
@@ -499,16 +510,14 @@ struct vec
 		return ptr[stride * i];
 	}
 
-	vec<T>& fill(const T start = 0, const T increment = 0) noexcept
+	vec<T>& fill(const T value = 0) noexcept
 	{
-		for ( ptrdiff_t i = 0; i < len; ++i )
-			(*this)[i] = start + (i * increment);
-		return (*this);
+		return this->assign(rep<T>{value, len});
 	}
 
-	vec<T>& seq_fill() noexcept
+	vec<T>& seqfill(const T start = 0, const T step = 1) noexcept
 	{
-		return this->fill(0, 1);
+		return this->assign(seq<T>{start, len, step});
 	}
 
 	// Elementwise assignment
@@ -606,7 +615,7 @@ struct vec
 	{
 		return {
 			.ptr = ptr + (stride * b.start), 
-			.len = b.len(),
+			.len = b.width(),
 			.stride = stride,
 		};
 	}
@@ -655,7 +664,7 @@ struct mat
 	{
 		return {
 			.ptr = ptr + (row_stride * b.start),
-			.nrows = b.len(),
+			.nrows = b.width(),
 			.ncols = ncols,
 			.row_stride = row_stride,
 			.col_stride = col_stride,
@@ -667,7 +676,7 @@ struct mat
 		return {
 			.ptr = ptr + (col_stride * b.start),
 			.nrows = nrows,
-			.ncols = b.len(),
+			.ncols = b.width(),
 			.row_stride = row_stride,
 			.col_stride = col_stride,
 		};

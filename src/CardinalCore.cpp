@@ -44,12 +44,12 @@ SEXP do_qorder(SEXP x)
 	{
 		case INTSXP:
 			quick_order(
-				as_vec<int>(result).seq_fill(),
+				as_vec<int>(result).seqfill(),
 				as_vec<int>(x));
 			break;
 		case REALSXP:
 			quick_order(
-				as_vec<int>(result).seq_fill(),
+				as_vec<int>(result).seqfill(),
 				as_vec<double>(x));
 			break;
 		default:
@@ -69,13 +69,13 @@ SEXP do_qselect(SEXP x, SEXP k)
 		{
 			case INTSXP:
 				INTEGER(result)[i] = quick_select(
-					as_vec<int>(index).seq_fill(),
+					as_vec<int>(index).seqfill(),
 					as_vec<int>(x),
 					INTEGER_ELT(k, i));
 				break;
 			case REALSXP:
 				REAL(result)[i] = quick_select(
-					as_vec<int>(index).seq_fill(),
+					as_vec<int>(index).seqfill(),
 					as_vec<double>(x),
 					INTEGER_ELT(k, i));
 				break;
