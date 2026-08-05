@@ -5,7 +5,7 @@
 #include <memory>
 #include "core.h"
 
-#define LINEAR_THRESHOLD 8
+#define SMALL_SORT_THRESHOLD 8
 
 //// Comparison
 //--------------
@@ -140,7 +140,7 @@ void quick_order(
 	// initialize the stack
 	int stack_n = 2; // lo, hi
 	int stack_size = stack_n * std::bit_width(static_cast<size_t>(b.width()));
-	std::unique_ptr<Index[]> stack = std::make_unique<Index[]>(stack_size);
+	auto stack = std::make_unique<Index[]>(stack_size);
 	Index top = -1;
 	Index lo = b.start;
 	Index hi = b.stop - 1;
@@ -152,7 +152,7 @@ void quick_order(
 		// pop and partition current subarray
 		hi = stack[top--];
 		lo = stack[top--];
-		if ( hi - lo < LINEAR_THRESHOLD )
+		if ( hi - lo < SMALL_SORT_THRESHOLD )
 		{
 			// use insertion sort for small subarrays
 			for ( Index i = lo + 1; i <= hi; ++i )
@@ -267,8 +267,8 @@ double quick_median(const vec<T> x)
 	if ( x.len == 0 )
 		return median;
 	// set up working index buffer
-	std::unique_ptr<Index[]> pindex = std::make_unique<Index[]>(x.len);
-	vec<Index> index = vec{pindex.get(), x.len, 1}.seqfill();
+	local_vec<Index> index{x.len};
+	index.seqfill();
 	// find count of comparable items
 	Index n = 0;
 	for ( Index i = 0; i < x.len; ++i )
@@ -280,13 +280,13 @@ double quick_median(const vec<T> x)
 	Index k = n / 2;
 	if ( x.len % 2 == 0 )
 	{
-		double m1 = quick_select(index, x, k - 1, {0, x.len});
-		double m2 = quick_select(index, x, k, {k, x.len});
+		double m1 = quick_select(index.borrow(), x, k - 1);
+		double m2 = quick_select(index.borrow(), x, k);
 		return 0.5 * (m1 + m2);
 	}
 	else
 	{
-		return quick_select(index, x, k, index.all_elements());
+		return quick_select(index.borrow(), x, k);
 	}
 }
 
@@ -300,8 +300,7 @@ double quick_mad(const vec<T> x, double center, double constant = 1.4826)
 	if ( x.len == 0 )
 		return incomparable<double>();
 	// compute absolute deviations
-	std::unique_ptr<double[]> pdevs = std::make_unique<double[]>(x.len);
-	vec<double> devs = {pdevs.get(), x.len, 1};
+	local_vec<double> devs{x.len};
 	for ( Index i = 0; i < x.len; ++i )
 	{
 		if ( is_incomparable(x[i]) )
