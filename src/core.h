@@ -47,18 +47,21 @@ concept UnaryOp = std::invocable<F, num_arg>;
 template<class F>
 concept BinaryOp = std::invocable<F, num_arg, num_arg>;
 
-//// Specials
-//------------
-// Coercion and incomparable (missing) values
+//// Sentinels
+//-------------
+// Coercion and NA/missing/incomparable values
 
-// Proxy type to define incomparables
-template<Num T>
+// Proxy type to define numeric traits
+template<class T>
 struct num_traits;
 
-// NaNs are always incomparable
-template<Num T>
-struct num_traits {
-	static constexpr T incomparable() noexcept {
+// NaNs are always incomparable so treat them as NAs
+template<std::floating_point T>
+struct num_traits<T> {
+	static constexpr bool is_na(const T x) noexcept {
+		return std::isnan(x);
+	}
+	static constexpr T na_value() noexcept {
 		return std::numeric_limits<T>::quiet_NaN();
 	}
 };
@@ -67,41 +70,45 @@ struct num_traits {
 #ifdef USING_R
 template<>
 struct num_traits<int> {
-	static int incomparable() noexcept { return NA_INTEGER; }
+	static bool is_na(const int x) noexcept { return x == NA_INTEGER; }
+	static int na_value() noexcept { return NA_INTEGER; }
 };
 template<>
 struct num_traits<double> {
-	static double incomparable() noexcept { return NA_REAL; }
+	static bool is_na(const double x) noexcept { return std::isnan(x); }
+	static double na_value() noexcept { return NA_REAL; }
 };
 #endif // USING_R
 
-// A MaybeIncomparable type might be incomparable
+// A HasNA type supports NA sentinel values
 template<class T>
-concept MaybeIncomparable = requires { num_traits<T>::incomparable(); };
+concept HasNA = Num<T> && requires (const T& x)
+	{
+		{ num_traits<T>::is_na(x) } -> std::same_as<bool>;
+		{ num_traits<T>::na_value() } -> std::same_as<T>;
+	};
 
-// Incomparable values (lowest if not defined)
+// NA values (lowest if not defined so na_value<bool> -> false)
 template<Num T>
-constexpr T incomparable() noexcept
+constexpr T na_value() noexcept
 {
-	if constexpr ( MaybeIncomparable<T> )
-		return num_traits<T>::incomparable();
+	if constexpr ( HasNA<T> )
+		return num_traits<T>::na_value();
 	else
 		return std::numeric_limits<T>::lowest();
 }
 
-// Check if a value is (explicitly) incomparable
+// Check if a value is NA/missing/incomparable
 template<Num T>
-constexpr bool is_incomparable(const T x) noexcept
+constexpr bool is_na(const T x) noexcept
 {
-	if constexpr ( std::is_floating_point_v<T> )
-		return std::isnan(x);
-	else if constexpr ( MaybeIncomparable<T> )
-		return x == num_traits<T>::incomparable();
+	if constexpr ( HasNA<T> )
+		return num_traits<T>::is_na(x);
 	else
 		return false;
 }
 
-// Coerce while preserving incomparables across types if possible
+// Coerce while preserving NAs across types if possible
 template<Num Out, Num In>
 constexpr Out coerce_cast(In x) noexcept
 {
@@ -109,8 +116,8 @@ constexpr Out coerce_cast(In x) noexcept
 		return x;
 	else
 	{
-		if ( is_incomparable(x) )
-			return incomparable<Out>();
+		if ( is_na(x) )
+			return na_value<Out>();
 		else
 			return static_cast<Out>(x);
 	}
@@ -172,8 +179,8 @@ constexpr T ufunc(T x) noexcept
 {
 	if constexpr ( Op == Identity )
 		return x;
-	if ( is_incomparable(x) )
-		return incomparable<T>();
+	if ( is_na(x) )
+		return na_value<T>();
 	else if constexpr ( Op == Abs )
 		return std::abs(x);
 	else if constexpr ( Op == Log )
@@ -225,8 +232,8 @@ constexpr T ufunc(T lhs, T rhs) noexcept
 		return lhs;
 	if constexpr ( Op == Rhs )
 		return rhs;
-	if ( is_incomparable(lhs) || is_incomparable(rhs) )
-		return incomparable<T>();
+	if ( is_na(lhs) || is_na(rhs) )
+		return na_value<T>();
 	else if constexpr ( Op == Add )
 		return lhs + rhs;
 	else if constexpr ( Op == Subtract )
@@ -270,7 +277,7 @@ struct binop {
 				return std::numeric_limits<Out>::max();
 		}
 		else
-			return incomparable<Out>();
+			return na_value<Out>();
 	}
 	Out operator()(In lhs, In rhs) const noexcept
 	{
@@ -300,8 +307,8 @@ struct vec_indexed
 	T operator[](ptrdiff_t i) const noexcept
 	{
 		auto ii = index[i];
-		if ( is_incomparable(ii) )
-			return incomparable<T>();
+		if ( is_na(ii) )
+			return na_value<T>();
 		else
 			return coerce_cast<T>(x[ii]);
 	}
@@ -559,9 +566,9 @@ struct vec
 		for ( ptrdiff_t i = 0; i < len; ++i )
 		{
 			auto ii = index[i];
-			if ( is_incomparable(ii) )
+			if ( is_na(ii) )
 			{
-				(*this)[i] = incomparable<T>;
+				(*this)[i] = na_value<T>;
 				continue;
 			}
 			(*this)[i] = ufunc<Op,T>((*this)[i], coerce_cast<T>(src[ii]));
@@ -577,7 +584,7 @@ struct vec
 		for ( ptrdiff_t i = 0; i < src.ssize(); ++i )
 		{
 			auto ii = index[i];
-			if ( is_incomparable(ii) )
+			if ( is_na(ii) )
 				continue;
 			(*this)[ii] = ufunc<Op,T>((*this)[ii], coerce_cast<T>(src[i]));
 		}

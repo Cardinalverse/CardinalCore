@@ -22,11 +22,11 @@ double diff(
 	const T ref, 
 	const bool relative = false)
 {
-	if ( is_incomparable(x) && is_incomparable(ref) )
+	if ( is_na(x) && is_na(ref) )
 		return 0.0;       // NAs sort equivalently
-	else if ( is_incomparable(x) )
+	else if ( is_na(x) )
 		return +INFINITY; // NAs sort last so (x - ref) => +Inf
-	else if ( is_incomparable(ref) )
+	else if ( is_na(ref) )
 		return -INFINITY; // NAs sort last so (x - ref) => -Inf
 	else
 	{
@@ -263,7 +263,7 @@ template<typename Index = ptrdiff_t, typename T>
 double quick_median(const vec<T> x)
 {
 	// initialize result
-	double median = incomparable<double>();
+	double median = na_value<double>();
 	if ( x.len == 0 )
 		return median;
 	// set up working index buffer
@@ -273,7 +273,7 @@ double quick_median(const vec<T> x)
 	Index n = 0;
 	for ( Index i = 0; i < x.len; ++i )
 	{
-		if ( !is_incomparable(x[i]) )
+		if ( !is_na(x[i]) )
 			++n;
 	}
 	// compute median
@@ -298,13 +298,13 @@ template<typename Index = ptrdiff_t, typename T>
 double quick_mad(const vec<T> x, double center, double constant = 1.4826)
 {
 	if ( x.len == 0 )
-		return incomparable<double>();
+		return na_value<double>();
 	// compute absolute deviations
 	local_vec<double> devs{x.len};
 	for ( Index i = 0; i < x.len; ++i )
 	{
-		if ( is_incomparable(x[i]) )
-			devs[i] = incomparable<double>();
+		if ( is_na(x[i]) )
+			devs[i] = na_value<double>();
 		else
 			devs[i] = std::fabs(x[i] - center);
 	}
