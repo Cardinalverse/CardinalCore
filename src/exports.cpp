@@ -50,13 +50,13 @@ SEXP do_qorder(SEXP x)
 	{
 		case INTSXP:
 			quick_order(
-				as_vec<int>(result).seqfill(),
-				as_vec<int>(x));
+				vec<int>::from(result).seqfill(),
+				vec<int>::from(x));
 			break;
 		case REALSXP:
 			quick_order(
-				as_vec<int>(result).seqfill(),
-				as_vec<double>(x));
+				vec<int>::from(result).seqfill(),
+				vec<double>::from(x));
 			break;
 		default:
 			Rf_error("'x' must be integer or double");
@@ -75,14 +75,14 @@ SEXP do_qselect(SEXP x, SEXP k)
 		{
 			case INTSXP:
 				INTEGER(result)[i] = quick_select(
-					as_vec<int>(index).seqfill(),
-					as_vec<int>(x),
+					vec<int>::from(index).seqfill(),
+					vec<int>::from(x),
 					INTEGER_ELT(k, i));
 				break;
 			case REALSXP:
 				REAL(result)[i] = quick_select(
-					as_vec<int>(index).seqfill(),
-					as_vec<double>(x),
+					vec<int>::from(index).seqfill(),
+					vec<double>::from(x),
 					INTEGER_ELT(k, i));
 				break;
 			default:
@@ -98,10 +98,10 @@ SEXP do_qmedian(SEXP x)
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
-			return Rf_ScalarReal(quick_median(as_vec<int>(x)));
+			return Rf_ScalarReal(quick_median(vec<int>::from(x)));
 			break;
 		case REALSXP:
-			return Rf_ScalarReal(quick_median(as_vec<double>(x)));
+			return Rf_ScalarReal(quick_median(vec<double>::from(x)));
 		default:
 			Rf_error("'x' must be integer or double");
 	}
@@ -113,12 +113,12 @@ SEXP do_qmad(SEXP x, SEXP center, SEXP constant)
 	{
 		case INTSXP:
 			return Rf_ScalarReal(quick_mad(
-				as_vec<int>(x),
+				vec<int>::from(x),
 				Rf_asReal(center),
 				Rf_asReal(constant)));
 		case REALSXP:
 			return Rf_ScalarReal(quick_mad(
-				as_vec<double>(x),
+				vec<double>::from(x),
 				Rf_asReal(center),
 				Rf_asReal(constant)));
 		default:
@@ -142,8 +142,8 @@ SEXP do_bsearch(
 		case INTSXP:
 			binary_search(
 				INTEGER(result),
-				as_vec<int>(query),
-				as_vec<int>(x),
+				vec<int>::from(query),
+				vec<int>::from(x),
 				Rf_asReal(tolerance),
 				Rf_asLogical(relative),
 				Rf_asLogical(nearest),
@@ -152,8 +152,8 @@ SEXP do_bsearch(
 		case REALSXP:
 			binary_search(
 				INTEGER(result),
-				as_vec<double>(query),
-				as_vec<double>(x),
+				vec<double>::from(query),
+				vec<double>::from(x),
 				Rf_asReal(tolerance),
 				Rf_asLogical(relative),
 				Rf_asLogical(nearest),
@@ -178,8 +178,8 @@ SEXP do_col_sums(SEXP x, SEXP num_threads)
 		{
 			compute(
 				col_sums<int>{
-					as_vec<double>(result).fill(),
-					as_mat<int>(x)},
+					vec<double>::from(result).fill(),
+					mat<int>::from(x)},
 				Rf_asInteger(num_threads));
 			break;
 		}
@@ -187,8 +187,8 @@ SEXP do_col_sums(SEXP x, SEXP num_threads)
 		{
 			compute(
 				col_sums<double>{
-					as_vec<double>(result).fill(),
-					as_mat<double>(x)},
+					vec<double>::from(result).fill(),
+					mat<double>::from(x)},
 				Rf_asInteger(num_threads));
 			break;
 		}
@@ -208,17 +208,17 @@ SEXP do_test_expression(SEXP x, SEXP index)
 		case INTSXP:
 		{
 			test_expression(
-				as_vec<int>(result),
-				as_vec<int>(x),
-				as_vec<int>(index));
+				vec<int>::from(result),
+				vec<int>::from(x),
+				vec<int>::from(index));
 			break;
 		}
 		case REALSXP:
 		{
 			test_expression(
-				as_vec<double>(result),
-				as_vec<double>(x),
-				as_vec<int>(index));
+				vec<double>::from(result),
+				vec<double>::from(x),
+				vec<int>::from(index));
 			break;
 		}
 	}

@@ -633,9 +633,27 @@ struct vec
 	{
 		return {0, len};
 	}
+
+	#ifdef USING_R
+	static vec<T> from(SEXP x) noexcept
+	{
+		if ( x != R_NilValue )
+		{
+			return {
+				.ptr = data_ptr<T>(x),
+				.len = static_cast<ptrdiff_t>(XLENGTH(x)),
+				.stride = 1,
+			};
+		}
+		else
+		{
+			return {nullptr, 0, 0};
+		}
+	}
+	#endif // USING_R
 };
 
-// An owning locally-scoped vector
+// An locally-scoped owning vector
 template<Num T>
 struct local_vec : vec<T>
 {
@@ -726,47 +744,26 @@ struct mat
 	{
 		return {0, ncols};
 	}
+
+	#ifdef USING_R
+	static mat<T> from(SEXP x) noexcept
+	{
+		if ( x != R_NilValue )
+		{
+			return {
+				.ptr = data_ptr<T>(x),
+				.nrows = static_cast<ptrdiff_t>(Rf_nrows(x)),
+				.ncols = static_cast<ptrdiff_t>(Rf_ncols(x)),
+				.row_stride = 1,
+				.col_stride = Rf_nrows(x),
+			};
+		}
+		else
+		{
+			return {nullptr, 0, 0, 0, 0};
+		}
+	}
+	#endif // USING_R
 };
-
-//// R objects
-//--------------
-// Initialize struct from R object
-
-#ifdef USING_R
-template<class T>
-vec<T> as_vec(SEXP x) noexcept
-{
-	if ( x != R_NilValue )
-	{
-		return {
-			.ptr = data_ptr<T>(x),
-			.len = static_cast<ptrdiff_t>(XLENGTH(x)),
-			.stride = 1,
-		};
-	}
-	else
-	{
-		return {nullptr, 0, 0};
-	}
-}
-template<class T>
-mat<T> as_mat(SEXP x) noexcept
-{
-	if ( x != R_NilValue )
-	{
-		return {
-			.ptr = data_ptr<T>(x),
-			.nrows = static_cast<ptrdiff_t>(Rf_nrows(x)),
-			.ncols = static_cast<ptrdiff_t>(Rf_ncols(x)),
-			.row_stride = 1,
-			.col_stride = Rf_nrows(x),
-		};
-	}
-	else
-	{
-		return {nullptr, 0, 0, 0, 0};
-	}
-}
-#endif // USING_R
 
 #endif // CARDINAL_CORE_CORE
