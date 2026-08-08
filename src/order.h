@@ -5,7 +5,7 @@
 #include <memory>
 #include "core.h"
 
-#define SMALL_SORT_THRESHOLD 8
+#define SMALL_SORT_THRESHOLD 16
 
 //// Comparison
 //--------------
@@ -79,7 +79,7 @@ bool greater_at(
 // - The index MUST contain valid indices of x
 // - Returns the pivot
 template<Num Index, Vec V>
-Index partition_index(
+ptrdiff_t partition_index(
 	vec<Index> index,
 	const V x,
 	const ptrdiff_t lo, // index of first item to consider in x
@@ -257,7 +257,7 @@ double qmedian(const V x)
 {
 	if ( x.ssize() == 0 )
 		return na_value<double>();
-	// initialize working index buffer
+	// initialize index
 	local_vec<ptrdiff_t> index{x.ssize()};
 	index.seqfill();
 	// find count of non-NA items
@@ -267,7 +267,7 @@ double qmedian(const V x)
 	if ( n % 2 == 0 )
 	{
 		double m1 = qselect_index(index.borrow(), x, k - 1);
-		double m2 = qselect_index(index.borrow(), x, k, {k - 1, x.ssize()});
+		double m2 = qselect_index(index.borrow(), x, k);
 		return 0.5 * (m1 + m2);
 	}
 	else

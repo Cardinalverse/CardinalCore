@@ -18,19 +18,19 @@ SEXP do_qdiff(SEXP x, SEXP ref, SEXP relative)
 		Rf_error("'x' and 'ref' must have the same data type");
 	if ( LENGTH(x) != LENGTH(ref) )
 		Rf_error("'x' and 'ref' must have the same length");
-	SEXP result = PROTECT(Rf_allocVector(REALSXP, LENGTH(x)));
+	SEXP dx = PROTECT(Rf_allocVector(REALSXP, LENGTH(x)));
 	for ( R_len_t i = 0; i < LENGTH(x); ++i )
 	{
 		switch(TYPEOF(x))
 		{
 			case INTSXP:
-				REAL(result)[i] = diff(
+				REAL(dx)[i] = diff(
 					INTEGER_ELT(x, i),
 					INTEGER_ELT(ref, i),
 					Rf_asLogical(relative));
 				break;
 			case REALSXP:
-				REAL(result)[i] = diff(
+				REAL(dx)[i] = diff(
 					REAL_ELT(x, i),
 					REAL_ELT(ref, i),
 					Rf_asLogical(relative));
@@ -40,47 +40,47 @@ SEXP do_qdiff(SEXP x, SEXP ref, SEXP relative)
 		}
 	}
 	UNPROTECT(1);
-	return result;
+	return dx;
 }
 
 SEXP do_qorder(SEXP x)
 {
-	SEXP result = PROTECT(Rf_allocVector(INTSXP, LENGTH(x)));
+	SEXP index = PROTECT(Rf_allocVector(INTSXP, LENGTH(x)));
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
 			qsort_index(
-				vec<int>::from(result).seqfill(),
+				vec<int>::from(index).seqfill(),
 				vec<int>::from(x));
 			break;
 		case REALSXP:
 			qsort_index(
-				vec<int>::from(result).seqfill(),
+				vec<int>::from(index).seqfill(),
 				vec<double>::from(x));
 			break;
 		default:
 			Rf_error("'x' must be integer or double");
 	}
 	UNPROTECT(1);
-	return result;
+	return index;
 }
 
 SEXP do_qselect(SEXP x, SEXP k)
 {
-	SEXP result = PROTECT(Rf_allocVector(TYPEOF(x), LENGTH(k)));
+	SEXP order = PROTECT(Rf_allocVector(TYPEOF(x), LENGTH(k)));
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, LENGTH(x)));
 	for ( R_len_t i = 0; i < LENGTH(k); ++i )
 	{
 		switch(TYPEOF(x))
 		{
 			case INTSXP:
-				INTEGER(result)[i] = qselect_index(
+				INTEGER(order)[i] = qselect_index(
 					vec<int>::from(index).seqfill(),
 					vec<int>::from(x),
 					INTEGER_ELT(k, i));
 				break;
 			case REALSXP:
-				REAL(result)[i] = qselect_index(
+				REAL(order)[i] = qselect_index(
 					vec<int>::from(index).seqfill(),
 					vec<double>::from(x),
 					INTEGER_ELT(k, i));
@@ -90,7 +90,7 @@ SEXP do_qselect(SEXP x, SEXP k)
 		}
 	}
 	UNPROTECT(2);
-	return result;
+	return order;
 }
 
 SEXP do_qmedian(SEXP x)
