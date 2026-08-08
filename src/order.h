@@ -260,20 +260,14 @@ double qmedian(const V x)
 	// initialize working index buffer
 	local_vec<ptrdiff_t> index{x.ssize()};
 	index.seqfill();
-	// find count of comparable items
-	ptrdiff_t n = 0;
-	for ( ptrdiff_t i = 0; i < x.ssize(); ++i )
-	{
-		// TODO: replace with a function
-		if ( !is_na(x[i]) )
-			++n;
-	}
+	// find count of non-NA items
+	ptrdiff_t n = n_present(x);
 	// compute median
 	ptrdiff_t k = n / 2;
 	if ( n % 2 == 0 )
 	{
 		double m1 = qselect_index(index.borrow(), x, k - 1);
-		double m2 = qselect_index(index.borrow(), x, k);
+		double m2 = qselect_index(index.borrow(), x, k, {k - 1, x.ssize()});
 		return 0.5 * (m1 + m2);
 	}
 	else
@@ -289,17 +283,8 @@ double qmad(const V x, double center, double constant = 1.4826)
 {
 	if ( x.ssize() == 0 )
 		return na_value<double>();
-	// compute absolute deviations
-	local_vec<double> devs{x.ssize()};
-	for ( ptrdiff_t i = 0; i < x.ssize(); ++i )
-	{
-		// TODO: replace with a function
-		if ( is_na(x[i]) )
-			devs[i] = na_value<double>();
-		else
-			devs[i] = std::fabs(x[i] - center);
-	}
-	return constant * qmedian(devs.borrow());
+	auto devs = ufunc<Abs>(x - rep{center, x.ssize()});
+	return constant * qmedian(devs);
 }
 
 #endif // CARDINAL_CORE_ORDER

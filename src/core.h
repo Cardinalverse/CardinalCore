@@ -88,16 +88,6 @@ concept HasNA = Num<T> && requires (const T& x)
 		{ num_traits<T>::na_value() } -> std::same_as<T>;
 	};
 
-// NA values (lowest if not defined so na_value<bool> -> false)
-template<Num T>
-constexpr T na_value() noexcept
-{
-	if constexpr ( HasNA<T> )
-		return num_traits<T>::na_value();
-	else
-		return std::numeric_limits<T>::lowest();
-}
-
 // Check if a value is NA/missing/incomparable
 template<Num T>
 constexpr bool is_na(const T x) noexcept
@@ -106,6 +96,16 @@ constexpr bool is_na(const T x) noexcept
 		return num_traits<T>::is_na(x);
 	else
 		return false;
+}
+
+// NA values (lowest if not defined so na_value<bool> -> false)
+template<Num T>
+constexpr T na_value() noexcept
+{
+	if constexpr ( HasNA<T> )
+		return num_traits<T>::na_value();
+	else
+		return std::numeric_limits<T>::lowest();
 }
 
 // Coerce while preserving NAs across types if possible
@@ -121,6 +121,23 @@ constexpr Out coerce_cast(In x) noexcept
 		else
 			return static_cast<Out>(x);
 	}
+}
+
+// Count of NA/missing/incomparable items in x
+template<Vec V>
+ptrdiff_t n_missing(V x) noexcept
+{
+	ptrdiff_t count = 0;
+	for ( ptrdiff_t i = 0; i < x.ssize(); ++i )
+		count += is_na(x[i]);
+	return count;
+}
+
+// Count of non-NA/missing/incomparable items in x
+template<Vec V>
+ptrdiff_t n_present(V x) noexcept
+{
+	return x.ssize() - n_missing(x);
 }
 
 //// Data Pointer
@@ -404,43 +421,37 @@ T reduce(
 
 // Universal unary functions for Vecs
 template<Unop Op, Num T = double, Vec V>
-Vec auto ufunc(V x) noexcept
-{
+Vec auto ufunc(V x) noexcept {
 	return transform<Op,T>(x);
 }
 
 // Universal binary functions for Vecs
 template<Binop Op, Num T = double, Vec L, Vec R>
-Vec auto ufunc(L lhs, R rhs) noexcept
-{
+Vec auto ufunc(L lhs, R rhs) noexcept {
 	return transform<Op,T>(lhs, rhs);
 }
 
 // Vec + Vec
 template<Num T = double, Vec L, Vec R>
-constexpr Vec auto operator+(L lhs, R rhs) noexcept
-{
+constexpr Vec auto operator+(L lhs, R rhs) noexcept {
 	return ufunc<Add,T>(lhs, rhs);
 }
 
 // Vec - Vec
 template<Num T = double, Vec L, Vec R>
-constexpr Vec auto operator-(L lhs, R rhs) noexcept
-{
+constexpr Vec auto operator-(L lhs, R rhs) noexcept {
 	return ufunc<Subtract,T>(lhs, rhs);
 }
 
 // Vec * Vec
 template<Num T = double, Vec L, Vec R>
-constexpr Vec auto operator*(L lhs, R rhs) noexcept
-{
+constexpr Vec auto operator*(L lhs, R rhs) noexcept {
 	return ufunc<Multiply,T>(lhs, rhs);
 }
 
 // Vec / Vec
 template<Num T = double, Vec L, Vec R>
-constexpr Vec auto operator/(L lhs, R rhs) noexcept
-{
+constexpr Vec auto operator/(L lhs, R rhs) noexcept {
 	return ufunc<Divide,T>(lhs, rhs);
 }
 
