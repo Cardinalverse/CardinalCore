@@ -259,7 +259,7 @@ double qmedian(const V x)
 		return na_value<double>();
 	// initialize index
 	local_vec<ptrdiff_t> index{x.ssize()};
-	index.seqfill();
+	index.seqfill(0);
 	// find count of non-NA items
 	ptrdiff_t n = n_present(x);
 	// compute median

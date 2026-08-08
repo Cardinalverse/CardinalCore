@@ -533,12 +533,12 @@ struct vec
 		return (*this);
 	}
 
-	vec<T>& fill(const T value = 0) noexcept
+	vec<T>& fill(const T value) noexcept
 	{
 		return this->assign(rep<T>{value, len});
 	}
 
-	vec<T>& seqfill(const T start = 0, const T step = 1) noexcept
+	vec<T>& seqfill(const T start, const T step = 1) noexcept
 	{
 		return this->assign(seq<T>{start, len, step});
 	}

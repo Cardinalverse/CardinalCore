@@ -50,12 +50,12 @@ SEXP do_qorder(SEXP x)
 	{
 		case INTSXP:
 			qsort_index(
-				vec<int>::from(index).seqfill(),
+				vec<int>::from(index).seqfill(0),
 				vec<int>::from(x));
 			break;
 		case REALSXP:
 			qsort_index(
-				vec<int>::from(index).seqfill(),
+				vec<int>::from(index).seqfill(0),
 				vec<double>::from(x));
 			break;
 		default:
@@ -75,13 +75,13 @@ SEXP do_qselect(SEXP x, SEXP k)
 		{
 			case INTSXP:
 				INTEGER(order)[i] = qselect_index(
-					vec<int>::from(index).seqfill(),
+					vec<int>::from(index).seqfill(0),
 					vec<int>::from(x),
 					INTEGER_ELT(k, i));
 				break;
 			case REALSXP:
 				REAL(order)[i] = qselect_index(
-					vec<int>::from(index).seqfill(),
+					vec<int>::from(index).seqfill(0),
 					vec<double>::from(x),
 					INTEGER_ELT(k, i));
 				break;
@@ -171,14 +171,14 @@ SEXP do_bsearch(
 
 SEXP do_col_sums(SEXP x, SEXP num_threads)
 {
-	SEXP result = PROTECT(Rf_allocVector(REALSXP, Rf_ncols(x)));
+	SEXP sums = PROTECT(Rf_allocVector(REALSXP, Rf_ncols(x)));
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
 		{
 			compute(
 				col_sums<int>{
-					vec<double>::from(result).fill(),
+					vec<double>::from(sums).fill(0),
 					mat<int>::from(x)},
 				Rf_asInteger(num_threads));
 			break;
@@ -187,14 +187,14 @@ SEXP do_col_sums(SEXP x, SEXP num_threads)
 		{
 			compute(
 				col_sums<double>{
-					vec<double>::from(result).fill(),
+					vec<double>::from(sums).fill(0),
 					mat<double>::from(x)},
 				Rf_asInteger(num_threads));
 			break;
 		}
 	}
 	UNPROTECT(1);
-	return result;
+	return sums;
 }
 
 //// Test expressions
