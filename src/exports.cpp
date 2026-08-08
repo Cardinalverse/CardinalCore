@@ -95,35 +95,42 @@ SEXP do_qselect(SEXP x, SEXP k)
 
 SEXP do_qmedian(SEXP x)
 {
+	double median = NA_REAL;
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
-			return Rf_ScalarReal(qmedian(vec<int>::from(x)));
+			median = qmedian(vec<int>::from(x));
 			break;
 		case REALSXP:
-			return Rf_ScalarReal(qmedian(vec<double>::from(x)));
+			median = qmedian(vec<double>::from(x));
+			break;
 		default:
 			Rf_error("'x' must be integer or double");
 	}
+	return Rf_ScalarReal(median);
 }
 
 SEXP do_qmad(SEXP x, SEXP center, SEXP constant)
 {
+	double mad = NA_REAL;
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
-			return Rf_ScalarReal(qmad(
+			mad = qmad(
 				vec<int>::from(x),
 				Rf_asReal(center),
-				Rf_asReal(constant)));
+				Rf_asReal(constant));
+			break;
 		case REALSXP:
-			return Rf_ScalarReal(qmad(
+			mad = qmad(
 				vec<double>::from(x),
 				Rf_asReal(center),
-				Rf_asReal(constant)));
+				Rf_asReal(constant));
+			break;
 		default:
 			Rf_error("'x' must be integer or double");
 	}
+	return Rf_ScalarReal(mad);
 }
 
 SEXP do_bsearch(
@@ -136,12 +143,12 @@ SEXP do_bsearch(
 {
 	if ( TYPEOF(query) != TYPEOF(x) )
 		Rf_error("'query' and 'x' must have the same data type");
-	SEXP result = PROTECT(Rf_allocVector(INTSXP, LENGTH(query)));
+	SEXP index = PROTECT(Rf_allocVector(INTSXP, LENGTH(query)));
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
 			binary_search(
-				INTEGER(result),
+				INTEGER(index),
 				vec<int>::from(query),
 				vec<int>::from(x),
 				Rf_asReal(tolerance),
@@ -151,7 +158,7 @@ SEXP do_bsearch(
 			break;
 		case REALSXP:
 			binary_search(
-				INTEGER(result),
+				INTEGER(index),
 				vec<double>::from(query),
 				vec<double>::from(x),
 				Rf_asReal(tolerance),
@@ -163,7 +170,7 @@ SEXP do_bsearch(
 			Rf_error("'x' must be integer or double");
 	}
 	UNPROTECT(1);
-	return result;
+	return index;
 }
 
 //// Matrix statistics
