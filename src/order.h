@@ -9,230 +9,224 @@
 
 //// Comparison
 //--------------
-// Comparisons handling incomparables (NAs and NaNs)
+// Comparisons handling NA/missing/incomparable
 
-// compute signed absolute or relative difference
-// - safe to use with incomparables (NAs and NaNs)
-// - incomparables sort last/highest (NA >> Inf)
-// - incomparables sort equal to each other (NA == NA)
-// returns: the difference
-template<typename T>
+// Compute signed absolute or relative difference
+// - Safe to use with incomparables (NAs and NaNs)
+// - Incomparables sort last/highest (NA >> Inf)
+// - Incomparables sort equal to each other (NA == NA)
+template<Num T>
 double diff(
 	const T x, 
 	const T ref, 
 	const bool relative = false)
 {
-	if ( is_na(x) && is_na(ref) )
-		return 0.0;       // NAs sort equivalently
-	else if ( is_na(x) )
-		return +INFINITY; // NAs sort last so (x - ref) => +Inf
-	else if ( is_na(ref) )
-		return -INFINITY; // NAs sort last so (x - ref) => -Inf
-	else
+	if constexpr ( HasNA<T> )
 	{
-		if ( relative )
-			return static_cast<double>(x - ref) / ref;
-		else
-			return static_cast<double>(x - ref);
+		if ( is_na(x) && is_na(ref) )
+			return 0;         // NAs sort equivalently
+		else if ( is_na(x) )
+			return +INFINITY; // NAs sort last so (x - ref) => +Inf
+		else if ( is_na(ref) )
+			return -INFINITY; // NAs sort last so (x - ref) => -Inf
 	}
+	if ( relative )
+		return static_cast<double>(x - ref) / ref;
+	else
+		return static_cast<double>(x - ref);
 }
 
-#define LESSER(x, y) (diff((x), (y)) < 0)
-#define GREATER(x, y) (diff((x), (y)) > 0)
-#define LESSER_EQUAL(x, y) (diff((x), (y)) <= 0)
-#define GREATER_EQUAL(x, y) (diff((x), (y)) >= 0)
-#define EQUAL(x, y) (diff((x), (y)) == 0)
-#define NOT_EQUAL(x, y) (diff((x), (y)) != 0)
+// Tests x[index[i]] < x[index[j]]
+// - Ties broekn by index[i] < index[j]
+// - NAs sort last (NA >> Inf)
+template<Num Index, Vec V>
+bool less_at(
+	vec<Index> index,
+	V x,
+	ptrdiff_t i,
+	ptrdiff_t j) noexcept
+{
+	Index ii = index[i];
+	Index jj = index[j];
+	double dx = diff(x[ii], x[jj]);
+	return dx != 0 ? dx < 0 : ii < jj;
+}
+
+// Tests x[index[i]] > x[index[j]]
+// - Ties broekn by index[i] > index[j]
+// - NAs sort last (NA >> Inf)
+template<Num Index, Vec V>
+bool greater_at(
+	vec<Index> index,
+	V x,
+	ptrdiff_t i,
+	ptrdiff_t j) noexcept
+{
+	Index ii = index[i];
+	Index jj = index[j];
+	double dx = diff(x[ii], x[jj]);
+	return dx != 0 ? dx > 0 : ii > jj;
+}
 
 //// Quicksort and Quickselect
 //----------------------------
 // Sorting and selection routines
 
-// Swap items at indices i and j
-// - Returns the vec for convenience
-template<typename Index, typename T>
-void swap(
-	vec<T> x,
-	const Index i,
-	const Index j)
-{
-	T tmp = x[i];
-	x[i] = x[j];
-	x[j] = tmp;
-}
-
-// Select a pivot and partition x around the pivot such that
-// - Caller MUST initialize out_index with valid indices of x
-// - All items left of pivot are <= pivot
-// - All items right of pivot are >= pivot
-// - Incomparables sort last/highest (NA >> Inf)
-// returns: pivot index
-template<typename Index, typename T>
-Index partition(
+// Select a pivot and partition range [x[index[lo]], x[index[hi]]]
+// - All x[index[i]] left of pivot are <= pivot
+// - All x[index[i]] right of pivot are >= pivot
+// - Missing/incomparable values sort last/highest (NA >> Inf)
+// - The index MUST contain valid indices of x
+// - Returns the pivot
+template<Num Index, Vec V>
+Index partition_index(
 	vec<Index> index,
-	const vec<T> x,
-	const Index lo, // index of first item to consider in x
-	const Index hi) // index of last item to consider in x
+	const V x,
+	const ptrdiff_t lo, // index of first item to consider in x
+	const ptrdiff_t hi) // index of last item to consider in x
 {
-	// checks (debug only)
+	// invariants
 	assert(lo <= hi);
 	assert(0 <= lo && lo < index.len);
 	assert(0 <= hi && hi < index.len);
 	// find pivot by median of 1st/mid/last
-	Index pivot = (lo + hi) / 2;
-	if ( LESSER(x[index[pivot]], x[index[lo]]) )
-		swap(index, pivot, lo);
-	if ( GREATER(x[index[pivot]], x[index[hi]]) ) {
-		swap(index, pivot, hi);
-		if ( LESSER(x[index[pivot]], x[index[lo]]) )
-			swap(index, pivot, lo);
+	ptrdiff_t pivot = (lo + hi) / 2;
+	if ( less_at(index, x, pivot, lo) )
+		index.swap(pivot, lo);
+	if ( greater_at(index, x, pivot, hi) ) {
+		index.swap(pivot, hi);
+		if ( less_at(index, x, pivot, lo) )
+			index.swap(pivot, lo);
 	}
 	// lo and hi are now partitioned so skip them
-	Index i = lo + 1;
-	Index j = hi - 1;
-	// use Hoare's partition method 
+	ptrdiff_t i = lo + 1;
+	ptrdiff_t j = hi - 1;
+	// use Hoare's partition method
 	do {
-		// find next item less than pivot
-		while ( LESSER(x[index[i]], x[index[pivot]]) ) ++i;
-		// find next item greater than pivot
-		while ( GREATER(x[index[j]], x[index[pivot]]) ) --j;
+		// find next item not less than pivot
+		while ( less_at(index, x, i, pivot) ) ++i;
+		// find next item not greater than pivot
+		while ( greater_at(index, x, j, pivot) ) --j;
 		// swap items (only if pointers haven't crossed)
-		if ( i < j && NOT_EQUAL(x[index[i]], x[index[j]]) )
+		if ( i < j )
 		{
-			swap(index, i, j);
+			// swap pivot (if necessary)
 			if ( pivot == i )
 				pivot = j;
 			else if ( pivot == j )
 				pivot = i;
+			// swap index at i and j
+			index.swap(i, j);
 		}
-		// allow pointers to cross
-		else if ( i == j )
-		{
-			++i;
-			--j;
-		}
-		// account for ties
 		else
 		{
-			if ( i != pivot )
+			// allow pointers to cross
+			if ( i == j )
+			{
 				++i;
-			if ( j != pivot )
 				--j;
+			}
+			// handle duplicate indices
+			else
+			{
+				if ( i != pivot ) ++i;
+				if ( j != pivot ) --j;
+			}
 		}
 	} while (i <= j);
 	return pivot;
 }
 
-// Sort indices of an array x using Hoare's quicksort algorithm
-// - Caller SHOULD initialize out_index with valid indices of x
-// - Sorts indices of x such that x[out_index[i]] are sorted for i in slice
-// - Incomparables rank last/highest (NA >> Inf)
-template<typename Index, typename T>
-void quick_order(
+// Sort indices of an array x
+// - Sorts half-open interval [x[index[b.start]], x[index[b.stop]])
+// - Missing/incomparable values sort last/highest (NA >> Inf)
+// - The index MUST contain valid indices of x
+template<Num Index, Vec V>
+void qsort_index(
 	vec<Index> index,
-	const vec<T> x, 
+	const V x, 
 	const bounds b)
 {
-	// checks (debug only)
+	// invariants
+	assert(b.start <= b.stop);
 	assert(0 <= b.start && b.start < index.len);
 	assert(0 <= b.stop && b.stop <= index.len);
-	assert(b.width() >= 0);
-	// initialize the stack
-	int stack_n = 2; // lo, hi
-	int stack_size = stack_n * std::bit_width(static_cast<size_t>(b.width()));
-	auto stack = std::make_unique<Index[]>(stack_size);
-	Index top = -1;
-	Index lo = b.start;
-	Index hi = b.stop - 1;
-	stack[++top] = lo;
-	stack[++top] = hi;
+	// initialize stack
+	ptrdiff_t top = -1;
+	struct next { ptrdiff_t lo, hi; };
+	size_t max_depth = std::bit_width(static_cast<size_t>(b.stop - b.start));
+	auto stack = std::make_unique<next[]>(sizeof(next) * max_depth);
+	stack[++top] = {b.start, b.stop - 1};
 	// recursively partition the array
 	while ( top >= 0 )
 	{
 		// pop and partition current subarray
-		hi = stack[top--];
-		lo = stack[top--];
-		if ( hi - lo < SMALL_SORT_THRESHOLD )
+		auto cur = stack[top--];
+		if ( cur.hi - cur.lo <= SMALL_SORT_THRESHOLD )
 		{
 			// use insertion sort for small subarrays
-			for ( Index i = lo + 1; i <= hi; ++i )
+			for ( ptrdiff_t i = cur.lo + 1; i <= cur.hi; ++i )
 			{
-				Index j = i;
-				while ( j > lo && LESSER(x[index[j]], x[index[j - 1]]) )
+				ptrdiff_t j = i;
+				while ( j > cur.lo && less_at(index, x, j, j - 1) )
 				{
-					swap(index, j, j - 1);
+					index.swap(j, j - 1);
 					--j;
 				}
 			}
 			// skip to next subarray
 			continue;
 		}
-		Index pivot = partition(index, x, lo, hi);
+		ptrdiff_t pivot = partition_index(index, x, cur.lo, cur.hi);
 		// push larger subarray then smaller subarray
-		if ( pivot - lo < hi - pivot )
+		if ( pivot - cur.lo < cur.hi - pivot )
 		{
-			// push higher subarray if non-empty
-			if ( pivot + 1 < hi )
-			{
-				stack[++top] = pivot + 1;
-				stack[++top] = hi;
-			}
-			// push lower subarray if non-empty
-			if ( pivot - 1 > lo )
-			{
-				stack[++top] = lo;
-				stack[++top] = pivot - 1;
-			}
+			// left < right => push right, then left
+			if ( pivot + 1 < cur.hi )
+				stack[++top] = {pivot + 1, cur.hi};
+			if ( pivot - 1 > cur.lo )
+				stack[++top] = {cur.lo, pivot - 1};
 		}
-		else {
-			// push lower subarray if non-empty
-			if ( pivot - 1 > lo )
-			{
-				stack[++top] = lo;
-				stack[++top] = pivot - 1;
-			}
-			// push higher subarray if non-empty
-			if ( pivot + 1 < hi )
-			{
-				stack[++top] = pivot + 1;
-				stack[++top] = hi;
-			}
+		else
+		{
+			// left > right => push left, then right
+			if ( pivot - 1 > cur.lo )
+				stack[++top] = {cur.lo, pivot - 1};
+			if ( pivot + 1 < cur.hi )
+				stack[++top] = {pivot + 1, cur.hi};
 		}
 	}
 }
 
-template<typename Index, typename T>
-void quick_order(
-	vec<Index> index,
-	const vec<T> x)
+template<Num Index, Vec V>
+void qsort_index(vec<Index> index, const V x)
 {
-	quick_order(index, x, index.all_elements());
+	qsort_index(index, x, index.all_elements());
 }
 
-// Find the k-th ranked item of an array x
-// - Caller SHOULD initialize out_index with valid indices of x
-// - Partially sorts indices of x such that x[out_index[k]] is a pivot
-// - Incomparables rank last/highest (NA >> Inf)
-// returns: value of k-th item
-template<typename Index, typename Rank, typename T>
-T quick_select(
+// Select k-th ranked index in array x
+// - Quickselect on half-open interval [x[index[b.start]], x[index[b.stop]])
+// - Missing/incomparable values sort last/highest (NA >> Inf)
+// - The index MUST contain valid indices of x
+template<Num Index, Vec V, Num Rank>
+auto qselect_index(
 	vec<Index> index,
-	const vec<T> x,
+	const V x,
 	const Rank k,
 	const bounds b)
 {
-	// checks (debug only)
-	assert(0 <= k && k < index.len);
+	// invariants
+	assert(b.start <= b.stop);
 	assert(0 <= b.start && b.start < index.len);
 	assert(0 <= b.stop && b.stop <= index.len);
-	assert(b.width() >= 0);
+	assert(0 <= k && k < index.len);
 	// recursively partition the array
-	Index lo = b.start;
-	Index hi = b.stop - 1;
+	ptrdiff_t lo = b.start;
+	ptrdiff_t hi = b.stop - 1;
 	do {
 		if ( lo == hi )
 			return x[index[lo]];
-		Index pivot = partition(index, x, lo, hi);
+		ptrdiff_t pivot = partition_index(index, x, lo, hi);
 		// return k-th element or partition again
 		if ( k == pivot )
 			return x[index[k]];
@@ -244,71 +238,68 @@ T quick_select(
 	while (true);
 }
 
-template<typename Index, typename Rank, typename T>
-T quick_select(
+template<Num Index, Vec V, Num Rank>
+auto qselect_index(
 	vec<Index> index,
-	const vec<T> x,
+	const V x,
 	const Rank k)
 {
-	return quick_select(index, x, k, index.all_elements());
+	return qselect_index(index, x, k, index.all_elements());
 }
 
 //// Median and MAD
 //-----------------
 
 // Computes median of array x
-// - Incomparables are ignored/removed
-// returns: the median
-template<typename Index = ptrdiff_t, typename T>
-double quick_median(const vec<T> x)
+// - NA/missing/incomparable values are ignored
+template<Vec V>
+double qmedian(const V x)
 {
-	// initialize result
-	double median = na_value<double>();
-	if ( x.len == 0 )
-		return median;
-	// set up working index buffer
-	local_vec<Index> index{x.len};
+	if ( x.ssize() == 0 )
+		return na_value<double>();
+	// initialize working index buffer
+	local_vec<ptrdiff_t> index{x.ssize()};
 	index.seqfill();
 	// find count of comparable items
-	Index n = 0;
-	for ( Index i = 0; i < x.len; ++i )
+	ptrdiff_t n = 0;
+	for ( ptrdiff_t i = 0; i < x.ssize(); ++i )
 	{
+		// TODO: replace with a function
 		if ( !is_na(x[i]) )
 			++n;
 	}
 	// compute median
-	Index k = n / 2;
-	if ( x.len % 2 == 0 )
+	ptrdiff_t k = n / 2;
+	if ( n % 2 == 0 )
 	{
-		double m1 = quick_select(index.borrow(), x, k - 1);
-		double m2 = quick_select(index.borrow(), x, k);
+		double m1 = qselect_index(index.borrow(), x, k - 1);
+		double m2 = qselect_index(index.borrow(), x, k);
 		return 0.5 * (m1 + m2);
 	}
 	else
 	{
-		return quick_select(index.borrow(), x, k);
+		return qselect_index(index.borrow(), x, k);
 	}
 }
 
 // Computes MAD (Median Absolute Deviation) of array x
-// - Incomparables are ignored/removed
-// - Default scale is chosen so SD ~= MAD for if x ~ Normal
-// returns: the MAD
-template<typename Index = ptrdiff_t, typename T>
-double quick_mad(const vec<T> x, double center, double constant = 1.4826)
+// - Default constant is chosen so SD ~= MAD for if x ~ Normal
+template<Vec V>
+double qmad(const V x, double center, double constant = 1.4826)
 {
-	if ( x.len == 0 )
+	if ( x.ssize() == 0 )
 		return na_value<double>();
 	// compute absolute deviations
-	local_vec<double> devs{x.len};
-	for ( Index i = 0; i < x.len; ++i )
+	local_vec<double> devs{x.ssize()};
+	for ( ptrdiff_t i = 0; i < x.ssize(); ++i )
 	{
+		// TODO: replace with a function
 		if ( is_na(x[i]) )
 			devs[i] = na_value<double>();
 		else
 			devs[i] = std::fabs(x[i] - center);
 	}
-	return constant * quick_median<Index>(devs);
+	return constant * qmedian(devs.borrow());
 }
 
 #endif // CARDINAL_CORE_ORDER

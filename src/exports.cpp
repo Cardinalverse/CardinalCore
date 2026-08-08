@@ -49,12 +49,12 @@ SEXP do_qorder(SEXP x)
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
-			quick_order(
+			qsort_index(
 				vec<int>::from(result).seqfill(),
 				vec<int>::from(x));
 			break;
 		case REALSXP:
-			quick_order(
+			qsort_index(
 				vec<int>::from(result).seqfill(),
 				vec<double>::from(x));
 			break;
@@ -74,13 +74,13 @@ SEXP do_qselect(SEXP x, SEXP k)
 		switch(TYPEOF(x))
 		{
 			case INTSXP:
-				INTEGER(result)[i] = quick_select(
+				INTEGER(result)[i] = qselect_index(
 					vec<int>::from(index).seqfill(),
 					vec<int>::from(x),
 					INTEGER_ELT(k, i));
 				break;
 			case REALSXP:
-				REAL(result)[i] = quick_select(
+				REAL(result)[i] = qselect_index(
 					vec<int>::from(index).seqfill(),
 					vec<double>::from(x),
 					INTEGER_ELT(k, i));
@@ -98,10 +98,10 @@ SEXP do_qmedian(SEXP x)
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
-			return Rf_ScalarReal(quick_median(vec<int>::from(x)));
+			return Rf_ScalarReal(qmedian(vec<int>::from(x)));
 			break;
 		case REALSXP:
-			return Rf_ScalarReal(quick_median(vec<double>::from(x)));
+			return Rf_ScalarReal(qmedian(vec<double>::from(x)));
 		default:
 			Rf_error("'x' must be integer or double");
 	}
@@ -112,12 +112,12 @@ SEXP do_qmad(SEXP x, SEXP center, SEXP constant)
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
-			return Rf_ScalarReal(quick_mad(
+			return Rf_ScalarReal(qmad(
 				vec<int>::from(x),
 				Rf_asReal(center),
 				Rf_asReal(constant)));
 		case REALSXP:
-			return Rf_ScalarReal(quick_mad(
+			return Rf_ScalarReal(qmad(
 				vec<double>::from(x),
 				Rf_asReal(center),
 				Rf_asReal(constant)));

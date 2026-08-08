@@ -145,11 +145,6 @@ struct bounds
 {
 	ptrdiff_t start;
 	ptrdiff_t stop;
-
-	inline ptrdiff_t width() const noexcept
-	{
-		return stop - start;
-	}
 };
 
 // Multidimensional index
@@ -519,6 +514,14 @@ struct vec
 		return ptr[stride * i];
 	}
 
+	vec<T>& swap(const ptrdiff_t i, const ptrdiff_t j) noexcept
+	{
+		T xi = (*this)[i];
+		(*this)[i] = (*this)[j];
+		(*this)[j] = xi;
+		return (*this);
+	}
+
 	vec<T>& fill(const T value = 0) noexcept
 	{
 		return this->assign(rep<T>{value, len});
@@ -624,7 +627,7 @@ struct vec
 	{
 		return {
 			.ptr = ptr + (stride * b.start), 
-			.len = b.width(),
+			.len = b.stop - b.start,
 			.stride = stride,
 		};
 	}
@@ -718,7 +721,7 @@ struct mat
 	{
 		return {
 			.ptr = ptr + (row_stride * b.start),
-			.nrows = b.width(),
+			.nrows = b.stop - b.start,
 			.ncols = ncols,
 			.row_stride = row_stride,
 			.col_stride = col_stride,
@@ -730,7 +733,7 @@ struct mat
 		return {
 			.ptr = ptr + (col_stride * b.start),
 			.nrows = nrows,
-			.ncols = b.width(),
+			.ncols = b.stop - b.start,
 			.row_stride = row_stride,
 			.col_stride = col_stride,
 		};
