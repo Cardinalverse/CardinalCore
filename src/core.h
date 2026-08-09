@@ -70,13 +70,13 @@ struct num_traits<T> {
 #ifdef USING_R
 template<>
 struct num_traits<int> {
-	static bool is_na(const int x) noexcept { return x == NA_INTEGER; }
 	static int na_value() noexcept { return NA_INTEGER; }
+	static bool is_na(const int x) noexcept { return x == NA_INTEGER; }
 };
 template<>
 struct num_traits<double> {
-	static bool is_na(const double x) noexcept { return std::isnan(x); }
 	static double na_value() noexcept { return NA_REAL; }
+	static bool is_na(const double x) noexcept { return std::isnan(x); }
 };
 #endif // USING_R
 
@@ -84,19 +84,9 @@ struct num_traits<double> {
 template<class T>
 concept HasNA = Num<T> && requires (const T& x)
 	{
-		{ num_traits<T>::is_na(x) } -> std::same_as<bool>;
 		{ num_traits<T>::na_value() } -> std::same_as<T>;
+		{ num_traits<T>::is_na(x) } -> std::same_as<bool>;
 	};
-
-// Check if a value is NA/missing/incomparable
-template<Num T>
-constexpr bool is_na(const T x) noexcept
-{
-	if constexpr ( HasNA<T> )
-		return num_traits<T>::is_na(x);
-	else
-		return false;
-}
 
 // NA values (defaults to numeric_limits<T>::lowest() if undefined)
 template<Num T>
@@ -106,6 +96,16 @@ constexpr T na_value() noexcept
 		return num_traits<T>::na_value();
 	else
 		return std::numeric_limits<T>::lowest();
+}
+
+// Check if a value is NA/missing/incomparable
+template<Num T>
+constexpr bool is_na(const T x) noexcept
+{
+	if constexpr ( HasNA<T> )
+		return num_traits<T>::is_na(x);
+	else
+		return false;
 }
 
 // Coerce while preserving NAs across types if possible
@@ -168,7 +168,12 @@ struct bounds
 template<int N>
 struct loc
 {
-	ptrdiff_t index[N];
+	ptrdiff_t loc[N];
+
+	ptrdiff_t operator[](ptrdiff_t i) const noexcept
+	{
+		return loc[i];
+	}
 };
 
 //// Unary operations
@@ -710,6 +715,25 @@ struct mat
 	ptrdiff_t row_stride;
 	ptrdiff_t col_stride;
 
+	ptrdiff_t ssize() const noexcept
+	{
+		return nrows * ncols;
+	}
+
+	T& operator[](const loc<2> i) noexcept
+	{
+		assert(0 <= i[0] && i[0] < nrows);
+		assert(0 <= i[1] && i[1] < ncols);
+		return ptr[row_stride * i[0] + col_stride * i[1]];
+	}
+
+	const T& operator[](const loc<2> i) const noexcept
+	{
+		assert(0 <= i[0] && i[0] < nrows);
+		assert(0 <= i[1] && i[1] < ncols);
+		return ptr[row_stride * i[0] + col_stride * i[1]];
+	}
+
 	vec<T> row(const ptrdiff_t i) const noexcept
 	{
 		return {
@@ -749,6 +773,7 @@ struct mat
 			.col_stride = col_stride,
 		};
 	}
+
 	bounds all_rows() const noexcept
 	{
 		return {0, nrows};

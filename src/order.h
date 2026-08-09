@@ -153,15 +153,15 @@ void qsort_index(
 	assert(0 <= b.stop && b.stop <= index.len);
 	// initialize stack
 	ptrdiff_t top = -1;
-	struct next { ptrdiff_t lo, hi; };
+	struct frame { ptrdiff_t lo, hi; };
 	size_t max_depth = std::bit_width(static_cast<size_t>(b.stop - b.start));
-	auto stack = std::make_unique<next[]>(sizeof(next) * max_depth);
+	auto stack = std::make_unique<frame[]>(max_depth);
 	stack[++top] = {b.start, b.stop - 1};
 	// recursively partition the array
 	while ( top >= 0 )
 	{
 		// pop and partition current subarray
-		auto cur = stack[top--];
+		frame cur = stack[top--];
 		if ( cur.hi - cur.lo <= SMALL_SORT_THRESHOLD )
 		{
 			// use insertion sort for small subarrays

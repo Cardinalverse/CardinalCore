@@ -12,7 +12,7 @@
 // - Values of x MUST be sorted (duplicated are accepted)
 // - Differences <= tolerance are considered matches
 // - Default nomatch chosen so nomatch << 0 for signed types
-template<typename Index, typename T>
+template<Num Index, Num T>
 Index binary_search(
 	const T query,
 	const vec<T> x,
@@ -49,7 +49,7 @@ Index binary_search(
 // - Values of x MUST be sorted (duplicated are accepted)
 // - Differences <= tolerance are considered matches
 // - Default nomatch chosen so nomatch << 0 for signed types
-template<typename Index, typename T>
+template<Num Index, Num T>
 void binary_search(
 	vec<Index> index,
 	const vec<T> query,
@@ -75,5 +75,111 @@ void binary_search(
 		}
 	}
 }
+
+//// K-D search
+//--------------
+
+// KDTree for nearest neighbor and range searches
+// - Owner is responsible for managing memory
+// - Rows are observations and cols are features
+// - Tree uses vectors giving indices of children
+// - NA or negative indices indicate leaf nodes
+template<Num Index, Num T>
+struct kdtree
+{
+	mat<T> data;
+	vec<Index> left;
+	vec<Index> right;
+	Index root = na_value<Index>();
+	bool built = false;
+
+	ptrdiff_t ssize() const noexcept
+	{
+		return data.nrows;
+	}
+
+	void build() noexcept
+	{
+		// invariants
+		assert(data.nrows == left.len);
+		assert(data.nrows == right.len);
+		if ( data.ssize() <= 0 )
+			return;
+		// initialize indices
+		local_vec<Index> index{data.nrows};
+		index.seqfill(0);
+		left.fill(na_value<Index>());
+		right.fill(na_value<Index>());
+		// find root from median of first dim
+		vec<T> xcur = data.col(0);
+		qsort_index(index, xcur);
+		ptrdiff_t mid = data.nrows / 2;
+		// handle duplicates and update root
+		while ( mid > 0 && xcur[index[mid - 1]] == xcur[index[mid]] )
+			--mid;
+		root = index[mid];
+		// initialize stack
+		ptrdiff_t top = -1;
+		struct frame { ptrdiff_t parent, depth, start, stop; };
+		size_t max_depth = std::bit_width(2 * data.nrows);
+		auto stack = std::make_unique<frame[]>(max_depth);
+		// push initial left span to stack
+		if ( mid > 0 ) {
+			stack[++top] = {
+				.parent = root,
+				.depth = 1,
+				.start = 0,
+				.stop = mid,
+			};
+		}
+		// push initial right span to stack
+		if ( mid + 1 < data.nrows ) {
+			stack[++top] = {
+				.parent = root,
+				.depth = 1,
+				.start = mid + 1,
+				.stop = data.nrows,
+			};
+		}
+		// recursively build the tree
+		while ( top >= 0 )
+		{
+			// pop stack
+			frame cur = stack[top--];
+			xcur = data.col(cur.depth % data.ncols);
+			// find median of current dim within span
+			if ( data.ncols > 1 )
+				qsort_index(index, xcur, {cur.start, cur.stop});
+			mid = (cur.start + cur.stop) / 2;
+			while ( mid > 0 && xcur[index[mid - 1]] == xcur[index[mid]] )
+				--mid;
+			// insert child under parent
+			ptrdiff_t pcol = (cur.depth - 1) % data.ncols;
+			if ( data[{index[mid], pcol}] < data[{cur.parent, pcol}] )
+				left[cur.parent] = index[mid];
+			else
+				right[cur.parent] = index[mid];
+			// push left span
+			if ( mid > cur.start ) {
+				stack[++top] = {
+					.parent = index[mid],
+					.depth = cur.depth + 1,
+					.start = cur.start,
+					.stop = mid,
+				};
+			}
+			// push right span
+			if ( mid + 1 < cur.stop ) {
+				stack[++top] = {
+					.parent = index[mid],
+					.depth = cur.depth + 1,
+					.start = mid + 1,
+					.stop = cur.stop,
+				};
+			}
+		}
+		built = true;
+	}
+};
 
 #endif // CARDINAL_CORE_SEARCH
