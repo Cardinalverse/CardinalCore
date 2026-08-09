@@ -9,17 +9,17 @@
 //-----------------
 
 // Binary search for query in x
-// - Caller MUST guarantee values of x are non-decreasing
+// - Values of x MUST be sorted (duplicated are accepted)
 // - Differences <= tolerance are considered matches
-// returns: index of match
+// - Default nomatch chosen so nomatch << 0 for signed types
 template<typename Index, typename T>
 Index binary_search(
-	const T query, 
-	const vec<T> x, 
-	const double tolerance = DBL_EPSILON, 
-	const bool relative = false, 
+	const T query,
+	const vec<T> x,
+	const double tolerance = 0,
+	const bool relative = false,
 	const bool nearest = false,
-	const Index nomatch = -1)
+	const Index nomatch = na_value<Index>())
 {
 	if ( x.len == 0 )
 		return nomatch;
@@ -28,43 +28,44 @@ Index binary_search(
 	while ( lo <= hi )
 	{
 		Index mid = (lo + hi) / 2;
-		double d_mid = diff(x[mid], query, relative);
-		if ( d_mid < 0 )
+		double dx = diff(x[mid], query, relative);
+		if ( dx < 0 )
 			lo = mid + 1;
-		else if ( d_mid > 0 )
+		else if ( dx > 0 )
 			hi = mid - 1;
 		else
 			return mid;
 	}
-	double d_lo = std::fabs(diff(x[lo], query, relative));
-	double d_hi = std::fabs(diff(x[hi], query, relative));
-	if ( d_lo <= d_hi && (nearest || d_lo <= tolerance) )
+	double dlo = std::fabs(diff(x[lo], query, relative));
+	double dhi = std::fabs(diff(x[hi], query, relative));
+	if ( dlo <= dhi && (nearest || dlo <= tolerance) )
 		return lo;
-	if ( d_hi <= d_lo && (nearest || d_hi <= tolerance) )
+	if ( dhi <= dlo && (nearest || dhi <= tolerance) )
 		return hi;
 	return nomatch;
 }
 
 // Binary search for multiple queries in x
-// - Caller MUST guarantee values of x are non-decreasing
+// - Values of x MUST be sorted (duplicated are accepted)
 // - Differences <= tolerance are considered matches
+// - Default nomatch chosen so nomatch << 0 for signed types
 template<typename Index, typename T>
 void binary_search(
-	Index * out_index,
-	const vec<T> query, 
+	vec<Index> index,
+	const vec<T> query,
 	const vec<T> x,
-	const double tolerance = DBL_EPSILON, 
+	const double tolerance = 0,
 	const bool relative = false,
-	const bool nearest = false, 
-	const Index nomatch = -1)
+	const bool nearest = false,
+	const Index nomatch = na_value<Index>())
 {
 	for ( ptrdiff_t i = 0; i < query.len; ++i )
 	{
 		if ( is_na(query[i]) )
-			out_index[i] = nomatch;
+			index[i] = nomatch;
 		else
 		{
-			out_index[i] = binary_search(
+			index[i] = binary_search(
 				query[i], 
 				x, 
 				tolerance, 

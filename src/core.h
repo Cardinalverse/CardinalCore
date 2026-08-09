@@ -98,7 +98,7 @@ constexpr bool is_na(const T x) noexcept
 		return false;
 }
 
-// NA values (lowest if not defined so na_value<bool> -> false)
+// NA values (defaults to numeric_limits<T>::lowest() if undefined)
 template<Num T>
 constexpr T na_value() noexcept
 {

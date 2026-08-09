@@ -133,6 +133,9 @@ SEXP do_qmad(SEXP x, SEXP center, SEXP constant)
 	return Rf_ScalarReal(mad);
 }
 
+//// Search and nearest neighbors
+//-------------------------------
+
 SEXP do_bsearch(
 	SEXP query, 
 	SEXP x, 
@@ -148,7 +151,7 @@ SEXP do_bsearch(
 	{
 		case INTSXP:
 			binary_search(
-				INTEGER(index),
+				vec<int>::from(index),
 				vec<int>::from(query),
 				vec<int>::from(x),
 				Rf_asReal(tolerance),
@@ -158,7 +161,7 @@ SEXP do_bsearch(
 			break;
 		case REALSXP:
 			binary_search(
-				INTEGER(index),
+				vec<int>::from(index),
 				vec<double>::from(query),
 				vec<double>::from(x),
 				Rf_asReal(tolerance),
