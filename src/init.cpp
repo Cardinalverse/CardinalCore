@@ -29,6 +29,7 @@ SEXP do_bsearch(
 	SEXP relative,
 	SEXP nearest,
 	SEXP nomatch);
+SEXP do_kdtree_build(SEXP data);
 
 //// Matrix statistics
 //---------------------
@@ -51,6 +52,7 @@ static const R_CallMethodDef callMethods[] = {
 	CALLDEF(do_qmad, 3),
 	// Search and nearest neighbors
 	CALLDEF(do_bsearch, 6),
+	CALLDEF(do_kdtree_build, 1),
 	// Matrix statistics
 	CALLDEF(do_col_sums, 2),
 	// Test expressions

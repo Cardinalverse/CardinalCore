@@ -42,3 +42,14 @@ expect_equal(
 	bsearch(c(-1, 0, 1), numeric(), tolerance=0.1), 
 	rep_len(NA_integer_, 3L))
 
+# kdtree build
+d1 <- data.frame(
+	x=c(2,5,9,4,8,7,9,8,9,6,3,1,9,2,8),
+	y=c(3,4,6,7,1,2,4,4,7,3,4,6,5,1,7),
+	z=c(3,2,7,9,5,6,1,2,8,1,5,8,3,3,6))
+i1 <- seq_len(nrow(d1))
+t1 <- kdtree(d1)
+ns1 <- cbind(t1$left + 1L, t1$right + 1L)
+expect_equal(t1$root + 1L, 6L)
+expect_equal(t1$root + 1L, which(!i1 %in% sort(ns1, na.last=NA)))
+

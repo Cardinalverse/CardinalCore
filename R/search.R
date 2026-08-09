@@ -15,3 +15,13 @@ bsearch <- function(query, x, tolerance = 0,
 		isTRUE(relative), isTRUE(nearest), as.integer(nomatch)) + 1L
 }
 
+kdtree <- function(data)
+{
+	if ( inherits(data, "kdtree") )
+		return(data)
+	if ( is.list(data) )
+		data <- do.call(cbind, data)
+	data <- as.matrix(data)
+	.Call(C_do_kdtree_build, data)
+}
+

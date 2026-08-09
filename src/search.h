@@ -98,13 +98,13 @@ struct kdtree
 		return data.nrows;
 	}
 
-	void build() noexcept
+	ptrdiff_t build() noexcept
 	{
 		// invariants
 		assert(data.nrows == left.len);
 		assert(data.nrows == right.len);
 		if ( data.ssize() <= 0 )
-			return;
+			return root;
 		// initialize indices
 		local_vec<Index> index{data.nrows};
 		index.seqfill(0);
@@ -121,7 +121,7 @@ struct kdtree
 		// initialize stack
 		ptrdiff_t top = -1;
 		struct frame { ptrdiff_t parent, depth, start, stop; };
-		size_t max_depth = std::bit_width(2 * data.nrows);
+		size_t max_depth = std::bit_width(2 * static_cast<size_t>(data.nrows));
 		auto stack = std::make_unique<frame[]>(max_depth);
 		// push initial left span to stack
 		if ( mid > 0 ) {
@@ -179,7 +179,22 @@ struct kdtree
 			}
 		}
 		built = true;
+		return root;
 	}
+
+	#ifdef USING_R
+	static kdtree<Index,T> from(
+		SEXP data,
+		SEXP left,
+		SEXP right)
+	{
+		return {
+			.data = mat<T>::from(data),
+			.left = vec<Index>::from(left),
+			.right = vec<Index>::from(right),
+		};
+	}
+	#endif // USING_R
 };
 
 #endif // CARDINAL_CORE_SEARCH

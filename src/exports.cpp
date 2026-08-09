@@ -176,6 +176,38 @@ SEXP do_bsearch(
 	return index;
 }
 
+SEXP do_kdtree_build(SEXP data)
+{
+	ptrdiff_t root;
+	SEXP left = PROTECT(Rf_allocVector(INTSXP, Rf_nrows(data)));
+	SEXP right = PROTECT(Rf_allocVector(INTSXP, Rf_nrows(data)));
+	switch(TYPEOF(data))
+	{
+		case INTSXP:
+			root = kdtree<int,int>::from(data, left, right).build();
+			break;
+		case REALSXP:
+			root = kdtree<int,double>::from(data, left, right).build();
+			break;
+		default:
+			Rf_error("'data' must be integer or double");
+	}
+	SEXP obj = PROTECT(Rf_allocVector(VECSXP, 4));
+	SET_VECTOR_ELT(obj, 0, data);
+	SET_VECTOR_ELT(obj, 1, Rf_ScalarInteger(root));
+	SET_VECTOR_ELT(obj, 2, left);
+	SET_VECTOR_ELT(obj, 3, right);
+	SEXP nms = PROTECT(Rf_allocVector(STRSXP, 4));
+	SET_STRING_ELT(nms, 0, Rf_mkChar("data"));
+	SET_STRING_ELT(nms, 1, Rf_mkChar("root"));
+	SET_STRING_ELT(nms, 2, Rf_mkChar("left"));
+	SET_STRING_ELT(nms, 3, Rf_mkChar("right"));
+	Rf_setAttrib(obj, R_NamesSymbol, nms);
+	Rf_setAttrib(obj, R_ClassSymbol, Rf_mkString("kdtree"));
+	UNPROTECT(4);
+	return obj;
+}
+
 //// Matrix statistics
 //---------------------
 
