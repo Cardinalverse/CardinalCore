@@ -1,9 +1,32 @@
 #ifndef CARDINAL_CORE_SEARCH
 #define CARDINAL_CORE_SEARCH
 
-#include <bit>
+#include <memory>
 #include "core.h"
 #include "order.h"
+
+//// Utility
+//-----------
+// Search utilities
+
+// Does x neighbor ref within some tolerance(s)?
+template<Num T, Vec Tol, Vec Rel>
+bool near(
+	const vec<T> x,
+	const vec<T> ref,
+	const Tol tolerance,
+	const Rel relative) noexcept
+{
+	assert(x.ssize() == ref.ssize());
+	assert(x.ssize() == tolerance.ssize());
+	assert(x.ssize() == relative.ssize());
+	for ( ptrdiff_t i = 0; i < x.ssize(); ++i )
+	{
+		if ( std::fabs(diff(x[i], ref[i], relative[i])) > tolerance[i] )
+			return false;
+	}
+	return true;
+}
 
 //// Binary search
 //-----------------
@@ -98,11 +121,22 @@ struct kdtree
 		return data.nrows;
 	}
 
-	ptrdiff_t build() noexcept
+	bool has_left(ptrdiff_t node) const noexcept
+	{
+		return 0 <= left[node] && left[node] < data.nrows;
+	}
+
+	bool has_right(ptrdiff_t node) const noexcept
+	{
+		return 0 <= right[node] && right[node] < data.nrows;
+	}
+
+	// Build the tree and return the index of the root node
+	ptrdiff_t build()
 	{
 		// invariants
-		assert(data.nrows == left.len);
-		assert(data.nrows == right.len);
+		assert(left.len == data.nrows);
+		assert(right.len == data.nrows);
 		if ( data.ssize() <= 0 )
 			return root;
 		// initialize indices
@@ -121,8 +155,7 @@ struct kdtree
 		// initialize stack
 		ptrdiff_t top = -1;
 		struct frame { ptrdiff_t parent, depth, start, stop; };
-		size_t max_depth = std::bit_width(2 * static_cast<size_t>(data.nrows));
-		auto stack = std::make_unique<frame[]>(max_depth);
+		auto stack = std::make_unique<frame[]>(max_depth(data.nrows));
 		// push initial left span to stack
 		if ( mid > 0 ) {
 			stack[++top] = {
@@ -180,6 +213,63 @@ struct kdtree
 		}
 		built = true;
 		return root;
+	}
+
+	// Search for points within tolerance(s) of query
+	// - Both tolerance and relative are per-dimension
+	// - Write indices into hits up to hits.len
+	// - Return the count of hits
+	template<Num Hit, Vec Tol, Vec Rel>
+	size_t range_search(
+		vec<Hit> hits,
+		const vec<T> query,
+		const Tol tolerance,
+		const Rel relative) const
+	{
+		// invariants
+		assert(query.len == data.ncols);
+		assert(tolerance.ssize() == data.ncols);
+		assert(relative.ssize() == data.ncols);
+		// initialize stack
+		ptrdiff_t top = -1;
+		struct frame { ptrdiff_t node, depth; };
+		auto stack = std::make_unique<frame[]>(max_depth(data.nrows));
+		stack[++top] = { root, 0 };
+		// initialize count
+		size_t count = 0;
+		// recursively search tree
+		while ( top >= 0 )
+		{
+			// pop node
+			frame cur = stack[top--];
+			ptrdiff_t i = cur.depth % data.ncols;
+			double ds = diff(query[i], data[{cur.node, i}], relative=relative[i]);
+			double du = std::fabs(ds);
+			// search left subtree?
+			if ( has_left(cur.node) && (ds < 0 || du <= tolerance[i]) )
+				stack[++top] = { left[cur.node], cur.depth + 1 };
+			// search right subtree?
+			if ( has_right(cur.node) && (ds > 0 || du <= tolerance[i]) )
+				stack[++top] = { right[cur.node], cur.depth + 1 };
+			// is this a hit?
+			if ( near(query, data.row(cur.node), tolerance, relative) )
+			{
+				if ( count < hits.len )
+					hits[count] = cur.node;
+				++count;
+			}
+		}
+		return count;
+	}
+
+	template<Vec Tol, Vec Rel>
+	size_t range_count(
+		const vec<T> query,
+		const Tol tolerance,
+		const Rel relative) const
+	{
+		// TODO: implement me
+		return 0;
 	}
 
 	#ifdef USING_R

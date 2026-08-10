@@ -7,6 +7,16 @@
 
 #define SMALL_SORT_THRESHOLD 16
 
+//// Utility
+//-----------
+// Sort utilities
+
+// Safe maximum recusion depth for a balanced binary tree
+template<Num T>
+size_t max_depth(T n) {
+	return 1 + std::bit_width(static_cast<size_t>(n));
+}
+
 //// Comparison
 //--------------
 // Comparisons handling NA/missing/incomparable
@@ -19,7 +29,7 @@ template<Num T>
 double diff(
 	const T x, 
 	const T ref, 
-	const bool relative = false)
+	const bool relative = false) noexcept
 {
 	if constexpr ( HasNA<T> )
 	{
@@ -82,8 +92,8 @@ template<Num Index, Vec V>
 ptrdiff_t partition_index(
 	vec<Index> index,
 	const V x,
-	const ptrdiff_t lo, // index of first item to consider in x
-	const ptrdiff_t hi) // index of last item to consider in x
+	const ptrdiff_t lo,
+	const ptrdiff_t hi) noexcept
 {
 	// invariants
 	assert(lo <= hi);
@@ -154,8 +164,7 @@ void qsort_index(
 	// initialize stack
 	ptrdiff_t top = -1;
 	struct frame { ptrdiff_t lo, hi; };
-	size_t max_depth = std::bit_width(static_cast<size_t>(b.stop - b.start));
-	auto stack = std::make_unique<frame[]>(max_depth);
+	auto stack = std::make_unique<frame[]>(max_depth(b.stop - b.start));
 	stack[++top] = {b.start, b.stop - 1};
 	// recursively partition the array
 	while ( top >= 0 )
@@ -213,7 +222,7 @@ auto qselect_index(
 	vec<Index> index,
 	const V x,
 	const Rank k,
-	const bounds b)
+	const bounds b) noexcept
 {
 	// invariants
 	assert(b.start <= b.stop);
@@ -242,7 +251,7 @@ template<Num Index, Vec V, Num Rank>
 auto qselect_index(
 	vec<Index> index,
 	const V x,
-	const Rank k)
+	const Rank k) noexcept
 {
 	return qselect_index(index, x, k, index.all_elements());
 }
