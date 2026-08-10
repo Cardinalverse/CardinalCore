@@ -28,16 +28,16 @@ Index binary_search(
 	while ( lo <= hi )
 	{
 		Index mid = (lo + hi) / 2;
-		double dx = diff(x[mid], query, relative);
-		if ( dx < 0 )
+		double dx = diff(query, x[mid], relative);
+		if ( dx > 0 )
 			lo = mid + 1;
-		else if ( dx > 0 )
+		else if ( dx < 0 )
 			hi = mid - 1;
 		else
 			return mid;
 	}
-	double dlo = std::fabs(diff(x[lo], query, relative));
-	double dhi = std::fabs(diff(x[hi], query, relative));
+	double dlo = std::fabs(diff(query, x[lo], relative));
+	double dhi = std::fabs(diff(query, x[hi], relative));
 	if ( dlo <= dhi && (nearest || dlo <= tolerance) )
 		return lo;
 	if ( dhi <= dlo && (nearest || dhi <= tolerance) )
