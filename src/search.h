@@ -297,7 +297,7 @@ struct range_counts
 
 	ptrdiff_t ssize() const
 	{
-		return counts.len;
+		return queries.nrows;
 	}
 
 	void operator()(bounds b)
@@ -323,7 +323,7 @@ struct range_searches
 
 	ptrdiff_t ssize() const
 	{
-		return hits.len;
+		return queries.nrows;
 	}
 
 	void operator()(bounds b)

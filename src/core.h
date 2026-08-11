@@ -831,6 +831,17 @@ struct rag
 		assert(0 <= i && i + 1 < offset.len);
 		return x.slice({offset[i], offset[i + 1]});
 	}
+
+	#ifdef USING_R
+	static rag<T,Offset> from(SEXP x, SEXP offset) noexcept
+	{
+		return {
+			.x = vec<T>::from(x),
+			.offset = vec<Offset>::from(offset),
+		};
+	}
+	#endif // USING_R
+
 };
 
 #endif // CARDINAL_CORE_CORE

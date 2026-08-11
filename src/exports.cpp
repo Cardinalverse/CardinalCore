@@ -178,38 +178,38 @@ SEXP do_bsearch(
 
 SEXP do_kdtree_build(SEXP data)
 {
-	SEXP searcher = PROTECT(Rf_allocVector(VECSXP, 4));
+	SEXP tree = PROTECT(Rf_allocVector(VECSXP, 4));
 	SEXP left = PROTECT(Rf_allocVector(INTSXP, Rf_nrows(data)));
 	SEXP right = PROTECT(Rf_allocVector(INTSXP, Rf_nrows(data)));
 	ptrdiff_t root;
-	SET_VECTOR_ELT(searcher, 0, data);
-	SET_VECTOR_ELT(searcher, 1, left);
-	SET_VECTOR_ELT(searcher, 2, right);
-	SET_VECTOR_ELT(searcher, 3, Rf_ScalarInteger(NA_INTEGER));
+	SET_VECTOR_ELT(tree, 0, data);
+	SET_VECTOR_ELT(tree, 1, left);
+	SET_VECTOR_ELT(tree, 2, right);
+	SET_VECTOR_ELT(tree, 3, Rf_ScalarInteger(NA_INTEGER));
 	SEXP names = PROTECT(Rf_allocVector(STRSXP, 4));
 	SET_STRING_ELT(names, 0, Rf_mkChar("data"));
 	SET_STRING_ELT(names, 1, Rf_mkChar("left"));
 	SET_STRING_ELT(names, 2, Rf_mkChar("right"));
 	SET_STRING_ELT(names, 3, Rf_mkChar("root"));
-	Rf_setAttrib(searcher, R_NamesSymbol, names);
-	Rf_setAttrib(searcher, R_ClassSymbol, Rf_mkString("kdtree"));
+	Rf_setAttrib(tree, R_NamesSymbol, names);
+	Rf_setAttrib(tree, R_ClassSymbol, Rf_mkString("kdtree"));
 	switch(TYPEOF(data))
 	{
 		case INTSXP:
-			root = kdtree<int,int>::from(searcher).build();
+			root = kdtree<int,int>::from(tree).build();
 			break;
 		case REALSXP:
-			root = kdtree<int,double>::from(searcher).build();
+			root = kdtree<int,double>::from(tree).build();
 			break;
 		default:
 			Rf_error("'data' must be integer or double");
 	}
-	SET_VECTOR_ELT(searcher, 3, Rf_ScalarInteger(root));
+	SET_VECTOR_ELT(tree, 3, Rf_ScalarInteger(root));
 	UNPROTECT(4);
-	return searcher;
+	return tree;
 }
 
-SEXP do_kdtree_range_counts(
+SEXP do_kdtree_range_search(
 	SEXP query,
 	SEXP tree,
 	SEXP tolerance,
@@ -249,8 +249,51 @@ SEXP do_kdtree_range_counts(
 				Rf_asInteger(num_threads));
 			break;
 	}
-	UNPROTECT(1);
-	return counts;
+	SEXP offset = PROTECT(Rf_allocVector(INTSXP, 1 + XLENGTH(counts)));
+	int * poffset = INTEGER(offset);
+	int * pcounts = INTEGER(counts);
+	for ( ptrdiff_t i = 0; i < XLENGTH(offset); ++i )
+	{
+		if ( i == 0 )
+			poffset[i] = 0;
+		else
+			poffset[i] = poffset[i - 1] + pcounts[i - 1];
+	}
+	SEXP index = PROTECT(Rf_allocVector(INTSXP, poffset[XLENGTH(counts)]));
+	switch(TYPEOF(query))
+	{
+		case INTSXP:
+			compute(
+				range_searches{
+					kdtree<int,int>::from(tree),
+					rag<int,int>::from(index, offset),
+					mat<int>::from(query),
+					vec<double>::from(tolerance),
+					vec<int>::from(relative)},
+				Rf_asInteger(num_threads));
+			break;
+		case REALSXP:
+			compute(
+				range_searches{
+					kdtree<int,double>::from(tree),
+					rag<int,int>::from(index, offset),
+					mat<double>::from(query),
+					vec<double>::from(tolerance),
+					vec<int>::from(relative)},
+				Rf_asInteger(num_threads));
+			break;
+	}
+	SEXP hits = PROTECT(Rf_allocVector(VECSXP, 3));
+	SEXP names = PROTECT(Rf_allocVector(STRSXP, 3));
+	SET_VECTOR_ELT(hits, 0, index);
+	SET_VECTOR_ELT(hits, 1, offset);
+	SET_VECTOR_ELT(hits, 2, counts);
+	SET_STRING_ELT(names, 0, Rf_mkChar("index"));
+	SET_STRING_ELT(names, 1, Rf_mkChar("offset"));
+	SET_STRING_ELT(names, 2, Rf_mkChar("counts"));
+	Rf_setAttrib(hits, R_NamesSymbol, names);
+	UNPROTECT(5);
+	return hits;
 }
 
 //// Matrix statistics

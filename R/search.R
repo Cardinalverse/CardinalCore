@@ -30,7 +30,7 @@ kdtree <- function(data)
 	.Call(C_do_kdtree_build, data)
 }
 
-kdcounts <- function(
+kdsearch <- function(
 	query,
 	data,
 	tolerance = 0,
@@ -39,6 +39,8 @@ kdcounts <- function(
 {
 	if ( !inherits(data, "kdtree") )
 		data <- kdtree(data)
+	if ( is.null(dim(query)) )
+		query <- t(query)
 	if ( is.integer(query) && is.double(data$data) )
 		storage.mode(query) <- "double"
 	if ( is.double(query) && is.integer(data$data) )
@@ -51,7 +53,7 @@ kdcounts <- function(
 		stop("relative must not contain NAs")
 	tolerance <- rep_len(as.double(tolerance), ncol(data$data))
 	relative <- rep_len(as.logical(relative), ncol(data$data))
-	.Call(C_do_kdtree_range_counts,
+	.Call(C_do_kdtree_range_search,
 		query, data, tolerance, relative, as.integer(num.threads))
 }
 
