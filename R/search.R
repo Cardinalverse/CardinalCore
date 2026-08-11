@@ -39,8 +39,11 @@ kdsearch <- function(
 {
 	if ( !inherits(data, "kdtree") )
 		data <- kdtree(data)
-	if ( is.null(dim(query)) )
+	if ( is.null(dim(query)) ) {
 		query <- t(query)
+	} else {
+		query <- as.matrix(query)
+	}
 	if ( is.integer(query) && is.double(data$data) )
 		storage.mode(query) <- "double"
 	if ( is.double(query) && is.integer(data$data) )
