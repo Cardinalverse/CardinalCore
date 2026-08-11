@@ -7,7 +7,8 @@ export(
 
 export(
 	"bsearch",
-	"kdtree")
+	"kdtree",
+	"kdcounts")
 
 export("col_sums")
 

@@ -20,7 +20,7 @@ Authors@R: c(
 	person("Olga", "Vitek",
 		email = "o.vitek@northeastern.edu",
 		role = "fnd"))
-Description: Low-level processing and visualization utilities for mass spectrometry imaging analysis in Cardinal
+Description: Low-level processing and visualization utilities for mass spectrometry imaging analysis in Cardinal.
 License: Artistic-2.0 | file LICENSE
 Depends: R (>= 4.6)
 Imports: methods

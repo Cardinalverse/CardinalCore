@@ -114,7 +114,6 @@ struct kdtree
 	vec<Index> left;
 	vec<Index> right;
 	Index root = na_value<Index>();
-	bool built = false;
 
 	ptrdiff_t ssize() const noexcept
 	{
@@ -211,7 +210,6 @@ struct kdtree
 				};
 			}
 		}
-		built = true;
 		return root;
 	}
 
@@ -219,9 +217,9 @@ struct kdtree
 	// - Both tolerance and relative are per-dimension
 	// - Write indices into hits up to hits.len
 	// - Return the count of hits
-	template<Num Hit, Vec Tol, Vec Rel>
+	template<Vec Tol, Vec Rel>
 	size_t range_search(
-		vec<Hit> hits,
+		vec<Index> hits,
 		const vec<T> query,
 		const Tol tolerance,
 		const Rel relative) const
@@ -243,7 +241,7 @@ struct kdtree
 			// pop node
 			frame cur = stack[top--];
 			ptrdiff_t i = cur.depth % data.ncols;
-			double ds = diff(query[i], data[{cur.node, i}], relative=relative[i]);
+			double ds = diff(query[i], data[{cur.node, i}], relative[i]);
 			double du = std::fabs(ds);
 			// search left subtree?
 			if ( has_left(cur.node) && (ds < 0 || du <= tolerance[i]) )
@@ -268,23 +266,77 @@ struct kdtree
 		const Tol tolerance,
 		const Rel relative) const
 	{
-		// TODO: implement me
-		return 0;
+		return range_search(
+			vec<Index>{nullptr, 0, 0},
+			query,
+			tolerance,
+			relative);
 	}
 
 	#ifdef USING_R
-	static kdtree<Index,T> from(
-		SEXP data,
-		SEXP left,
-		SEXP right)
+	static kdtree<Index,T> from(SEXP obj)
 	{
 		return {
-			.data = mat<T>::from(data),
-			.left = vec<Index>::from(left),
-			.right = vec<Index>::from(right),
+			.data = mat<T>::from(VECTOR_ELT(obj, 0)),
+			.left = vec<Index>::from(VECTOR_ELT(obj, 1)),
+			.right = vec<Index>::from(VECTOR_ELT(obj, 2)),
+			.root = *data_ptr<Index>(VECTOR_ELT(obj, 3)),
 		};
 	}
 	#endif // USING_R
+};
+
+template<Num Index, Num T, Vec Tol, Vec Rel>
+struct range_counts
+{
+	kdtree<Index,T> searcher;
+	vec<Index> counts;
+	mat<T> queries;
+	Tol tolerance;
+	Rel relative;
+
+	ptrdiff_t ssize() const
+	{
+		return counts.len;
+	}
+
+	void operator()(bounds b)
+	{
+		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
+		{
+			counts[i] = searcher.range_count(
+				queries.row(i),
+				tolerance,
+				relative);
+		}
+	}
+};
+
+template<Num Index, Num T, Vec Tol, Vec Rel>
+struct range_searches
+{
+	kdtree<Index,T> searcher;
+	rag<Index,Index> hits;
+	mat<T> queries;
+	Tol tolerance;
+	Rel relative;
+
+	ptrdiff_t ssize() const
+	{
+		return hits.len;
+	}
+
+	void operator()(bounds b)
+	{
+		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
+		{
+			searcher.range_search(
+				hits[i],
+				queries.row(i),
+				tolerance,
+				relative);
+		}
+	}
 };
 
 #endif // CARDINAL_CORE_SEARCH

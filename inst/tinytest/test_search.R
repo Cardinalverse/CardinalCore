@@ -33,4 +33,6 @@ t1 <- kdtree(d1)
 ns1 <- cbind(t1$left + 1L, t1$right + 1L)
 expect_equal(t1$root + 1L, 6L)
 expect_equal(t1$root + 1L, which(!i1 %in% sort(ns1, na.last=NA)))
+kdcounts(t(c(2,3,3)), t1)
+kdcounts(t(c(0,0,0)), t1)
 

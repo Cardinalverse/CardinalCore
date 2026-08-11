@@ -178,34 +178,79 @@ SEXP do_bsearch(
 
 SEXP do_kdtree_build(SEXP data)
 {
-	ptrdiff_t root;
+	SEXP searcher = PROTECT(Rf_allocVector(VECSXP, 4));
 	SEXP left = PROTECT(Rf_allocVector(INTSXP, Rf_nrows(data)));
 	SEXP right = PROTECT(Rf_allocVector(INTSXP, Rf_nrows(data)));
+	ptrdiff_t root;
+	SET_VECTOR_ELT(searcher, 0, data);
+	SET_VECTOR_ELT(searcher, 1, left);
+	SET_VECTOR_ELT(searcher, 2, right);
+	SET_VECTOR_ELT(searcher, 3, Rf_ScalarInteger(NA_INTEGER));
+	SEXP names = PROTECT(Rf_allocVector(STRSXP, 4));
+	SET_STRING_ELT(names, 0, Rf_mkChar("data"));
+	SET_STRING_ELT(names, 1, Rf_mkChar("left"));
+	SET_STRING_ELT(names, 2, Rf_mkChar("right"));
+	SET_STRING_ELT(names, 3, Rf_mkChar("root"));
+	Rf_setAttrib(searcher, R_NamesSymbol, names);
+	Rf_setAttrib(searcher, R_ClassSymbol, Rf_mkString("kdtree"));
 	switch(TYPEOF(data))
 	{
 		case INTSXP:
-			root = kdtree<int,int>::from(data, left, right).build();
+			root = kdtree<int,int>::from(searcher).build();
 			break;
 		case REALSXP:
-			root = kdtree<int,double>::from(data, left, right).build();
+			root = kdtree<int,double>::from(searcher).build();
 			break;
 		default:
 			Rf_error("'data' must be integer or double");
 	}
-	SEXP obj = PROTECT(Rf_allocVector(VECSXP, 4));
-	SET_VECTOR_ELT(obj, 0, data);
-	SET_VECTOR_ELT(obj, 1, Rf_ScalarInteger(root));
-	SET_VECTOR_ELT(obj, 2, left);
-	SET_VECTOR_ELT(obj, 3, right);
-	SEXP nms = PROTECT(Rf_allocVector(STRSXP, 4));
-	SET_STRING_ELT(nms, 0, Rf_mkChar("data"));
-	SET_STRING_ELT(nms, 1, Rf_mkChar("root"));
-	SET_STRING_ELT(nms, 2, Rf_mkChar("left"));
-	SET_STRING_ELT(nms, 3, Rf_mkChar("right"));
-	Rf_setAttrib(obj, R_NamesSymbol, nms);
-	Rf_setAttrib(obj, R_ClassSymbol, Rf_mkString("kdtree"));
+	SET_VECTOR_ELT(searcher, 3, Rf_ScalarInteger(root));
 	UNPROTECT(4);
-	return obj;
+	return searcher;
+}
+
+SEXP do_kdtree_range_counts(
+	SEXP query,
+	SEXP tree,
+	SEXP tolerance,
+	SEXP relative,
+	SEXP num_threads)
+{
+	SEXP data = VECTOR_ELT(tree, 0);
+	if ( TYPEOF(query) != TYPEOF(data) )
+		Rf_error("'query' and 'data' must have the same data type");
+	if ( Rf_ncols(query) != Rf_ncols(data) )
+		Rf_error("'query' and 'data' must have the same number of cols");
+	if ( LENGTH(tolerance) != Rf_ncols(data) )
+		Rf_error("length of 'tolerance' must match ncol(data)");
+	if ( LENGTH(relative) != Rf_ncols(data) )
+		Rf_error("length of 'relative' must match ncol(data)");
+	SEXP counts = PROTECT(Rf_allocVector(INTSXP, Rf_nrows(query)));
+	switch(TYPEOF(query))
+	{
+		case INTSXP:
+			compute(
+				range_counts{
+					kdtree<int,int>::from(tree),
+					vec<int>::from(counts),
+					mat<int>::from(query),
+					vec<double>::from(tolerance),
+					vec<int>::from(relative)},
+				Rf_asInteger(num_threads));
+			break;
+		case REALSXP:
+			compute(
+				range_counts{
+					kdtree<int,double>::from(tree),
+					vec<int>::from(counts),
+					mat<double>::from(query),
+					vec<double>::from(tolerance),
+					vec<int>::from(relative)},
+				Rf_asInteger(num_threads));
+			break;
+	}
+	UNPROTECT(1);
+	return counts;
 }
 
 //// Matrix statistics

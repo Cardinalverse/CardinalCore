@@ -643,6 +643,9 @@ struct vec
 	// Return a sliced view from b.start to b.stop
 	vec<T> slice(const bounds b) const noexcept
 	{
+		assert(b.start <= b.stop);
+		assert(0 <= b.start && b.start < len);
+		assert(0 <= b.stop && b.stop <= len);
 		return {
 			.ptr = ptr + (stride * b.start), 
 			.len = b.stop - b.start,
@@ -805,6 +808,29 @@ struct mat
 		}
 	}
 	#endif // USING_R
+};
+
+//// Ragged arrays
+//-----------------
+// Vectors of different lenghts
+
+// A non-owning ragged array
+template<Num T, Num Offset>
+struct rag
+{
+	vec<T> x;
+	vec<Offset> offset;
+
+	ptrdiff_t ssize() const noexcept
+	{
+		return offset.len - 1;
+	}
+
+	vec<T> operator[](ptrdiff_t i) const noexcept
+	{
+		assert(0 <= i && i + 1 < offset.len);
+		return x.slice({offset[i], offset[i + 1]});
+	}
 };
 
 #endif // CARDINAL_CORE_CORE
