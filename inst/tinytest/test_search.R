@@ -33,6 +33,6 @@ t1 <- kdtree(d1)
 ns1 <- cbind(t1$left + 1L, t1$right + 1L)
 expect_equal(t1$root + 1L, 6L)
 expect_equal(t1$root + 1L, which(!i1 %in% sort(ns1, na.last=NA)))
-ks1a <- kdsearch(c(2,3,3), d1, tol=c(2,2,4))
-ks1b <- kdsearch(c(7,2,6), d1, tol=2)
+ks1a <- kdsearch(c(2,3,3), d1, tolerance=c(2,2,4))
+ks1b <- kdsearch(c(7,2,6), d1, tolerance=2)
 

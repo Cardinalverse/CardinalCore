@@ -9,20 +9,20 @@
 //-----------
 // Search utilities
 
-// Does x neighbor ref within some tolerance(s)?
+// Does query neighbor ref within some tolerance(s)?
 template<Num T, Vec Tol, Vec Rel>
 bool near(
-	const vec<T> x,
+	const vec<T> query,
 	const vec<T> ref,
 	const Tol tolerance,
 	const Rel relative) noexcept
 {
-	assert(x.ssize() == ref.ssize());
-	assert(x.ssize() == tolerance.ssize());
-	assert(x.ssize() == relative.ssize());
-	for ( ptrdiff_t i = 0; i < x.ssize(); ++i )
+	assert(query.ssize() == ref.ssize());
+	assert(query.ssize() == tolerance.ssize());
+	assert(query.ssize() == relative.ssize());
+	for ( ptrdiff_t i = 0; i < query.ssize(); ++i )
 	{
-		if ( std::fabs(diff(x[i], ref[i], relative[i])) > tolerance[i] )
+		if ( std::fabs(diff(query[i], ref[i], relative[i])) > tolerance[i] )
 			return false;
 	}
 	return true;
@@ -31,27 +31,27 @@ bool near(
 //// Binary search
 //-----------------
 
-// Binary search for query in x
-// - Values of x MUST be sorted (duplicated are accepted)
+// Binary search for query in red
+// - Values of ref MUST be sorted (duplicated are accepted)
 // - Differences <= tolerance are considered matches
 // - Default nomatch chosen so nomatch << 0 for signed types
 template<Num Index, Num T>
 Index binary_search(
 	const T query,
-	const vec<T> x,
+	const vec<T> ref,
 	const double tolerance = 0,
 	const bool relative = false,
 	const bool nearest = false,
 	const Index nomatch = na_value<Index>())
 {
-	if ( x.len == 0 )
+	if ( ref.len == 0 )
 		return nomatch;
 	Index lo = 0;
-	Index hi = x.len - 1;
+	Index hi = ref.len - 1;
 	while ( lo <= hi )
 	{
 		Index mid = (lo + hi) / 2;
-		double dx = diff(query, x[mid], relative);
+		double dx = diff(query, ref[mid], relative);
 		if ( dx > 0 )
 			lo = mid + 1;
 		else if ( dx < 0 )
@@ -59,8 +59,8 @@ Index binary_search(
 		else
 			return mid;
 	}
-	double dlo = std::fabs(diff(query, x[lo], relative));
-	double dhi = std::fabs(diff(query, x[hi], relative));
+	double dlo = std::fabs(diff(query, ref[lo], relative));
+	double dhi = std::fabs(diff(query, ref[hi], relative));
 	if ( dlo <= dhi && (nearest || dlo <= tolerance) )
 		return lo;
 	if ( dhi <= dlo && (nearest || dhi <= tolerance) )
@@ -68,15 +68,15 @@ Index binary_search(
 	return nomatch;
 }
 
-// Binary search for multiple queries in x
-// - Values of x MUST be sorted (duplicated are accepted)
+// Binary search for multiple queries in ref
+// - Values of ref MUST be sorted (duplicated are accepted)
 // - Differences <= tolerance are considered matches
 // - Default nomatch chosen so nomatch << 0 for signed types
 template<Num Index, Num T>
 void binary_search(
 	vec<Index> index,
 	const vec<T> query,
-	const vec<T> x,
+	const vec<T> ref,
 	const double tolerance = 0,
 	const bool relative = false,
 	const bool nearest = false,
@@ -90,7 +90,7 @@ void binary_search(
 		{
 			index[i] = binary_search(
 				query[i], 
-				x, 
+				ref, 
 				tolerance, 
 				relative, 
 				nearest, 
@@ -144,11 +144,11 @@ struct kdtree
 		left.fill(na_value<Index>());
 		right.fill(na_value<Index>());
 		// find root from median of first dim
-		vec<T> xcur = data.col(0);
-		qsort_index(index, xcur);
+		vec<T> ref = data.col(0);
+		qsort_index(index, ref);
 		ptrdiff_t mid = data.nrows / 2;
 		// handle duplicates and update root
-		while ( mid > 0 && xcur[index[mid - 1]] == xcur[index[mid]] )
+		while ( mid > 0 && ref[index[mid - 1]] == ref[index[mid]] )
 			--mid;
 		root = index[mid];
 		// initialize stack
@@ -178,16 +178,17 @@ struct kdtree
 		{
 			// pop stack
 			frame cur = stack[top--];
-			xcur = data.col(cur.depth % data.ncols);
-			// find median of current dim within span
+			// get current dim
+			ref = data.col(cur.depth % data.ncols);
+			// find median of current dim within current span
 			if ( data.ncols > 1 )
-				qsort_index(index, xcur, {cur.start, cur.stop});
+				qsort_index(index, ref, {cur.start, cur.stop});
 			mid = (cur.start + cur.stop) / 2;
-			while ( mid > 0 && xcur[index[mid - 1]] == xcur[index[mid]] )
+			while ( mid > 0 && ref[index[mid - 1]] == ref[index[mid]] )
 				--mid;
 			// insert child under parent
-			ptrdiff_t pcol = (cur.depth - 1) % data.ncols;
-			if ( data[{index[mid], pcol}] < data[{cur.parent, pcol}] )
+			ptrdiff_t iprev = (cur.depth - 1) % data.ncols;
+			if ( data[{index[mid], iprev}] < data[{cur.parent, iprev}] )
 				left[cur.parent] = index[mid];
 			else
 				right[cur.parent] = index[mid];
@@ -233,8 +234,9 @@ struct kdtree
 		struct frame { ptrdiff_t node, depth; };
 		auto stack = std::make_unique<frame[]>(max_depth(data.nrows));
 		stack[++top] = { root, 0 };
-		// initialize count
+		// initialize hits
 		size_t count = 0;
+		hits.fill(na_value<Index>());
 		// recursively search tree
 		while ( top >= 0 )
 		{
@@ -252,8 +254,17 @@ struct kdtree
 			// is this a hit?
 			if ( near(query, data.row(cur.node), tolerance, relative) )
 			{
-				if ( count < hits.len )
+				if ( count < hits.len ) {
 					hits[count] = cur.node;
+					// sort into index order
+					ptrdiff_t j = count;
+					while ( j > 0 )
+					{
+						if ( hits[j] < hits[j - 1] )
+							hits.swap(j, j - 1);
+						--j;
+					}
+				}
 				++count;
 			}
 		}
@@ -291,13 +302,13 @@ struct range_counts
 {
 	kdtree<Index,T> searcher;
 	vec<Index> counts;
-	mat<T> queries;
+	mat<T> query;
 	Tol tolerance;
 	Rel relative;
 
 	ptrdiff_t ssize() const
 	{
-		return queries.nrows;
+		return query.nrows;
 	}
 
 	void operator()(bounds b)
@@ -305,7 +316,7 @@ struct range_counts
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 		{
 			counts[i] = searcher.range_count(
-				queries.row(i),
+				query.row(i),
 				tolerance,
 				relative);
 		}
@@ -317,13 +328,13 @@ struct range_searches
 {
 	kdtree<Index,T> searcher;
 	rag<Index,Index> hits;
-	mat<T> queries;
+	mat<T> query;
 	Tol tolerance;
 	Rel relative;
 
 	ptrdiff_t ssize() const
 	{
-		return queries.nrows;
+		return query.nrows;
 	}
 
 	void operator()(bounds b)
@@ -332,7 +343,7 @@ struct range_searches
 		{
 			searcher.range_search(
 				hits[i],
-				queries.row(i),
+				query.row(i),
 				tolerance,
 				relative);
 		}

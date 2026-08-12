@@ -23,15 +23,15 @@ SEXP do_qmad(
 //// Search and nearest neighbors
 //--------------------------------
 SEXP do_bsearch(
-	SEXP x,
-	SEXP data,
+	SEXP query,
+	SEXP ref,
 	SEXP tolerance,
 	SEXP relative,
 	SEXP nearest,
 	SEXP nomatch);
 SEXP do_kdtree_build(SEXP data);
 SEXP do_kdtree_range_search(
-	SEXP queries,
+	SEXP query,
 	SEXP tree,
 	SEXP tolerance,
 	SEXP relative,

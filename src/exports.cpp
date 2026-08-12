@@ -138,22 +138,22 @@ SEXP do_qmad(SEXP x, SEXP center, SEXP constant)
 
 SEXP do_bsearch(
 	SEXP query, 
-	SEXP x, 
+	SEXP ref, 
 	SEXP tolerance, 
 	SEXP relative, 
 	SEXP nearest, 
 	SEXP nomatch)
 {
-	if ( TYPEOF(query) != TYPEOF(x) )
-		Rf_error("'query' and 'x' must have the same data type");
+	if ( TYPEOF(query) != TYPEOF(ref) )
+		Rf_error("'query' and 'ref' must have the same data type");
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, LENGTH(query)));
-	switch(TYPEOF(x))
+	switch(TYPEOF(ref))
 	{
 		case INTSXP:
 			binary_search(
 				vec<int>::from(index),
 				vec<int>::from(query),
-				vec<int>::from(x),
+				vec<int>::from(ref),
 				Rf_asReal(tolerance),
 				Rf_asLogical(relative),
 				Rf_asLogical(nearest),
@@ -163,14 +163,14 @@ SEXP do_bsearch(
 			binary_search(
 				vec<int>::from(index),
 				vec<double>::from(query),
-				vec<double>::from(x),
+				vec<double>::from(ref),
 				Rf_asReal(tolerance),
 				Rf_asLogical(relative),
 				Rf_asLogical(nearest),
 				Rf_asInteger(nomatch));
 			break;
 		default:
-			Rf_error("'x' must be integer or double");
+			Rf_error("'ref' must be integer or double");
 	}
 	UNPROTECT(1);
 	return index;
