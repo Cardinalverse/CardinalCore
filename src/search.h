@@ -214,9 +214,64 @@ struct kdtree
 		return root;
 	}
 
+	// // Search for nearest neighbors of query
+	// // - Number of neighbors (k) given by hits.len
+	// // - Fill hits with indices up to hits.len
+	// // - Fill dists with distances up to hits.len
+	// template<Num Dist>
+	// size_t knn_search(
+	// 	vec<Index> hits,
+	// 	vec<Dist> dists,
+	// 	const vec<T> query) const
+	// {
+	// 	// invariants
+	// 	assert(query.len == data.ncols);
+	// 	assert(hits.len == dists.len)
+	// 	// initialize stack
+	// 	ptrdiff_t top = -1;
+	// 	struct frame { ptrdiff_t node, depth; };
+	// 	auto stack = std::make_unique<frame[]>(max_depth(data.nrows));
+	// 	stack[++top] = { root, 0 };
+	// 	// initialize hits
+	// 	size_t count = 0;
+	// 	hits.fill(na_value<Index>());
+	// 	// recursively search tree
+	// 	while ( top >= 0 )
+	// 	{
+	// 		// pop node
+	// 		frame cur = stack[top--];
+	// 		ptrdiff_t i = cur.depth % data.ncols;
+	// 		double ds = diff(query[i], data[{cur.node, i}], relative[i]);
+	// 		double du = std::fabs(ds);
+	// 		// search left subtree?
+	// 		if ( has_left(cur.node) && (ds < 0 || du <= tolerance[i]) )
+	// 			stack[++top] = { left[cur.node], cur.depth + 1 };
+	// 		// search right subtree?
+	// 		if ( has_right(cur.node) && (ds > 0 || du <= tolerance[i]) )
+	// 			stack[++top] = { right[cur.node], cur.depth + 1 };
+	// 		// is this a hit?
+	// 		if ( near(query, data.row(cur.node), tolerance, relative) )
+	// 		{
+	// 			if ( count < hits.len ) {
+	// 				hits[count] = cur.node;
+	// 				// sort into index order
+	// 				ptrdiff_t j = count;
+	// 				while ( j > 0 )
+	// 				{
+	// 					if ( hits[j] < hits[j - 1] )
+	// 						hits.swap(j, j - 1);
+	// 					--j;
+	// 				}
+	// 			}
+	// 			++count;
+	// 		}
+	// 	}
+	// 	return count;
+	// }
+
 	// Search for points within tolerance(s) of query
 	// - Both tolerance and relative are per-dimension
-	// - Write indices into hits up to hits.len
+	// - Fill hits with indices up to hits.len
 	// - Return the count of hits
 	template<Vec Tol, Vec Rel>
 	size_t range_search(

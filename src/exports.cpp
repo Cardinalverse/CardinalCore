@@ -170,7 +170,7 @@ SEXP do_bsearch(
 				Rf_asInteger(nomatch));
 			break;
 		default:
-			Rf_error("'ref' must be integer or double");
+			Rf_error("'query' and 'ref' must be integer or double");
 	}
 	UNPROTECT(1);
 	return index;

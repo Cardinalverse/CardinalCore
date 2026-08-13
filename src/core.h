@@ -33,6 +33,26 @@ concept Vec =
 		{ v[i] } -> Num;
 	};
 
+// A Masked Vec carries a mask for valid/invalid elements
+template<class M>
+concept Masked = Vec<M> &&
+	requires(const std::remove_cvref_t<M>& m, ptrdiff_t i)
+	{
+		{ m.is_valid(i) } -> std::same_as<bool>;
+		{ m.get_data() } -> Vec;
+		{ m.get_mask() } -> Vec;
+	};
+
+// Check for validity based on mask
+template<Vec V>
+bool is_valid(V x, ptrdiff_t i) noexcept
+{
+	if constexpr ( Masked<V> )
+		return x.is_valid(i);
+	else
+		return true;
+}
+
 // Proxy type to define UnaryOp and BinaryOp
 struct num_arg {
 	template<Num T>
@@ -66,20 +86,6 @@ struct num_traits<T> {
 	}
 };
 
-// R NAs
-#ifdef USING_R
-template<>
-struct num_traits<int> {
-	static int na_value() noexcept { return NA_INTEGER; }
-	static bool is_na(const int x) noexcept { return x == NA_INTEGER; }
-};
-template<>
-struct num_traits<double> {
-	static double na_value() noexcept { return NA_REAL; }
-	static bool is_na(const double x) noexcept { return std::isnan(x); }
-};
-#endif // USING_R
-
 // A HasNA type supports NA sentinel values
 template<class T>
 concept HasNA = Num<T> && requires (const T& x)
@@ -108,6 +114,44 @@ constexpr bool is_na(const T x) noexcept
 		return false;
 }
 
+// R NAs
+#ifdef USING_R
+template<>
+struct num_traits<int> {
+	static int na_value() noexcept { return NA_INTEGER; }
+	static bool is_na(const int x) noexcept { return x == NA_INTEGER; }
+};
+template<>
+struct num_traits<double> {
+	static double na_value() noexcept { return NA_REAL; }
+	static bool is_na(const double x) noexcept { return std::isnan(x); }
+};
+#endif // USING_R
+
+// Check for missingness based on mask or NA
+template<Vec V>
+bool is_missing(V x, ptrdiff_t i) noexcept
+{
+	return !is_valid(x, i) || is_na(x[i]);
+}
+
+// Count of invalid/NA items in x
+template<Vec V>
+ptrdiff_t n_missing(V x) noexcept
+{
+	ptrdiff_t count = 0;
+	for ( ptrdiff_t i = 0; i < x.ssize(); ++i )
+		count += is_missing(x, i);
+	return count;
+}
+
+// Count of valid/non-NA items in x
+template<Vec V>
+ptrdiff_t n_present(V x) noexcept
+{
+	return x.ssize() - n_missing(x);
+}
+
 // Coerce while preserving NAs across types if possible
 template<Num Out, Num In>
 constexpr Out coerce_cast(In x) noexcept
@@ -121,23 +165,6 @@ constexpr Out coerce_cast(In x) noexcept
 		else
 			return static_cast<Out>(x);
 	}
-}
-
-// Count of NA/missing/incomparable items in x
-template<Vec V>
-ptrdiff_t n_missing(V x) noexcept
-{
-	ptrdiff_t count = 0;
-	for ( ptrdiff_t i = 0; i < x.ssize(); ++i )
-		count += is_na(x[i]);
-	return count;
-}
-
-// Count of non-NA/missing/incomparable items in x
-template<Vec V>
-ptrdiff_t n_present(V x) noexcept
-{
-	return x.ssize() - n_missing(x);
 }
 
 //// Data Pointer
@@ -181,25 +208,34 @@ struct loc
 // Universal unary functions
 
 enum Unop {
-	Identity,
-	Abs,
-	Log,
-	Log2,
-	Log1p,
-	Exp,
-	Exp2,
-	Expm1
+	// Identity
+	Identity, IsNA, NotNA, IsZero, NotZero,
+	// Math
+	Abs, Sign, Log, Log2, Log1p, Exp, Exp2, Expm1,
 };
 
 template<Unop Op, Num T = double>
 constexpr T ufunc(T x) noexcept
 {
+	// Identity
 	if constexpr ( Op == Identity )
 		return x;
+	else if constexpr ( Op == IsNA )
+		return is_na(x);
+	else if constexpr ( Op == NotNA )
+		return !is_na(x);
+	else if constexpr ( Op == IsZero )
+		return !is_na(x) && x == 0;
+	else if constexpr ( Op == NotZero )
+		return !is_na(x) && x != 0;
+	// NAs
 	if ( is_na(x) )
 		return na_value<T>();
+	// Math
 	else if constexpr ( Op == Abs )
 		return std::abs(x);
+	else if constexpr ( Op == Sign )
+		return x ? std::copysign(1, x) : 0;
 	else if constexpr ( Op == Log )
 		return std::log(x);
 	else if constexpr ( Op == Log2 )
@@ -212,9 +248,13 @@ constexpr T ufunc(T x) noexcept
 		return std::exp2(x);
 	else if constexpr ( Op == Expm1 )
 		return std::expm1(x);
+	// Not implemented
 	else
 		static_assert(Op != Op, "ufunc: unsupported unary op");
 }
+
+template<Unop Op, Num T = double, Vec V>
+constexpr Vec auto ufunc(V x) noexcept;
 
 template<Unop Op, Num Out = double, Num In = Out>
 struct unop {
@@ -232,40 +272,83 @@ struct unop {
 // Universal binary functions
 
 enum Binop {
-	Lhs,
-	Rhs,
-	Add,
-	Subtract,
-	Multiply,
-	Divide,
-	Max,
-	Min
+	// Identity
+	Lhs, Rhs,
+	// Logic
+	And, Or,
+	// Compare
+	Eq, Ne, Lt, Le, Gt, Ge,
+	// Arithmetic
+	Add, Sub, Mul, Div, Max, Min
 };
 
 template<Binop Op, Num T = double>
 constexpr T ufunc(T lhs, T rhs) noexcept
 {
+	// Identity
 	if constexpr ( Op == Lhs )
 		return lhs;
-	if constexpr ( Op == Rhs )
+	else if constexpr ( Op == Rhs )
 		return rhs;
+	// Logic
+	else if constexpr ( Op == And )
+	{
+		if ( !is_na(lhs) && !is_na(rhs) )
+			return lhs && rhs;
+		else if ( is_na(lhs) && is_na(rhs) )
+			return na_value<T>();
+		else if ( is_na(lhs) )
+			return rhs ? na_value<T>() : false;
+		else if ( is_na(rhs) )
+			return lhs ? na_value<T>() : false;
+	}
+	else if constexpr ( Op == Or )
+	{
+		if ( !is_na(lhs) && !is_na(rhs) )
+			return lhs || rhs;
+		else if ( is_na(lhs) && is_na(rhs) )
+			return na_value<T>();
+		else if ( is_na(lhs) )
+			return rhs ? true : na_value<T>();
+		else if ( is_na(rhs) )
+			return lhs ? true : na_value<T>();
+	}
+	// NAs
 	if ( is_na(lhs) || is_na(rhs) )
 		return na_value<T>();
+	// Compare
+	else if constexpr ( Op == Eq )
+		return lhs == rhs;
+	else if constexpr ( Op == Ne )
+		return lhs != rhs;
+	else if constexpr ( Op == Lt )
+		return lhs < rhs;
+	else if constexpr ( Op == Le )
+		return lhs <= rhs;
+	else if constexpr ( Op == Gt )
+		return lhs > rhs;
+	else if constexpr ( Op == Ge )
+		return lhs >= rhs;
+	// Arithmetic
 	else if constexpr ( Op == Add )
 		return lhs + rhs;
-	else if constexpr ( Op == Subtract )
+	else if constexpr ( Op == Sub )
 		return lhs - rhs;
-	else if constexpr ( Op == Multiply )
+	else if constexpr ( Op == Mul )
 		return lhs * rhs;
-	else if constexpr ( Op == Divide )
+	else if constexpr ( Op == Div )
 		return lhs / rhs;
 	else if constexpr ( Op == Max )
 		return lhs > rhs ? lhs : rhs;
 	else if constexpr ( Op == Min )
 		return lhs < rhs ? lhs : rhs;
+	// Not implemented
 	else
 		static_assert(Op != Op, "ufunc: unsupported binary op");
 }
+
+template<Binop Op, Num T = double, Vec L, Vec R>
+constexpr Vec auto ufunc(L lhs, R rhs) noexcept;
 
 template<Binop Op, Num Out = double, Num In = Out>
 struct binop {
@@ -273,11 +356,11 @@ struct binop {
 	{
 		if constexpr ( Op == Add )
 			return 0;
-		else if constexpr ( Op == Subtract )
+		else if constexpr ( Op == Sub )
 			return 0;
-		else if constexpr ( Op == Multiply )
+		else if constexpr ( Op == Mul )
 			return 1;
-		else if constexpr ( Op == Divide )
+		else if constexpr ( Op == Div )
 			return 1;
 		else if constexpr ( Op == Max )
 		{
@@ -309,11 +392,68 @@ struct binop {
 //---------------------
 // Generic operations on vectors
 
+// Vector with validity mask
+template<Vec V, Vec Mask, Num T = double>
+struct vec_masked
+{
+	V data;
+	Mask mask;
+
+	ptrdiff_t ssize() const noexcept
+	{
+		return data.ssize();
+	}
+
+	T operator[](ptrdiff_t i) const noexcept
+	{
+		return is_valid(i) ? coerce_cast<T>(data[i]) : na_value<T>();
+	}
+
+	bool is_valid(ptrdiff_t i) const noexcept
+	{
+		return coerce_cast<bool>(mask[i]);
+	}
+
+	constexpr V get_data() const noexcept
+	{
+		return data;
+	}
+
+	constexpr Mask get_mask() const noexcept
+	{
+		return mask;
+	}
+};
+
+// Mask a vector
+template<Num T = double, Vec V, Vec Mask>
+constexpr auto mask(
+	const V data,
+	const Mask mask) noexcept
+{
+	assert(data.ssize() == mask.ssize());
+	if constexpr ( Masked<V> )
+	{
+		auto newdata = data.get_data();
+		auto newmask = ufunc<And>(data.get_mask(), mask);
+		static_assert(!Masked<decltype(newdata)>);
+		return vec_masked<decltype(newdata),decltype(newmask),T>{
+			.data = newdata,
+			.mask = newmask,
+		};
+	}
+	else
+		return vec_masked<V,Mask,T>{
+			.data = data,
+			.mask = mask
+		};
+}
+
 // Vector subscripted at the given indices
 template<Vec V, Vec Index, Num T = double>
 struct vec_indexed
 {
-	V x;
+	V data;
 	Index index;
 
 	ptrdiff_t ssize() const noexcept
@@ -327,7 +467,7 @@ struct vec_indexed
 		if ( is_na(ii) )
 			return na_value<T>();
 		else
-			return coerce_cast<T>(x[ii]);
+			return coerce_cast<T>(data[ii]);
 	}
 };
 
@@ -335,10 +475,10 @@ struct vec_indexed
 template<Num T = double, Vec Index, Vec V>
 constexpr auto gather(
 	const Index index,
-	const V input) noexcept -> vec_indexed<V,Index,T>
+	const V data) noexcept -> vec_indexed<V,Index,T>
 {
 	return {
-		.x = input, 
+		.data = data, 
 		.index = index,
 	};
 }
@@ -347,28 +487,28 @@ constexpr auto gather(
 template<Vec V, UnaryOp Tform, Num T = double>
 struct vec_unop
 {
-	V x;
+	V data;
 	Tform op;
 
 	ptrdiff_t ssize() const noexcept
 	{
-		return x.ssize();
+		return data.ssize();
 	}
 
 	T operator[](ptrdiff_t i) const noexcept
 	{
-		return coerce_cast<T>(op(x[i]));
+		return coerce_cast<T>(op(data[i]));
 	}
 };
 
 // Transform with elementwise unary functor
 template<Unop Op, Num T = double, Vec V, UnaryOp Tform = unop<Op,T>>
 constexpr auto transform(
-	const V input, 
+	const V data, 
 	const Tform op = Tform{}) noexcept -> vec_unop<V,Tform,T>
 {
 	return {
-		.x = input, 
+		.data = data, 
 		.op = op,
 	};
 }
@@ -410,14 +550,14 @@ constexpr auto transform(
 // Reduce vector elements with binary functor
 template<Binop Op, Num T = double, Vec V, BinaryOp Reduce = binop<Op,T>>
 T reduce(
-	const V input,
+	const V data,
 	const Reduce op = Reduce{},
 	const T init = Reduce::identity()) noexcept
 {
-	T output = init;
-	for ( ptrdiff_t i = 0; i < input.ssize(); ++i )
-		output = op(output, coerce_cast<T>(input[i]));
-	return output;
+	T accum = init;
+	for ( ptrdiff_t i = 0; i < data.ssize(); ++i )
+		accum = op(accum, coerce_cast<T>(data[i]));
+	return accum;
 }
 
 //// Vector operators
@@ -425,14 +565,14 @@ T reduce(
 // Deferred math and arithmetic
 
 // Universal unary functions for Vecs
-template<Unop Op, Num T = double, Vec V>
-Vec auto ufunc(V x) noexcept {
+template<Unop Op, Num T, Vec V>
+constexpr Vec auto ufunc(V x) noexcept {
 	return transform<Op,T>(x);
 }
 
 // Universal binary functions for Vecs
-template<Binop Op, Num T = double, Vec L, Vec R>
-Vec auto ufunc(L lhs, R rhs) noexcept {
+template<Binop Op, Num T, Vec L, Vec R>
+constexpr Vec auto ufunc(L lhs, R rhs) noexcept {
 	return transform<Op,T>(lhs, rhs);
 }
 
@@ -445,19 +585,19 @@ constexpr Vec auto operator+(L lhs, R rhs) noexcept {
 // Vec - Vec
 template<Num T = double, Vec L, Vec R>
 constexpr Vec auto operator-(L lhs, R rhs) noexcept {
-	return ufunc<Subtract,T>(lhs, rhs);
+	return ufunc<Sub,T>(lhs, rhs);
 }
 
 // Vec * Vec
 template<Num T = double, Vec L, Vec R>
 constexpr Vec auto operator*(L lhs, R rhs) noexcept {
-	return ufunc<Multiply,T>(lhs, rhs);
+	return ufunc<Mul,T>(lhs, rhs);
 }
 
 // Vec / Vec
 template<Num T = double, Vec L, Vec R>
 constexpr Vec auto operator/(L lhs, R rhs) noexcept {
-	return ufunc<Divide,T>(lhs, rhs);
+	return ufunc<Div,T>(lhs, rhs);
 }
 
 //// Vectors
@@ -579,6 +719,7 @@ struct vec
 			(*this)[i] = op((*this)[i], coerce_cast<T>(src[i]));
 		return (*this);
 	}
+
 	// Assign (*this)[i] = src[index[i]] for i in index
 	template<Binop Op = Rhs, Vec Index, Vec V>
 	vec<T>& gather(const Index index, const V src) noexcept
@@ -623,21 +764,21 @@ struct vec
 	template<Vec V>
 	vec<T>& operator-=(const V src) noexcept
 	{
-		return this->transform<Subtract>(src);
+		return this->transform<Sub>(src);
 	}
 
 	// vec<T> *= Vec
 	template<Vec V>
 	vec<T>& operator*=(const V src) noexcept
 	{
-		return this->transform<Multiply>(src);
+		return this->transform<Mul>(src);
 	}
 
 	// vec<T> /= Vec
 	template<Vec V>
 	vec<T>& operator/=(const V src) noexcept
 	{
-		return this->transform<Divide>(src);
+		return this->transform<Div>(src);
 	}
 
 	// Return a sliced view from b.start to b.stop

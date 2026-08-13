@@ -50,12 +50,12 @@ kdsearch <- function(
 		storage.mode(query) <- "double"
 	if ( is.double(query) && is.integer(ref$data) )
 		storage.mode(ref$data) <- "double"
-	if ( is.null(dim(query)) && length(query) != ncol(ref$data) )
-		stop("query must have the same number of columns as data")
+	if ( ncol(query) != ncol(ref$data) )
+		stop("'query' must have the same number of columns as 'ref'")
 	if ( anyNA(tolerance) )
-		stop("tolerance must not contain NAs")
+		stop("'tolerance' must not contain NAs")
 	if ( anyNA(relative) )
-		stop("relative must not contain NAs")
+		stop("'relative' must not contain NAs")
 	tolerance <- as.double(rep_len(tolerance, ncol(ref$data)))
 	relative <- ifelse(rep_len(relative, ncol(ref$data)), 1L, 0L)
 	.Call(C_do_kdtree_range_search,
