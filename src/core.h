@@ -209,7 +209,9 @@ struct loc
 
 enum Unop {
 	// Identity
-	Identity, IsNA, NotNA, IsZero, NotZero,
+	Identity, IsNA, NotNA,
+	// Logic
+	Not,
 	// Math
 	Abs, Sign, Log, Log2, Log1p, Exp, Exp2, Expm1,
 };
@@ -224,10 +226,9 @@ constexpr T ufunc(T x) noexcept
 		return is_na(x);
 	else if constexpr ( Op == NotNA )
 		return !is_na(x);
-	else if constexpr ( Op == IsZero )
-		return !is_na(x) && x == 0;
-	else if constexpr ( Op == NotZero )
-		return !is_na(x) && x != 0;
+	// Logic
+	else if constexpr ( Op == Not )
+		return is_na(x) ? coerce_cast<T>(x) : !x;
 	// NAs
 	if ( is_na(x) )
 		return na_value<T>();
@@ -434,19 +435,23 @@ constexpr auto mask(
 	assert(data.ssize() == mask.ssize());
 	if constexpr ( Masked<V> )
 	{
-		auto newdata = data.get_data();
-		auto newmask = ufunc<And>(data.get_mask(), mask);
-		static_assert(!Masked<decltype(newdata)>);
-		return vec_masked<decltype(newdata),decltype(newmask),T>{
-			.data = newdata,
+		auto _data = data.get_data();
+		auto _mask = data.get_mask();
+		auto newmask = ufunc<And>(_mask, mask);
+		return vec_masked<decltype(_data),decltype(newmask),T>
+		{
+			.data = _data,
 			.mask = newmask,
 		};
 	}
 	else
-		return vec_masked<V,Mask,T>{
+	{
+		return vec_masked<V,Mask,T>
+		{
 			.data = data,
 			.mask = mask
 		};
+	}
 }
 
 // Vector subscripted at the given indices
@@ -471,16 +476,36 @@ struct vec_indexed
 	}
 };
 
-// Gather vector elements and given indices
+// Gather vector elements at given indices
 template<Num T = double, Vec Index, Vec V>
 constexpr auto gather(
 	const Index index,
-	const V data) noexcept -> vec_indexed<V,Index,T>
+	const V data) noexcept
 {
-	return {
-		.data = data, 
-		.index = index,
-	};
+	if constexpr ( Masked<V> )
+	{
+		auto _data = data.get_data();
+		auto _mask = data.get_mask();
+		auto newdata = vec_indexed<decltype(_data),Index,T>
+		{
+			.data = _data,
+			.index = index,
+		};
+		auto newmask = vec_indexed<decltype(_mask),Index,T>
+		{
+			.data = _mask,
+			.index = index,
+		};
+		return mask<T>(newdata, newmask);
+	}
+	else
+	{
+		return vec_indexed<V,Index,T>
+		{
+			.data = data, 
+			.index = index,
+		};
+	}
 }
 
 // Vector with elementwise unary transformation
@@ -505,12 +530,26 @@ struct vec_unop
 template<Unop Op, Num T = double, Vec V, UnaryOp Tform = unop<Op,T>>
 constexpr auto transform(
 	const V data, 
-	const Tform op = Tform{}) noexcept -> vec_unop<V,Tform,T>
+	const Tform op = Tform{}) noexcept
 {
-	return {
-		.data = data, 
-		.op = op,
-	};
+	if constexpr ( Masked<V> )
+	{
+		auto _data = data.get_data();
+		auto newdata = vec_unop<decltype(_data),Tform,T>
+		{
+			.data = _data,
+			.op = op,
+		};
+		return mask<T>(newdata, data.get_mask());
+	}
+	else
+	{
+		return vec_unop<V,Tform,T>
+		{
+			.data = data, 
+			.op = op,
+		};
+	}
 }
 
 // Vector with elementwise binary transformation
@@ -537,14 +576,53 @@ template<Binop Op, Num T = double, Vec L, Vec R, BinaryOp Tform = binop<Op,T>>
 constexpr auto transform(
 	const L lhs, 
 	const R rhs,
-	const Tform op = Tform{}) noexcept -> vec_binop<L,R,Tform,T>
+	const Tform op = Tform{}) noexcept
 {
 	assert(lhs.ssize() == rhs.ssize());
-	return {
-		.lhs = lhs, 
-		.rhs = rhs, 
-		.op = op,
-	};
+	if constexpr ( Masked<L> && Masked<R> )
+	{
+		auto _lhs = lhs.get_data();
+		auto _rhs = lhs.get_data();
+		auto newdata = vec_binop<decltype(_lhs),decltype(_rhs),Tform,T>
+		{
+			.lhs = _lhs,
+			.rhs = _rhs,
+			.op = op,
+		};
+		auto newmask = ufunc<And>(lhs.get_mask(), rhs.get_mask());
+		return mask<T>(newdata, newmask);
+	}
+	else if constexpr ( Masked<L> )
+	{
+		auto _lhs = lhs.get_data();
+		auto newdata = vec_binop<decltype(_lhs),R,Tform,T>
+		{
+			.lhs = _lhs,
+			.rhs = rhs,
+			.op = op,
+		};
+		return mask<T>(newdata, lhs.get_mask());
+	}
+	else if constexpr ( Masked<R> )
+	{
+		auto _rhs = rhs.get_data();
+		auto newdata = vec_binop<L,decltype(_rhs),Tform,T>
+		{
+			.lhs = lhs,
+			.rhs = _rhs,
+			.op = op,
+		};
+		return mask<T>(newdata, rhs.get_mask());
+	}
+	else
+	{
+		return vec_binop<L,R,Tform,T>
+		{
+			.lhs = lhs, 
+			.rhs = rhs, 
+			.op = op,
+		};
+	}
 }
 
 // Reduce vector elements with binary functor
