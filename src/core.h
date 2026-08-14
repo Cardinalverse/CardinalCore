@@ -431,6 +431,98 @@ struct vec_masked
 	}
 };
 
+// Mask join
+template<Vec L, Vec R, Num T = bool>
+struct vec_valid
+{
+	L ml;
+	R mr;
+
+	ptrdiff_t ssize() const noexcept
+	{
+		return ml.ssize();
+	}
+
+	T operator[](ptrdiff_t i) const noexcept
+	{
+		if ( is_valid(ml, i) && is_valid(mr, i) )
+			return coerce_cast<bool>(ml) && coerce_cast<bool>(mr);
+		else
+			return false;
+	}
+};
+
+// Mask with ternary AND logic
+template<Vec L, Vec R, Num T = bool>
+struct vec_valid_and
+{
+	L lhs;
+	R rhs;
+
+	ptrdiff_t ssize() const noexcept
+	{
+		return lhs.ssize();
+	}
+
+	// Valid if both valid or if either is valid-FALSE
+	T operator[](ptrdiff_t i) const noexcept
+	{
+		bool vl = is_valid(lhs, i);
+		bool vr = is_valid(rhs, i);
+		return (vl && vr) || (vl && !lhs[i]) || (vr && !rhs[i]);
+	}
+};
+
+// Mask with ternary OR logic
+template<Vec L, Vec R, Num T = bool>
+struct vec_valid_or
+{
+	L lhs;
+	R rhs;
+
+	ptrdiff_t ssize() const noexcept
+	{
+		return lhs.ssize();
+	}
+
+	// Valid if both valid or if either is valid-TRUE
+	T operator[](ptrdiff_t i) const noexcept
+	{
+		bool vl = is_valid(lhs, i);
+		bool vr = is_valid(rhs, i);
+		return (vl && vr) || (vl && lhs[i]) || (vr && rhs[i]);
+	}
+};
+
+// Combine masks
+template<Binop Op, Vec L, Vec R>
+constexpr auto mask_join(const L lhs, const R rhs) noexcept
+{
+	if constexpr ( Op == And )
+		return vec_valid_and<L,R>{lhs, rhs};
+	else if constexpr ( Op == Or )
+		return vec_valid_or<L,R>{lhs, rhs};
+	else
+	{
+		if constexpr ( Masked<L> && Masked<R> )
+		{
+			auto ml = lhs.get_mask();
+			auto mr = rhs.get_mask();
+			return vec_valid<decltype(ml),decltype(mr)>
+			{
+				.ml = ml,
+				.mr = mr,
+			};
+		}
+		else if constexpr ( Masked<L> )
+			return lhs.get_mask();
+		else if constexpr ( Masked<R> )
+			return rhs.get_mask();
+		else
+			static_assert(Op != Op, "at least one operand must be masked");
+	}
+}
+
 // Mask a vector
 template<Num T = double, Vec V, Vec Mask>
 constexpr auto mask(
@@ -442,7 +534,7 @@ constexpr auto mask(
 	{
 		auto _data = data.get_data();
 		auto _mask = data.get_mask();
-		auto newmask = ufunc<And>(_mask, mask);
+		auto newmask = vec_valid<Mask,decltype(_mask)>{mask, _mask};
 		return vec_masked<decltype(_data),decltype(newmask),T>
 		{
 			.data = _data,
@@ -466,90 +558,6 @@ constexpr auto mask(const V data) noexcept
 	return mask(data, ufunc<NotNA>(data));
 }
 
-// Vector mask join
-template<Vec L, Vec R, Num T = bool>
-struct vec_mask_and
-{
-	L lhs;
-	R rhs;
-
-	ptrdiff_t ssize() const noexcept
-	{
-		return lhs.ssize();
-	}
-
-	constexpr T operator[](ptrdiff_t i)
-	{
-		if ( is_valid(lhs, i) && is_valid(rhs, i) )
-			return coerce_cast<bool>(lhs) && coerce_cast<bool>(rhs);
-		else
-			return false;
-	}
-};
-
-// Vector mask with ternary AND logic
-template<Vec L, Vec R, Num T = bool>
-struct vec_valid_and
-{
-	L lhs;
-	R rhs;
-
-	ptrdiff_t ssize() const noexcept
-	{
-		return lhs.ssize();
-	}
-
-	// Valid if both valid or if either is valid-FALSE
-	constexpr T operator[](ptrdiff_t i)
-	{
-		bool vl = is_valid(lhs, i);
-		bool vr = is_valid(rhs, i);
-		return (vl && vr) || (vl && !lhs[i]) || (vr && !rhs[i]);
-	}
-};
-
-// Vector mask with ternary OR logic
-template<Vec L, Vec R, Num T = bool>
-struct vec_valid_or
-{
-	L lhs;
-	R rhs;
-
-	ptrdiff_t ssize() const noexcept
-	{
-		return lhs.ssize();
-	}
-
-	// Valid if both valid or if either is valid-TRUE
-	constexpr T operator[](ptrdiff_t i)
-	{
-		bool vl = is_valid(lhs, i);
-		bool vr = is_valid(rhs, i);
-		return (vl && vr) || (vl && lhs[i]) || (vr && rhs[i]);
-	}
-};
-
-// Combine masks
-template<Binop Op, Vec L, Vec R>
-constexpr auto mask_join(const L lhs, const R rhs) noexcept
-{
-	if constexpr ( Op == And )
-		return vec_valid_and<L,R>{lhs, rhs};
-	else if constexpr ( Op == Or )
-		return vec_valid_or<L,R>{lhs, rhs};
-	else
-	{
-		if constexpr ( Masked<L> && Masked<R> )
-			return vec_mask_and<L,R>{lhs.get_mask(), rhs.get_mask()};
-		else if constexpr ( Masked<L> )
-			return lhs.get_mask();
-		else if constexpr ( Masked<R> )
-			return rhs.get_mask();
-		else
-			static_assert(Op != Op, "at least one operand must be masked");
-	}
-}
-
 // Vector subscripted at the given indices
 template<Vec V, Vec Index, Num T = double>
 struct vec_indexed
@@ -564,11 +572,10 @@ struct vec_indexed
 
 	T operator[](ptrdiff_t i) const noexcept
 	{
-		auto ii = index[i];
-		if ( is_na(ii) )
-			return na_value<T>();
+		if ( is_valid(index, i) )
+			return coerce_cast<T>(data[index[i]]);
 		else
-			return coerce_cast<T>(data[ii]);
+			return na_value<T>();
 	}
 };
 
@@ -678,14 +685,14 @@ constexpr auto transform(
 	if constexpr ( Masked<L> && Masked<R> )
 	{
 		auto _lhs = lhs.get_data();
-		auto _rhs = lhs.get_data();
+		auto _rhs = rhs.get_data();
 		auto newdata = vec_binop<decltype(_lhs),decltype(_rhs),Tform,T>
 		{
 			.lhs = _lhs,
 			.rhs = _rhs,
 			.op = op,
 		};
-		auto newmask = ufunc<And>(lhs.get_mask(), rhs.get_mask());
+		auto newmask = mask_join<Op>(lhs, rhs);
 		return mask<T>(newdata, newmask);
 	}
 	else if constexpr ( Masked<L> )
@@ -731,12 +738,8 @@ T reduce(
 	T accum = init;
 	for ( ptrdiff_t i = 0; i < data.ssize(); ++i )
 	{
-		if constexpr ( Masked<V> )
-		{
-			if ( !data.is_valid(i) )
-				continue;
-		}
-		accum = op(accum, coerce_cast<T>(data[i]));
+		if ( data.is_valid(i) )
+			accum = op(accum, coerce_cast<T>(data[i]));
 	}
 	return accum;
 }
