@@ -43,9 +43,9 @@ concept Masked = Vec<M> &&
 		{ m.get_mask() } -> Vec;
 	};
 
-// Check for validity based on mask
+// Check if a Vec element is valid
 template<Vec V>
-bool is_valid(V x, ptrdiff_t i) noexcept
+constexpr bool is_valid(V& x, ptrdiff_t i)
 {
 	if constexpr ( Masked<V> )
 		return x.is_valid(i);
@@ -128,24 +128,22 @@ struct num_traits<double> {
 };
 #endif // USING_R
 
-// Check for missingness based on mask or NA
-template<Vec V>
-bool is_missing(V x, ptrdiff_t i) noexcept
-{
-	return !is_valid(x, i) || is_na(x[i]);
-}
-
-// Count of invalid/NA items in x
+// Count of invalid/missing/NA items in x
 template<Vec V>
 ptrdiff_t n_missing(V x) noexcept
 {
 	ptrdiff_t count = 0;
 	for ( ptrdiff_t i = 0; i < x.ssize(); ++i )
-		count += is_missing(x, i);
+	{
+		if constexpr ( Masked<V> )
+			count += !x.is_valid(i) || is_na(x[i]);
+		else
+			count += is_na(x[i]);
+	}
 	return count;
 }
 
-// Count of valid/non-NA items in x
+// Count of valid/non-missing/non-NA items in x
 template<Vec V>
 ptrdiff_t n_present(V x) noexcept
 {
@@ -229,29 +227,32 @@ constexpr T ufunc(T x) noexcept
 	// Logic
 	else if constexpr ( Op == Not )
 		return is_na(x) ? coerce_cast<T>(x) : !x;
-	// NAs
-	if ( is_na(x) )
-		return na_value<T>();
-	// Math
-	else if constexpr ( Op == Abs )
-		return std::abs(x);
-	else if constexpr ( Op == Sign )
-		return x ? std::copysign(1, x) : 0;
-	else if constexpr ( Op == Log )
-		return std::log(x);
-	else if constexpr ( Op == Log2 )
-		return std::log2(x);
-	else if constexpr ( Op == Log1p )
-		return std::log1p(x);
-	else if constexpr ( Op == Exp )
-		return std::exp(x);
-	else if constexpr ( Op == Exp2)
-		return std::exp2(x);
-	else if constexpr ( Op == Expm1 )
-		return std::expm1(x);
-	// Not implemented
 	else
-		static_assert(Op != Op, "ufunc: unsupported unary op");
+	{
+		// NAs
+		if ( is_na(x) )
+			return na_value<T>();
+		// Math
+		else if constexpr ( Op == Abs )
+			return std::abs(x);
+		else if constexpr ( Op == Sign )
+			return x ? std::copysign(1, x) : 0;
+		else if constexpr ( Op == Log )
+			return std::log(x);
+		else if constexpr ( Op == Log2 )
+			return std::log2(x);
+		else if constexpr ( Op == Log1p )
+			return std::log1p(x);
+		else if constexpr ( Op == Exp )
+			return std::exp(x);
+		else if constexpr ( Op == Exp2)
+			return std::exp2(x);
+		else if constexpr ( Op == Expm1 )
+			return std::expm1(x);
+		// Not implemented
+		else
+			static_assert(Op != Op, "ufunc: unsupported unary op");
+	}
 }
 
 template<Unop Op, Num T = double, Vec V>
@@ -294,58 +295,62 @@ constexpr T ufunc(T lhs, T rhs) noexcept
 	// Logic
 	else if constexpr ( Op == And )
 	{
-		if ( !is_na(lhs) && !is_na(rhs) )
-			return lhs && rhs;
-		else if ( is_na(lhs) && is_na(rhs) )
+		if ( is_na(lhs) && is_na(rhs) )
 			return na_value<T>();
 		else if ( is_na(lhs) )
 			return rhs ? na_value<T>() : false;
 		else if ( is_na(rhs) )
 			return lhs ? na_value<T>() : false;
+		else
+			return lhs && rhs;
 	}
 	else if constexpr ( Op == Or )
 	{
-		if ( !is_na(lhs) && !is_na(rhs) )
-			return lhs || rhs;
-		else if ( is_na(lhs) && is_na(rhs) )
+		if ( is_na(lhs) && is_na(rhs) )
 			return na_value<T>();
 		else if ( is_na(lhs) )
 			return rhs ? true : na_value<T>();
 		else if ( is_na(rhs) )
 			return lhs ? true : na_value<T>();
+		else
+			return lhs || rhs;
 	}
-	// NAs
-	if ( is_na(lhs) || is_na(rhs) )
-		return na_value<T>();
-	// Compare
-	else if constexpr ( Op == Eq )
-		return lhs == rhs;
-	else if constexpr ( Op == Ne )
-		return lhs != rhs;
-	else if constexpr ( Op == Lt )
-		return lhs < rhs;
-	else if constexpr ( Op == Le )
-		return lhs <= rhs;
-	else if constexpr ( Op == Gt )
-		return lhs > rhs;
-	else if constexpr ( Op == Ge )
-		return lhs >= rhs;
-	// Arithmetic
-	else if constexpr ( Op == Add )
-		return lhs + rhs;
-	else if constexpr ( Op == Sub )
-		return lhs - rhs;
-	else if constexpr ( Op == Mul )
-		return lhs * rhs;
-	else if constexpr ( Op == Div )
-		return lhs / rhs;
-	else if constexpr ( Op == Max )
-		return lhs > rhs ? lhs : rhs;
-	else if constexpr ( Op == Min )
-		return lhs < rhs ? lhs : rhs;
-	// Not implemented
 	else
-		static_assert(Op != Op, "ufunc: unsupported binary op");
+	{
+		// NAs
+		// if ( is_na(lhs) || is_na(rhs) )
+		// 	return na_value<T>();
+		// Compare
+		// else if constexpr ( Op == Eq )
+		if constexpr ( Op == Eq )
+			return lhs == rhs;
+		else if constexpr ( Op == Ne )
+			return lhs != rhs;
+		else if constexpr ( Op == Lt )
+			return lhs < rhs;
+		else if constexpr ( Op == Le )
+			return lhs <= rhs;
+		else if constexpr ( Op == Gt )
+			return lhs > rhs;
+		else if constexpr ( Op == Ge )
+			return lhs >= rhs;
+		// Arithmetic
+		else if constexpr ( Op == Add )
+			return lhs + rhs;
+		else if constexpr ( Op == Sub )
+			return lhs - rhs;
+		else if constexpr ( Op == Mul )
+			return lhs * rhs;
+		else if constexpr ( Op == Div )
+			return lhs / rhs;
+		else if constexpr ( Op == Max )
+			return lhs > rhs ? lhs : rhs;
+		else if constexpr ( Op == Min )
+			return lhs < rhs ? lhs : rhs;
+		// Not implemented
+		else
+			static_assert(Op != Op, "ufunc: unsupported binary op");
+	}
 }
 
 template<Binop Op, Num T = double, Vec L, Vec R>
@@ -449,8 +454,99 @@ constexpr auto mask(
 		return vec_masked<V,Mask,T>
 		{
 			.data = data,
-			.mask = mask
+			.mask = mask,
 		};
+	}
+}
+
+// Mask a vector to exclude NAs
+template<Num T = double, Vec V>
+constexpr auto mask(const V data) noexcept
+{
+	return mask(data, ufunc<NotNA>(data));
+}
+
+// Vector mask join
+template<Vec L, Vec R, Num T = bool>
+struct vec_mask_and
+{
+	L lhs;
+	R rhs;
+
+	ptrdiff_t ssize() const noexcept
+	{
+		return lhs.ssize();
+	}
+
+	constexpr T operator[](ptrdiff_t i)
+	{
+		if ( is_valid(lhs, i) && is_valid(rhs, i) )
+			return coerce_cast<bool>(lhs) && coerce_cast<bool>(rhs);
+		else
+			return false;
+	}
+};
+
+// Vector mask with ternary AND logic
+template<Vec L, Vec R, Num T = bool>
+struct vec_valid_and
+{
+	L lhs;
+	R rhs;
+
+	ptrdiff_t ssize() const noexcept
+	{
+		return lhs.ssize();
+	}
+
+	// Valid if both valid or if either is valid-FALSE
+	constexpr T operator[](ptrdiff_t i)
+	{
+		bool vl = is_valid(lhs, i);
+		bool vr = is_valid(rhs, i);
+		return (vl && vr) || (vl && !lhs[i]) || (vr && !rhs[i]);
+	}
+};
+
+// Vector mask with ternary OR logic
+template<Vec L, Vec R, Num T = bool>
+struct vec_valid_or
+{
+	L lhs;
+	R rhs;
+
+	ptrdiff_t ssize() const noexcept
+	{
+		return lhs.ssize();
+	}
+
+	// Valid if both valid or if either is valid-TRUE
+	constexpr T operator[](ptrdiff_t i)
+	{
+		bool vl = is_valid(lhs, i);
+		bool vr = is_valid(rhs, i);
+		return (vl && vr) || (vl && lhs[i]) || (vr && rhs[i]);
+	}
+};
+
+// Combine masks
+template<Binop Op, Vec L, Vec R>
+constexpr auto mask_join(const L lhs, const R rhs) noexcept
+{
+	if constexpr ( Op == And )
+		return vec_valid_and<L,R>{lhs, rhs};
+	else if constexpr ( Op == Or )
+		return vec_valid_or<L,R>{lhs, rhs};
+	else
+	{
+		if constexpr ( Masked<L> && Masked<R> )
+			return vec_mask_and<L,R>{lhs.get_mask(), rhs.get_mask()};
+		else if constexpr ( Masked<L> )
+			return lhs.get_mask();
+		else if constexpr ( Masked<R> )
+			return rhs.get_mask();
+		else
+			static_assert(Op != Op, "at least one operand must be masked");
 	}
 }
 
@@ -634,7 +730,14 @@ T reduce(
 {
 	T accum = init;
 	for ( ptrdiff_t i = 0; i < data.ssize(); ++i )
+	{
+		if constexpr ( Masked<V> )
+		{
+			if ( !data.is_valid(i) )
+				continue;
+		}
 		accum = op(accum, coerce_cast<T>(data[i]));
+	}
 	return accum;
 }
 
@@ -774,7 +877,14 @@ struct vec
 	{
 		assert(src.ssize() == len);
 		for ( ptrdiff_t i = 0; i < len; ++i )
+		{
+			if constexpr ( Masked<V> )
+			{
+				if ( !src.is_valid(i) )
+					continue;
+			}
 			(*this)[i] = coerce_cast<T>(src[i]);
+		}
 		return (*this);
 	}
 
@@ -794,7 +904,14 @@ struct vec
 	{
 		assert(src.ssize() == len);
 		for ( ptrdiff_t i = 0; i < len; ++i )
+		{
+			if constexpr ( Masked<V> )
+			{
+				if ( !src.is_valid(i) )
+					continue;
+			}
 			(*this)[i] = op((*this)[i], coerce_cast<T>(src[i]));
+		}
 		return (*this);
 	}
 
@@ -811,6 +928,11 @@ struct vec
 				(*this)[i] = na_value<T>;
 				continue;
 			}
+			if constexpr ( Masked<V> )
+			{
+				if ( !src.is_valid(ii) )
+					continue;
+			}
 			(*this)[i] = ufunc<Op,T>((*this)[i], coerce_cast<T>(src[ii]));
 		}
 		return (*this);
@@ -826,6 +948,11 @@ struct vec
 			auto ii = index[i];
 			if ( is_na(ii) )
 				continue;
+			if constexpr ( Masked<V> )
+			{
+				if ( !src.is_valid(i) )
+					continue;
+			}
 			(*this)[ii] = ufunc<Op,T>((*this)[ii], coerce_cast<T>(src[i]));
 		}
 		return (*this);
