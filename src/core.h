@@ -821,41 +821,44 @@ struct vec
 		assert(src.ssize() == len);
 		for ( ptrdiff_t i = 0; i < len; ++i )
 		{
-			if constexpr ( Masked<V> )
-			{
-				if ( !src.is_valid(i) )
-					continue;
-			}
-			(*this)[i] = coerce_cast<T>(src[i]);
+			if ( is_valid(src, i) )
+				(*this)[i] = coerce_cast<T>(src[i]);
 		}
 		return (*this);
 	}
 
 	// Elementwise in-place unary transformations
-	template<Unop Op, UnaryOp Tform = unop<Op,T>>
-	vec<T>& transform(
-		const Tform op = Tform{}) noexcept
+	template<UnaryOp Tform>
+	vec<T>& transform(const Tform op) noexcept
 	{
 		for ( ptrdiff_t i = 0; i < len; ++i )
 			(*this)[i] = op((*this)[i]);
 		return (*this);
 	}
 
+	// Elementwise in-place unop
+	template<Unop Op>
+	vec<T>& transform() noexcept {
+		return transform(unop<Op,T>{});
+	}
+
 	// Elementwise in-place binary transformations
-	template<Binop Op, Vec V, BinaryOp Tform = binop<Op,T>>
-	vec<T>& transform(const V src, const Tform op = Tform{}) noexcept
+	template<Vec V, BinaryOp Tform>
+	vec<T>& transform(const V src, const Tform op) noexcept
 	{
 		assert(src.ssize() == len);
 		for ( ptrdiff_t i = 0; i < len; ++i )
 		{
-			if constexpr ( Masked<V> )
-			{
-				if ( !src.is_valid(i) )
-					continue;
-			}
-			(*this)[i] = op((*this)[i], coerce_cast<T>(src[i]));
+			if ( is_valid(src, i) )
+				(*this)[i] = op((*this)[i], coerce_cast<T>(src[i]));
 		}
 		return (*this);
+	}
+
+	// Elementwise in-place binop
+	template<Binop Op, Vec V>
+	vec<T>& transform(const V src) noexcept {
+		return transform(src, binop<Op,T>{});
 	}
 
 	// Assign (*this)[i] = src[index[i]] for i in index
@@ -865,18 +868,11 @@ struct vec
 		assert(index.ssize() == len);
 		for ( ptrdiff_t i = 0; i < len; ++i )
 		{
-			auto ii = index[i];
-			if ( is_na(ii) )
-			{
-				(*this)[i] = na_value<T>;
+			if ( !is_valid(index, i) )
 				continue;
-			}
-			if constexpr ( Masked<V> )
-			{
-				if ( !src.is_valid(ii) )
-					continue;
-			}
-			(*this)[i] = ufunc<Op,T>((*this)[i], coerce_cast<T>(src[ii]));
+			auto ii = index[i];
+			if ( is_valid(src, ii) )
+				(*this)[i] = ufunc<Op,T>((*this)[i], coerce_cast<T>(src[ii]));
 		}
 		return (*this);
 	}
@@ -888,15 +884,11 @@ struct vec
 		assert(index.ssize() == src.ssize());
 		for ( ptrdiff_t i = 0; i < src.ssize(); ++i )
 		{
-			auto ii = index[i];
-			if ( is_na(ii) )
+			if ( !is_valid(index, i) )
 				continue;
-			if constexpr ( Masked<V> )
-			{
-				if ( !src.is_valid(i) )
-					continue;
-			}
-			(*this)[ii] = ufunc<Op,T>((*this)[ii], coerce_cast<T>(src[i]));
+			auto ii = index[i];
+			if ( is_valid(src, ii) )
+				(*this)[ii] = ufunc<Op,T>((*this)[ii], coerce_cast<T>(src[i]));
 		}
 		return (*this);
 	}
