@@ -178,10 +178,10 @@ struct col_sums
 	{
 		if ( x.row_stride > x.col_stride )
 			for ( ptrdiff_t i = 0; i < x.nrows; ++i )
-				sums += mask(x.row(i));
+				sums += na_rm(x.row(i));
 		else
 			for ( ptrdiff_t j = 0; j < x.ncols; ++j )
-				sums[j] = reduce<Add>(mask(x.col(j)));
+				sums[j] = reduce<Add>(na_rm(x.col(j)));
 	}
 
 	void operator()(bounds b)
@@ -196,9 +196,8 @@ struct col_sums
 template<typename T>
 void test_expression(vec<T> result, const vec<T> x, const vec<int> index)
 {
-	auto _x = mask(x);
-	result.assign(gather(index, transform<Log1p>(_x + _x)));
-	// result.assign(gather(index, transform<Log1p>(x + x)));
+	auto _x = na_rm(x);
+	result.assign(gather(index, ufunc<Log1p>(_x + _x)));
 }
 
 #endif // CARDINAL_CORE_KERNELS
