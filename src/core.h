@@ -370,37 +370,19 @@ struct binop
 //---------------------
 // Generic operations on vectors
 
-// Vector subscripted at the given indices
-template<Vec V, Vec Index, Num T = double>
-struct vec_indexed
-{
-	V data;
-	Index index;
-
-	ptrdiff_t ssize() const noexcept { return index.ssize(); }
-
-	T operator[](ptrdiff_t i) const noexcept
-	{
-		if ( is_valid(index, i) )
-			return coerce_cast<T>(data[index[i]]);
-		else
-			return na_value<T>();
-	}
-};
-
 // Vector with elementwise unary transformation
 template<Vec V, UnaryOp Tform, Num T = double>
 struct vec_unop
 {
-	V data;
+	V x;
 	Tform op;
 
-	ptrdiff_t ssize() const noexcept { return data.ssize(); }
+	ptrdiff_t ssize() const noexcept { return x.ssize(); }
 
 	T operator[](ptrdiff_t i) const noexcept
 	{
-		if ( is_valid(data, i) )
-			return coerce_cast<T>(op(data[i]));
+		if ( is_valid(x, i) )
+			return coerce_cast<T>(op(x[i]));
 		else
 			return na_value<T>();
 	}
@@ -420,6 +402,24 @@ struct vec_binop
 	{
 		if ( is_valid(lhs, i) && is_valid(rhs, i) )
 			return coerce_cast<T>(op(lhs[i], rhs[i]));
+		else
+			return na_value<T>();
+	}
+};
+
+// Vector subscripted at the given indices
+template<Vec V, Vec Index, Num T = double>
+struct vec_indexed
+{
+	V data;
+	Index index;
+
+	ptrdiff_t ssize() const noexcept { return index.ssize(); }
+
+	T operator[](ptrdiff_t i) const noexcept
+	{
+		if ( is_valid(index, i) )
+			return coerce_cast<T>(data[index[i]]);
 		else
 			return na_value<T>();
 	}
@@ -565,9 +565,9 @@ constexpr Vec auto unmask(const V data) noexcept
 		return data;
 }
 
-//// Vector operators
+//// Vector operations
 //--------------------
-// Universal functions and operators
+// Gather, transform, and reduce
 
 // Gather vector elements at given indices
 template<Num T = double, Vec Index, Vec V>
@@ -601,23 +601,23 @@ constexpr Vec auto gather(const Index index, const V data) noexcept
 
 // Transform with elementwise unary functor
 template<Num T = double, Vec V, UnaryOp Tform>
-constexpr Vec auto transform(const V data, const Tform op) noexcept
+constexpr Vec auto transform(const V x, const Tform op) noexcept
 {
 	if constexpr ( Masked<V> )
 	{
-		auto _data = data.get_data();
-		auto newdata = vec_unop<decltype(_data),Tform,T>
+		auto _x = x.get_data();
+		auto out = vec_unop<decltype(_x),Tform,T>
 		{
-			.data = _data,
+			.x = _x,
 			.op = op,
 		};
-		return mask<T>(newdata, data.get_mask());
+		return mask<T>(out, x.get_mask());
 	}
 	else
 	{
 		return vec_unop<V,Tform,T>
 		{
-			.data = data, 
+			.x = x, 
 			.op = op,
 		};
 	}
@@ -625,27 +625,26 @@ constexpr Vec auto transform(const V data, const Tform op) noexcept
 
 // Transform with elementwise unop
 template<Unop Op, Num T = double, Vec V>
-constexpr Vec auto transform(const V data) noexcept
-{
-	return transform<T>(data, unop<Op,T>{});
+constexpr Vec auto transform(const V x) noexcept {
+	return transform<T>(x, unop<Op,T>{});
 }
 
 // Transform with elementwise binary functor
 template<Num T = double, Vec L, Vec R, BinaryOp Tform>
-constexpr auto transform(const L lhs, const R rhs, const Tform op) noexcept
+constexpr Vec auto transform(const L lhs, const R rhs, const Tform op) noexcept
 {
 	assert(lhs.ssize() == rhs.ssize());
 	if constexpr ( Masked<L> || Masked<R> )
 	{
 		auto _lhs = unmask(lhs);
 		auto _rhs = unmask(rhs);
-		auto newdata = vec_binop<decltype(_lhs),decltype(_rhs),Tform,T>
+		auto out = vec_binop<decltype(_lhs),decltype(_rhs),Tform,T>
 		{
 			.lhs = _lhs,
 			.rhs = _rhs,
 			.op = op,
 		};
-		return mask<T>(newdata, join_masks_of(lhs, rhs));
+		return mask<T>(out, join_masks_of(lhs, rhs));
 	}
 	else
 	{
@@ -670,24 +669,28 @@ constexpr Vec auto transform(const L lhs, const R rhs) noexcept
 		return transform(lhs, rhs, binop<Op,T>{});
 }
 
-// Reduce vector elements with binary functor
+// Reduce vector to a scalar with a binary functor
 template<Num T = double, Vec V, BinaryOp Reduce>
-T reduce(const V data, const Reduce op, const T init) noexcept
+T reduce(const V x, const Reduce op, const T init) noexcept
 {
 	T accum = init;
-	for ( ptrdiff_t i = 0; i < data.ssize(); ++i )
+	for ( ptrdiff_t i = 0; i < x.ssize(); ++i )
 	{
-		if ( is_valid(data, i) )
-			accum = op(accum, coerce_cast<T>(data[i]));
+		if ( is_valid(x, i) )
+			accum = op(accum, coerce_cast<T>(x[i]));
 	}
 	return accum;
 }
 
+// Reduce vector to a scalar with a binop
 template<Binop Op, Num T = double, Vec V>
-T reduce(const V data) noexcept
-{
-	return reduce<T>(data, binop<Op,T>{}, binop<Op,T>::identity());
+T reduce(const V x) noexcept {
+	return reduce<T>(x, binop<Op,T>{}, binop<Op,T>::identity());
 }
+
+//// Vector operators
+//--------------------
+// Universal functions
 
 // Universal unary ops for Vecs
 template<Unop Op, Num T = double, Vec V>
@@ -704,32 +707,31 @@ constexpr Vec auto ufunc(L lhs, R rhs) noexcept {
 // Vec + Vec
 template<Vec L, Vec R>
 constexpr Vec auto operator+(L lhs, R rhs) noexcept {
-	return transform<Add>(lhs, rhs);
+	return ufunc<Add>(lhs, rhs);
 }
 
 // Vec - Vec
 template<Vec L, Vec R>
 constexpr Vec auto operator-(L lhs, R rhs) noexcept {
-	return transform<Sub>(lhs, rhs);
+	return ufunc<Sub>(lhs, rhs);
 }
 
 // Vec * Vec
 template<Vec L, Vec R>
 constexpr Vec auto operator*(L lhs, R rhs) noexcept {
-	return transform<Mul>(lhs, rhs);
+	return ufunc<Mul>(lhs, rhs);
 }
 
 // Vec / Vec
 template<Vec L, Vec R>
 constexpr Vec auto operator/(L lhs, R rhs) noexcept {
-	return transform<Div>(lhs, rhs);
+	return ufunc<Div>(lhs, rhs);
 }
 
 // Mask a vector to exclude NAs (and NaNs)
 template<Num T = double, Vec V>
-constexpr Vec auto na_rm(const V data) noexcept
-{
-	return mask<T>(data, transform<bool>(data, unop<NotNA,typeof_vec<V>>{}));
+constexpr Vec auto na_rm(const V x) noexcept {
+	return mask<T>(x, transform<bool>(x, unop<NotNA,typeof_vec<V>>{}));
 }
 
 //// Vectors
@@ -785,18 +787,17 @@ struct vec
 
 	T& operator[](const ptrdiff_t i) noexcept
 	{
-		assert(!is_null());
 		assert(0 <= i && i < len);
 		return ptr[stride * i];
 	}
 
 	const T& operator[](const ptrdiff_t i) const noexcept
 	{
-		assert(!is_null());
 		assert(0 <= i && i < len);
 		return ptr[stride * i];
 	}
 
+	// Compare elements at i and j
 	T compare(const ptrdiff_t i, const ptrdiff_t j) const noexcept
 	{
 		T lhs = (*this)[i];
@@ -807,6 +808,7 @@ struct vec
 			return is_na(lhs) - is_na(rhs);
 	}
 
+	// Swap items at i and j
 	void swap(const ptrdiff_t i, const ptrdiff_t j) noexcept
 	{
 		T xi = (*this)[i];
@@ -814,13 +816,13 @@ struct vec
 		(*this)[j] = xi;
 	}
 
-	vec<T>& fill(const T value) noexcept
-	{
+	// Fill with constant value
+	vec<T>& fill(const T value) noexcept {
 		return this->assign(rep<T>{value, len});
 	}
 
-	vec<T>& seqfill(const T start, const T step = 1) noexcept
-	{
+	// Fill with sequential values
+	vec<T>& seqfill(const T start, const T step = 1) noexcept {
 		return this->assign(seq<T>{start, len, step});
 	}
 
@@ -905,29 +907,25 @@ struct vec
 
 	// vec<T> += Vec
 	template<Vec V>
-	vec<T>& operator+=(const V src) noexcept
-	{
+	vec<T>& operator+=(const V src) noexcept {
 		return this->transform<Add>(src);
 	}
 	
 	// vec<T> -= Vec
 	template<Vec V>
-	vec<T>& operator-=(const V src) noexcept
-	{
+	vec<T>& operator-=(const V src) noexcept {
 		return this->transform<Sub>(src);
 	}
 
 	// vec<T> *= Vec
 	template<Vec V>
-	vec<T>& operator*=(const V src) noexcept
-	{
+	vec<T>& operator*=(const V src) noexcept {
 		return this->transform<Mul>(src);
 	}
 
 	// vec<T> /= Vec
 	template<Vec V>
-	vec<T>& operator/=(const V src) noexcept
-	{
+	vec<T>& operator/=(const V src) noexcept {
 		return this->transform<Div>(src);
 	}
 
