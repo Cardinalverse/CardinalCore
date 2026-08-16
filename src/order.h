@@ -7,11 +7,44 @@
 
 #define SMALL_SORT_THRESHOLD 16
 
-//// Utility
-//-----------
-// Sort utilities
+//// Order
+//---------
+// Traits supporting ordering
 
-// Safe maximum recusion depth for a balanced binary tree
+// An Ord Vec can be re-ordered and sorted
+// - MUST have compare(i, j) -> 0 if o[i] == o[j]
+// - MUST have compare(i, j) < 0 if o[i] < o[j]
+// - MUST have compare(i, j) > 0 if o[i] < o[j]
+// - SHOULD treat incomparables as sorting last and equivalently
+template<class O>
+concept Ord = Vec<O> &&
+	requires(std::remove_cvref_t<O>& o, ptrdiff_t i, ptrdiff_t j)
+	{
+		{ o.compare(i, j) } -> Num;
+		{ o.swap(i, j) };
+	};
+
+// An Ord Vec that re-orders indices instead of values
+template<Vec V, Ord Index, Num T = double>
+struct vec_ordered : vec_indexed<V,Index,T>
+{
+	T compare(const ptrdiff_t i, const ptrdiff_t j) const noexcept
+	{
+		T lhs = (*this)[i];
+		T rhs = (*this)[j];
+		if ( !is_na(lhs) && !is_na(rhs) )
+			return lhs - rhs ? lhs - rhs : this->index[i] - this->index[j];
+		else
+			return is_na(lhs) - is_na(rhs);
+	}
+
+	void swap(const ptrdiff_t i, const ptrdiff_t j) noexcept
+	{
+		return this->index.swap(i, j);
+	}
+};
+
+// A safe recusion depth limit for a balanced binary tree
 template<Num T>
 size_t max_depth(T n) {
 	return 1 + std::bit_width(static_cast<size_t>(n));
@@ -46,38 +79,6 @@ double diff(
 		return static_cast<double>(x - ref);
 }
 
-// Tests x[index[i]] < x[index[j]]
-// - Ties broekn by index[i] < index[j]
-// - NAs sort last (NA >> Inf)
-template<Num Index, Vec V>
-bool less_at(
-	vec<Index> index,
-	V x,
-	ptrdiff_t i,
-	ptrdiff_t j) noexcept
-{
-	Index ii = index[i];
-	Index jj = index[j];
-	double dx = diff(x[ii], x[jj]);
-	return dx != 0 ? dx < 0 : ii < jj;
-}
-
-// Tests x[index[i]] > x[index[j]]
-// - Ties broekn by index[i] > index[j]
-// - NAs sort last (NA >> Inf)
-template<Num Index, Vec V>
-bool greater_at(
-	vec<Index> index,
-	V x,
-	ptrdiff_t i,
-	ptrdiff_t j) noexcept
-{
-	Index ii = index[i];
-	Index jj = index[j];
-	double dx = diff(x[ii], x[jj]);
-	return dx != 0 ? dx > 0 : ii > jj;
-}
-
 //// Quicksort and Quickselect
 //----------------------------
 // Sorting and selection routines
@@ -88,25 +89,21 @@ bool greater_at(
 // - Missing/incomparable values sort last/highest (NA >> Inf)
 // - The index MUST contain valid indices of x
 // - Returns the pivot
-template<Num Index, Vec V>
-ptrdiff_t partition_index(
-	vec<Index> index,
-	const V x,
-	const ptrdiff_t lo,
-	const ptrdiff_t hi) noexcept
+template<Ord V>
+ptrdiff_t partition(V v, const ptrdiff_t lo, const ptrdiff_t hi) noexcept
 {
 	// invariants
 	assert(lo <= hi);
-	assert(0 <= lo && lo < index.len);
-	assert(0 <= hi && hi < index.len);
+	assert(0 <= lo && lo < v.ssize());
+	assert(0 <= hi && hi < v.ssize());
 	// find pivot by median of 1st/mid/last
 	ptrdiff_t pivot = (lo + hi) / 2;
-	if ( less_at(index, x, pivot, lo) )
-		index.swap(pivot, lo);
-	if ( greater_at(index, x, pivot, hi) ) {
-		index.swap(pivot, hi);
-		if ( less_at(index, x, pivot, lo) )
-			index.swap(pivot, lo);
+	if ( v.compare(pivot, lo) < 0 )
+		v.swap(pivot, lo);
+	if ( v.compare(pivot, hi) > 0 ) {
+		v.swap(pivot, hi);
+		if ( v.compare(pivot, lo) < 0 )
+			v.swap(pivot, lo);
 	}
 	// lo and hi are now partitioned so skip them
 	ptrdiff_t i = lo + 1;
@@ -114,9 +111,9 @@ ptrdiff_t partition_index(
 	// use Hoare's partition method
 	do {
 		// find next item not less than pivot
-		while ( less_at(index, x, i, pivot) ) ++i;
+		while ( v.compare(i, pivot) < 0 ) ++i;
 		// find next item not greater than pivot
-		while ( greater_at(index, x, j, pivot) ) --j;
+		while ( v.compare(j, pivot) > 0 ) --j;
 		// swap items (only if pointers haven't crossed)
 		if ( i < j )
 		{
@@ -126,7 +123,7 @@ ptrdiff_t partition_index(
 			else if ( pivot == j )
 				pivot = i;
 			// swap index at i and j
-			index.swap(i, j);
+			v.swap(i, j);
 		}
 		else
 		{
@@ -151,16 +148,13 @@ ptrdiff_t partition_index(
 // - Sorts half-open interval [x[index[b.start]], x[index[b.stop]])
 // - Missing/incomparable values sort last/highest (NA >> Inf)
 // - The index MUST contain valid indices of x
-template<Num Index, Vec V>
-void qsort_index(
-	vec<Index> index,
-	const V x, 
-	const bounds b)
+template<Ord V>
+void qsort(V v, const bounds b)
 {
 	// invariants
 	assert(b.start <= b.stop);
-	assert(0 <= b.start && b.start < index.len);
-	assert(0 <= b.stop && b.stop <= index.len);
+	assert(0 <= b.start && b.start < v.ssize());
+	assert(0 <= b.stop && b.stop <= v.ssize());
 	// initialize stack
 	ptrdiff_t top = -1;
 	struct frame { ptrdiff_t lo, hi; };
@@ -171,22 +165,22 @@ void qsort_index(
 	{
 		// pop and partition current subarray
 		frame cur = stack[top--];
-		if ( cur.hi - cur.lo <= SMALL_SORT_THRESHOLD )
+		if ( cur.hi - cur.lo < SMALL_SORT_THRESHOLD )
 		{
 			// use insertion sort for small subarrays
 			for ( ptrdiff_t i = cur.lo + 1; i <= cur.hi; ++i )
 			{
 				ptrdiff_t j = i;
-				while ( j > cur.lo && less_at(index, x, j, j - 1) )
+				while ( j > cur.lo && v.compare(j, j - 1) < 0 )
 				{
-					index.swap(j, j - 1);
+					v.swap(j, j - 1);
 					--j;
 				}
 			}
 			// skip to next subarray
 			continue;
 		}
-		ptrdiff_t pivot = partition_index(index, x, cur.lo, cur.hi);
+		ptrdiff_t pivot = partition(v, cur.lo, cur.hi);
 		// push larger subarray then smaller subarray
 		if ( pivot - cur.lo < cur.hi - pivot )
 		{
@@ -207,38 +201,28 @@ void qsort_index(
 	}
 }
 
-template<Num Index, Vec V>
-void qsort_index(vec<Index> index, const V x)
-{
-	qsort_index(index, x, index.all_elements());
-}
-
 // Select k-th ranked index in array x
 // - Quickselect on half-open interval [x[index[b.start]], x[index[b.stop]])
 // - Missing/incomparable values sort last/highest (NA >> Inf)
 // - The index MUST contain valid indices of x
-template<Num Index, Vec V, Num Rank>
-auto qselect_index(
-	vec<Index> index,
-	const V x,
-	const Rank k,
-	const bounds b) noexcept
+template<Ord V, Num Rank>
+auto qselect(V v, const Rank k, const bounds b) noexcept
 {
 	// invariants
 	assert(b.start <= b.stop);
-	assert(0 <= b.start && b.start < index.len);
-	assert(0 <= b.stop && b.stop <= index.len);
-	assert(0 <= k && k < index.len);
+	assert(0 <= b.start && b.start < v.ssize());
+	assert(0 <= b.stop && b.stop <= v.ssize());
+	assert(0 <= k && k < v.ssize());
 	// recursively partition the array
 	ptrdiff_t lo = b.start;
 	ptrdiff_t hi = b.stop - 1;
 	do {
 		if ( lo == hi )
-			return x[index[lo]];
-		ptrdiff_t pivot = partition_index(index, x, lo, hi);
+			return v[lo];
+		ptrdiff_t pivot = partition(v, lo, hi);
 		// return k-th element or partition again
 		if ( k == pivot )
-			return x[index[k]];
+			return v[k];
 		else if ( k < pivot )
 			hi = pivot - 1;
 		else
@@ -247,13 +231,27 @@ auto qselect_index(
 	while (true);
 }
 
+template<Num Index, Vec V>
+void qsort_index(vec<Index> index, const V data, const bounds b)
+{
+	auto v = vec_ordered<V,vec<Index>>{data, index};
+	qsort(v, b);
+}
+
+template<Num Index, Vec V>
+void qsort_index(vec<Index> index, const V data)
+{
+	qsort_index(index, data, index.all_elements());
+}
+
 template<Num Index, Vec V, Num Rank>
 auto qselect_index(
 	vec<Index> index,
-	const V x,
+	const V data,
 	const Rank k) noexcept
 {
-	return qselect_index(index, x, k, index.all_elements());
+	auto v = vec_ordered<V,vec<Index>>{data, index};
+	return qselect(v, k, index.all_elements());
 }
 
 //// Median and MAD

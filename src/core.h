@@ -33,6 +33,7 @@ concept Vec =
 		{ v[i] } -> Num;
 	};
 
+// Get type of a Vec's elements
 template<class V>
 using typeof_vec = std::remove_cvref_t<decltype(
 	std::declval<const std::remove_cvref_t<V>&>()[std::declval<ptrdiff_t>()])>;
@@ -49,10 +50,10 @@ concept Masked = Vec<M> &&
 
 // Check if a Vec element is valid
 template<Vec V>
-constexpr bool is_valid(V& x, ptrdiff_t i)
+constexpr bool is_valid(V& v, ptrdiff_t i)
 {
 	if constexpr ( Masked<V> )
-		return x.is_valid(i);
+		return v.is_valid(i);
 	else
 		return true;
 }
@@ -239,7 +240,7 @@ constexpr T ufunc(T x) noexcept
 	else if constexpr ( Op == Abs )
 		return std::abs(x);
 	else if constexpr ( Op == Sign )
-		return x ? std::copysign(1, x) : 0;
+		return (x > 0) - (x < 0);
 	else if constexpr ( Op == Log )
 		return std::log(x);
 	else if constexpr ( Op == Log2 )
@@ -676,7 +677,7 @@ T reduce(const V data, const Reduce op, const T init) noexcept
 	T accum = init;
 	for ( ptrdiff_t i = 0; i < data.ssize(); ++i )
 	{
-		if ( data.is_valid(i) )
+		if ( is_valid(data, i) )
 			accum = op(accum, coerce_cast<T>(data[i]));
 	}
 	return accum;
@@ -796,12 +797,21 @@ struct vec
 		return ptr[stride * i];
 	}
 
-	vec<T>& swap(const ptrdiff_t i, const ptrdiff_t j) noexcept
+	T compare(const ptrdiff_t i, const ptrdiff_t j) const noexcept
+	{
+		T lhs = (*this)[i];
+		T rhs = (*this)[j];
+		if ( !is_na(lhs) && !is_na(rhs) )
+			return lhs - rhs;
+		else
+			return is_na(lhs) - is_na(rhs);
+	}
+
+	void swap(const ptrdiff_t i, const ptrdiff_t j) noexcept
 	{
 		T xi = (*this)[i];
 		(*this)[i] = (*this)[j];
 		(*this)[j] = xi;
-		return (*this);
 	}
 
 	vec<T>& fill(const T value) noexcept
