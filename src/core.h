@@ -790,12 +790,14 @@ struct vec
 
 	T& operator[](const ptrdiff_t i) noexcept
 	{
+		assert(ptr != nullptr);
 		assert(0 <= i && i < len);
 		return ptr[stride * i];
 	}
 
 	const T& operator[](const ptrdiff_t i) const noexcept
 	{
+		assert(ptr != nullptr);
 		assert(0 <= i && i < len);
 		return ptr[stride * i];
 	}
