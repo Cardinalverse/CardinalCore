@@ -274,7 +274,7 @@ enum Binop {
 	// Compare
 	Eq, Ne, Lt, Le, Gt, Ge,
 	// Arithmetic
-	Add, Sub, Mul, Div, Max, Min
+	Add, Sub, Mul, Div, Pow, Max, Min
 };
 
 template<Binop Op, Num T = double>
@@ -312,6 +312,8 @@ constexpr T ufunc(T lhs, T rhs) noexcept
 		return lhs * rhs;
 	else if constexpr ( Op == Div )
 		return lhs / rhs;
+	else if constexpr ( Op == Pow )
+		return std::pow(lhs, rhs);
 	else if constexpr ( Op == Max )
 		return lhs > rhs ? lhs : rhs;
 	else if constexpr ( Op == Min )
@@ -745,51 +747,117 @@ T reduce(const V x) noexcept {
 	return reduce<T>(x, binop<Op,T>{}, binop<Op,T>::identity());
 }
 
-//// Vector operators
+//// Vector unary ops
 //--------------------
-// Universal functions
+// Universal functions with one vector
 
+// Math
 template<Vec V>
 constexpr Vec auto abs(V x) noexcept {
 	return transform<Abs,typeof_vec<V>>(x);
 }
-
 template<Vec V>
 constexpr Vec auto sign(V x) noexcept {
 	return transform<Sign,typeof_vec<V>>(x);
 }
-
 template<Vec V>
 constexpr Vec auto log(V x) noexcept {
 	return transform<Log,typeof_vec<V>>(x);
 }
-
 template<Vec V>
 constexpr Vec auto log2(V x) noexcept {
 	return transform<Log2,typeof_vec<V>>(x);
 }
-
 template<Vec V>
 constexpr Vec auto log1p(V x) noexcept {
 	return transform<Log1p,typeof_vec<V>>(x);
 }
-
 template<Vec V>
 constexpr Vec auto exp(V x) noexcept {
 	return transform<Exp,typeof_vec<V>>(x);
 }
-
 template<Vec V>
 constexpr Vec auto exp2(V x) noexcept {
 	return transform<Exp2,typeof_vec<V>>(x);
 }
-
 template<Vec V>
 constexpr Vec auto expm1(V x) noexcept {
 	return transform<Expm1,typeof_vec<V>>(x);
 }
 
-// operator+
+// Summary
+template<Vec V>
+constexpr Num auto sum(V x) noexcept {
+	return reduce<Add,typeof_vec<V>>(x);
+}
+template<Vec V>
+constexpr Num auto prod(V x) noexcept {
+	return reduce<Mul,typeof_vec<V>>(x);
+}
+template<Vec V>
+constexpr Num auto all(V x) noexcept {
+	return reduce<And,typeof_vec<V>>(x);
+}
+template<Vec V>
+constexpr Num auto any(V x) noexcept {
+	return reduce<Or,typeof_vec<V>>(x);
+}
+template<Vec V>
+constexpr Num auto min(V x) noexcept {
+	return reduce<Min,typeof_vec<V>>(x);
+}
+template<Vec V>
+constexpr Num auto max(V x) noexcept {
+	return reduce<Max,typeof_vec<V>>(x);
+}
+
+//// Vector binary ops
+//---------------------
+// Universal functions with two vectors
+
+// Powers
+template<Vec L, Vec R>
+constexpr Vec auto pow(L lhs, R rhs) noexcept {
+	return transform<Pow,typeof_vec<L>>(lhs, rhs);
+}
+template<Vec L, Num R>
+constexpr Vec auto pow(L lhs, R rhs) noexcept {
+	return transform<Pow,typeof_vec<L>>(lhs, rhs);
+}
+template<Num L, Vec R>
+constexpr Vec auto pow(L lhs, R rhs) noexcept {
+	return transform<Pow,typeof_vec<R>>(lhs, rhs);
+}
+
+// Minima
+template<Vec L, Vec R>
+constexpr Vec auto pmin(L lhs, R rhs) noexcept {
+	return transform<Min,typeof_vec<L>>(lhs, rhs);
+}
+template<Vec L, Num R>
+constexpr Vec auto pmin(L lhs, R rhs) noexcept {
+	return transform<Min,typeof_vec<L>>(lhs, rhs);
+}
+template<Num L, Vec R>
+constexpr Vec auto pmin(L lhs, R rhs) noexcept {
+	return transform<Min,typeof_vec<R>>(lhs, rhs);
+}
+
+// Maxima
+template<Vec L, Vec R>
+constexpr Vec auto pmax(L lhs, R rhs) noexcept {
+	return transform<Max,typeof_vec<L>>(lhs, rhs);
+}
+template<Vec L, Num R>
+constexpr Vec auto pmax(L lhs, R rhs) noexcept {
+	return transform<Max,typeof_vec<L>>(lhs, rhs);
+}
+template<Num L, Vec R>
+constexpr Vec auto pmax(L lhs, R rhs) noexcept {
+	return transform<Max,typeof_vec<R>>(lhs, rhs);
+}
+
+// Operator+
 template<Vec L, Vec R>
 constexpr Vec auto operator+(L lhs, R rhs) noexcept {
 	return transform<Add,typeof_vec<L>>(lhs, rhs);
@@ -803,7 +871,7 @@ constexpr Vec auto operator+(L lhs, R rhs) noexcept {
 	return transform<Add,typeof_vec<L>>(lhs, rhs);
 }
 
-// operator-
+// Operator-
 template<Vec L, Vec R>
 constexpr Vec auto operator-(L lhs, R rhs) noexcept {
 	return transform<Sub,typeof_vec<L>>(lhs, rhs);
@@ -817,7 +885,7 @@ constexpr Vec auto operator-(L lhs, R rhs) noexcept {
 	return transform<Sub,typeof_vec<R>>(lhs, rhs);
 }
 
-// operator*
+// Operator*
 template<Vec L, Vec R>
 constexpr Vec auto operator*(L lhs, R rhs) noexcept {
 	return transform<Mul,typeof_vec<L>>(lhs, rhs);
@@ -831,7 +899,7 @@ constexpr Vec auto operator*(L lhs, R rhs) noexcept {
 	return transform<Mul,typeof_vec<R>>(lhs, rhs);
 }
 
-// operator/
+// Operator/
 template<Vec L, Vec R>
 constexpr Vec auto operator/(L lhs, R rhs) noexcept {
 	return transform<Div,typeof_vec<L>>(lhs, rhs);
@@ -845,7 +913,7 @@ constexpr Vec auto operator/(L lhs, R rhs) noexcept {
 	return transform<Div,typeof_vec<R>>(lhs, rhs);
 }
 
-// operator&
+// Operator&
 template<Vec L, Vec R>
 constexpr Vec auto operator&(L lhs, R rhs) noexcept {
 	return transform<And,typeof_vec<L>>(lhs, rhs);
@@ -859,7 +927,7 @@ constexpr Vec auto operator&(L lhs, R rhs) noexcept {
 	return transform<And,typeof_vec<R>>(lhs, rhs);
 }
 
-// operator|
+// Operator|
 template<Vec L, Vec R>
 constexpr Vec auto operator|(L lhs, R rhs) noexcept {
 	return transform<Or,typeof_vec<L>>(lhs, rhs);
@@ -886,8 +954,6 @@ struct vec
 	T * ptr;
 	ptrdiff_t len;
 	ptrdiff_t stride;
-
-	bounds all_elements() const noexcept { return {0, len}; }
 
 	ptrdiff_t ssize() const noexcept { return len; }
 
@@ -924,16 +990,6 @@ struct vec
 		(*this)[j] = xi;
 	}
 
-	// Fill with constant value
-	vec<T>& fill(const T value) noexcept {
-		return this->assign(rep<T>{value, len});
-	}
-
-	// Fill with sequential values
-	vec<T>& seqfill(const T start, const T step = 1) noexcept {
-		return this->assign(seq<T>{start, len, step});
-	}
-
 	// Elementwise assignment
 	template<Vec V>
 	vec<T>& assign(const V src) noexcept
@@ -945,6 +1001,21 @@ struct vec
 				(*this)[i] = coerce_cast<T>(src[i]);
 		}
 		return (*this);
+	}
+
+	// Fill with constant value
+	vec<T>& fill(const T value) noexcept {
+		return this->assign(rep<T>{value, len});
+	}
+
+	// Fill with NAs
+	vec<T>& fill_na() noexcept {
+		return this->assign(rep<T>{na_value<T>(), len});
+	}
+
+	// Fill with sequential values
+	vec<T>& fill_seq() noexcept {
+		return this->assign(seq<T>{0, len, 1});
 	}
 
 	// Elementwise in-place unary transformations
@@ -982,8 +1053,8 @@ struct vec
 	}
 
 	// Elementwise in-place binop with a scalar
-	template<Binop Op, Num V>
-	vec<T>& transform(const V src) noexcept {
+	template<Binop Op, Num N>
+	vec<T>& transform(const N src) noexcept {
 		auto _src = rep<T>{coerce_cast<T>(src), len};
 		return transform(_src, binop<Op,T>{});
 	}
@@ -1020,37 +1091,37 @@ struct vec
 		return (*this);
 	}
 
-	// operator+=
+	// Operator+=
 	template<class S>
 	vec<T>& operator+=(const S src) noexcept {
 		return this->transform<Add>(src);
 	}
 	
-	// operator-=
+	// Operator-=
 	template<class S>
 	vec<T>& operator-=(const S src) noexcept {
 		return this->transform<Sub>(src);
 	}
 
-	// operator*=
+	// Operator*=
 	template<class S>
 	vec<T>& operator*=(const S src) noexcept {
 		return this->transform<Mul>(src);
 	}
 
-	// operator/=
+	// Operator/=
 	template<class S>
 	vec<T>& operator/=(const S src) noexcept {
 		return this->transform<Div>(src);
 	}
 
-	// operator&=
+	// Operator&=
 	template<class S>
 	vec<T>& operator&=(const S src) noexcept {
 		return this->transform<And>(src);
 	}
 
-	// operator|=
+	// Operator|=
 	template<class S>
 	vec<T>& operator|=(const S src) noexcept {
 		return this->transform<Or>(src);
@@ -1130,10 +1201,6 @@ struct mat
 	ptrdiff_t ncols;
 	ptrdiff_t row_stride;
 	ptrdiff_t col_stride;
-
-	bounds all_rows() const noexcept { return {0, nrows}; }
-
-	bounds all_cols() const noexcept { return {0, ncols}; }
 
 	ptrdiff_t ssize() const noexcept { return nrows * ncols; }
 

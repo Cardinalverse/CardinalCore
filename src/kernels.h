@@ -181,7 +181,7 @@ struct col_sums
 				sums += mask(x.row(i));
 		else
 			for ( ptrdiff_t j = 0; j < x.ncols; ++j )
-				sums[j] = reduce<Add>(mask(x.col(j)));
+				sums[j] = sum(mask(x.col(j)));
 	}
 
 	void operator()(bounds b)
@@ -196,8 +196,7 @@ struct col_sums
 template<typename T>
 void test_expression(vec<T> result, const vec<T> x, const vec<int> index)
 {
-	auto _x = mask(x);
-	result.assign(gather(index, log1p(_x + _x)));
+	result.assign(gather(index, log1p(mask(x) + mask(x))));
 }
 
 #endif // CARDINAL_CORE_KERNELS

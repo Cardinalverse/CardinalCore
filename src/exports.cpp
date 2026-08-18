@@ -50,12 +50,12 @@ SEXP do_qorder(SEXP x)
 	{
 		case INTSXP:
 			qsort_index(
-				vec<int>::from(index).seqfill(0),
+				vec<int>::from(index).fill_seq(),
 				vec<int>::from(x));
 			break;
 		case REALSXP:
 			qsort_index(
-				vec<int>::from(index).seqfill(0),
+				vec<int>::from(index).fill_seq(),
 				vec<double>::from(x));
 			break;
 		default:
@@ -75,13 +75,13 @@ SEXP do_qselect(SEXP x, SEXP k)
 		{
 			case INTSXP:
 				INTEGER(order)[i] = qselect_index(
-					vec<int>::from(index).seqfill(0),
+					vec<int>::from(index).fill_seq(),
 					vec<int>::from(x),
 					INTEGER_ELT(k, i));
 				break;
 			case REALSXP:
 				REAL(order)[i] = qselect_index(
-					vec<int>::from(index).seqfill(0),
+					vec<int>::from(index).fill_seq(),
 					vec<double>::from(x),
 					INTEGER_ELT(k, i));
 				break;

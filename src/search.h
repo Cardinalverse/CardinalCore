@@ -140,9 +140,9 @@ struct kdtree
 			return root;
 		// initialize indices
 		local_vec<Index> index{data.nrows};
-		index.seqfill(0);
-		left.fill(na_value<Index>());
-		right.fill(na_value<Index>());
+		index.fill_seq();
+		left.fill_na();
+		right.fill_na();
 		// find root from median of first dim
 		vec<T> ref = data.col(0);
 		qsort_index(index.borrow(), ref);
@@ -291,7 +291,7 @@ struct kdtree
 		stack[++top] = { root, 0 };
 		// initialize hits
 		size_t count = 0;
-		hits.fill(na_value<Index>());
+		hits.fill_na();
 		// recursively search tree
 		while ( top >= 0 )
 		{
