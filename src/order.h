@@ -86,7 +86,6 @@ double diff(
 // Select a pivot and partition range [x[lo]], x[hi]]
 // - All x[i] left of pivot are <= pivot
 // - All x[i] right of pivot are >= pivot
-// - Missing/incomparable values sort last/highest (NA >> Inf)
 // - Returns the pivot
 template<Ord V>
 ptrdiff_t partition(V x, const ptrdiff_t lo, const ptrdiff_t hi) noexcept
@@ -143,9 +142,7 @@ ptrdiff_t partition(V x, const ptrdiff_t lo, const ptrdiff_t hi) noexcept
 	return pivot;
 }
 
-// Sort an vector x
-// - Sorts half-open interval [x[b.start]], x[b.stop])
-// - Missing/incomparable values sort last/highest (NA >> Inf)
+// Sort an vector x in [b.start, b.stop)
 template<Ord V>
 void qsort(V x, const bounds b)
 {
@@ -199,24 +196,28 @@ void qsort(V x, const bounds b)
 	}
 }
 
+// Sort a vector x
 template<Ord V>
-void qsort(V x) { 
+void qsort(V x)
+{ 
 	qsort(x, {0, x.ssize()});
 }
 
+// Sort indices of a vector x in [index[b.start], index[b.stop])
 template<Ord Index, Vec V>
-void qsort_index(Index index, const V x, const bounds b) {
+void qsort_index(Index index, const V x, const bounds b)
+{
 	qsort(vec_ordered<V,Index>{x, index}, b);
 }
 
+// Sort indices of a vector x
 template<Ord Index, Vec V>
-void qsort_index(Index index, const V x) {
+void qsort_index(Index index, const V x)
+{
 	qsort_index(index, x, {0, index.ssize()});
 }
 
-// Select k-th ranked element in vector x
-// - Quickselect on half-open interval [x[b.start], x[b.stop])
-// - Missing/incomparable values sort last/highest (NA >> Inf)
+// Select k-th ranked element in vector x in [b.start, b.stop)
 template<Ord V, Num Rank>
 auto qselect(V x, const Rank k, const bounds b) noexcept
 {
@@ -243,14 +244,25 @@ auto qselect(V x, const Rank k, const bounds b) noexcept
 	while (true);
 }
 
-template<Num Index, Vec V, Num Rank>
-auto qselect_index(
-	vec<Index> index,
-	const V data,
-	const Rank k) noexcept
+// Select k-th ranked element in vector x
+template<Ord V, Num Rank>
+auto qselect(V x, const Rank k) noexcept
 {
-	auto v = vec_ordered<V,vec<Index>>{data, index};
-	return qselect(v, k, index.all_elements());
+	return qselect(x, k, {0, x.ssize()});
+}
+
+// Select k-th ranked index of vector x in [index[b.start], index[b.stop])
+template<Ord Index, Vec V, Num Rank>
+auto qselect_index(Index index, const V x, const Rank k, const bounds b) noexcept
+{
+	return qselect(vec_ordered<V,Index>{x, index}, k, b);
+}
+
+// Select k-th ranked index of vector x
+template<Ord Index, Vec V, Num Rank>
+auto qselect_index(Index index, const V x, const Rank k) noexcept
+{
+	return qselect(vec_ordered<V,Index>{x, index}, k, {0, index.ssize()});
 }
 
 //// Median and MAD
