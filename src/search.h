@@ -145,7 +145,7 @@ struct kdtree
 		right.fill(na_value<Index>());
 		// find root from median of first dim
 		vec<T> ref = data.col(0);
-		qsort_index(index, ref);
+		qsort_index(index.borrow(), ref);
 		ptrdiff_t mid = data.nrows / 2;
 		// handle duplicates and update root
 		while ( mid > 0 && ref[index[mid - 1]] == ref[index[mid]] )
@@ -182,7 +182,7 @@ struct kdtree
 			ref = data.col(cur.depth % data.ncols);
 			// find median of current dim within current span
 			if ( data.ncols > 1 )
-				qsort_index(index, ref, {cur.start, cur.stop});
+				qsort_index(index.borrow(), ref, {cur.start, cur.stop});
 			mid = (cur.start + cur.stop) / 2;
 			while ( mid > 0 && ref[index[mid - 1]] == ref[index[mid]] )
 				--mid;

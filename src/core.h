@@ -530,7 +530,7 @@ constexpr Vec auto join_masks_of(const L lhs, const R rhs) noexcept
 }
 
 // Mask a Vec
-template<Num T = double, Vec V, Vec Mask>
+template<Vec V, Vec Mask>
 constexpr Vec auto mask(const V data, const Mask mask) noexcept
 {
 	assert(data.ssize() == mask.ssize());
@@ -539,7 +539,7 @@ constexpr Vec auto mask(const V data, const Mask mask) noexcept
 		auto _data = data.get_data();
 		auto _mask = data.get_mask();
 		auto newmask = join_masks(mask, _mask);
-		return vec_masked<decltype(_data),decltype(newmask),T>
+		return vec_masked<decltype(_data),decltype(newmask),typeof_vec<V>>
 		{
 			.data = _data,
 			.mask = newmask,
@@ -547,12 +547,21 @@ constexpr Vec auto mask(const V data, const Mask mask) noexcept
 	}
 	else
 	{
-		return vec_masked<V,Mask,T>
+		return vec_masked<V,Mask,typeof_vec<V>>
 		{
 			.data = data,
 			.mask = mask,
 		};
 	}
+}
+
+// Mask a vector to exclude NAs (and NaNs)
+template<Vec V>
+constexpr Vec auto mask(const V data) noexcept
+{
+	auto op = unop<NotNA,typeof_vec<V>>{};
+	auto _mask = vec_unop<V,decltype(op),bool>{data, op};
+	return mask(data, _mask);
 }
 
 // Unmask a Vec
@@ -587,7 +596,7 @@ constexpr Vec auto gather(const Index index, const V data) noexcept
 			.data = _mask,
 			.index = index,
 		};
-		return mask<T>(newdata, newmask);
+		return mask(newdata, newmask);
 	}
 	else
 	{
@@ -611,7 +620,7 @@ constexpr Vec auto transform(const V x, const Tform op) noexcept
 			.x = _x,
 			.op = op,
 		};
-		return mask<T>(out, x.get_mask());
+		return mask(out, x.get_mask());
 	}
 	else
 	{
@@ -644,7 +653,7 @@ constexpr Vec auto transform(const L lhs, const R rhs, const Tform op) noexcept
 			.rhs = _rhs,
 			.op = op,
 		};
-		return mask<T>(out, join_masks_of(lhs, rhs));
+		return mask(out, join_masks_of(lhs, rhs));
 	}
 	else
 	{
@@ -662,7 +671,7 @@ template<Binop Op, Num T = double, Vec L, Vec R>
 constexpr Vec auto transform(const L lhs, const R rhs) noexcept
 {
 	if constexpr ( Masked<L> || Masked<R> )
-		return mask<T>(
+		return mask(
 			transform(unmask(lhs), unmask(rhs), binop<Op,T>{}),
 			join_masks_of<Op>(lhs, rhs));
 	else
@@ -726,12 +735,6 @@ constexpr Vec auto operator*(L lhs, R rhs) noexcept {
 template<Vec L, Vec R>
 constexpr Vec auto operator/(L lhs, R rhs) noexcept {
 	return ufunc<Div>(lhs, rhs);
-}
-
-// Mask a vector to exclude NAs (and NaNs)
-template<Num T = double, Vec V>
-constexpr Vec auto na_rm(const V x) noexcept {
-	return mask<T>(x, transform<bool>(x, unop<NotNA,typeof_vec<V>>{}));
 }
 
 //// Vectors

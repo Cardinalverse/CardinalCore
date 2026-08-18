@@ -178,10 +178,10 @@ struct col_sums
 	{
 		if ( x.row_stride > x.col_stride )
 			for ( ptrdiff_t i = 0; i < x.nrows; ++i )
-				sums += na_rm(x.row(i));
+				sums += mask(x.row(i));
 		else
 			for ( ptrdiff_t j = 0; j < x.ncols; ++j )
-				sums[j] = reduce<Add>(na_rm(x.col(j)));
+				sums[j] = reduce<Add>(mask(x.col(j)));
 	}
 
 	void operator()(bounds b)
@@ -196,7 +196,7 @@ struct col_sums
 template<typename T>
 void test_expression(vec<T> result, const vec<T> x, const vec<int> index)
 {
-	auto _x = na_rm(x);
+	auto _x = mask(x);
 	result.assign(gather(index, ufunc<Log1p>(_x + _x)));
 }
 
