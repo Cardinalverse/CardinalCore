@@ -197,7 +197,7 @@ template<typename T>
 void test_expression(vec<T> result, const vec<T> x, const vec<int> index)
 {
 	auto _x = mask(x);
-	result.assign(gather(index, ufunc<Log1p>(_x + _x)));
+	result.assign(gather(index, log1p(_x + _x)));
 }
 
 #endif // CARDINAL_CORE_KERNELS

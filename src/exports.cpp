@@ -283,7 +283,7 @@ SEXP do_kdtree_range_search(
 				Rf_asInteger(num_threads));
 			break;
 	}
-	vec<int>::from(index) += rep{1, XLENGTH(index)};
+	vec<int>::from(index) += 1;
 	SEXP hits = PROTECT(Rf_allocVector(VECSXP, 3));
 	SEXP names = PROTECT(Rf_allocVector(STRSXP, 3));
 	SET_VECTOR_ELT(hits, 0, index);

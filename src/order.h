@@ -289,8 +289,7 @@ double qmad(const V x, double center, double constant = 1.4826)
 {
 	if ( x.ssize() == 0 )
 		return na_value<double>();
-	auto devs = ufunc<Abs>(x - rep{center, x.ssize()});
-	return constant * qmedian(devs);
+	return constant * qmedian(abs(x - center));
 }
 
 #endif // CARDINAL_CORE_ORDER

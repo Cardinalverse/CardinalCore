@@ -143,12 +143,7 @@ ptrdiff_t n_missing(V x) noexcept
 {
 	ptrdiff_t count = 0;
 	for ( ptrdiff_t i = 0; i < x.ssize(); ++i )
-	{
-		if constexpr ( Masked<V> )
-			count += !x.is_valid(i) || is_na(x[i]);
-		else
-			count += is_na(x[i]);
-	}
+		count += !is_valid(x, i) || is_na(x[i]);
 	return count;
 }
 
@@ -368,7 +363,7 @@ struct binop
 
 //// Vector expressions
 //---------------------
-// Generic operations on vectors
+// Lazy expressions on vectors
 
 // Vector with elementwise unary transformation
 template<Vec V, UnaryOp Tform, Num T = double>
@@ -574,8 +569,45 @@ constexpr Vec auto unmask(const V data) noexcept
 		return data;
 }
 
-//// Vector operations
-//--------------------
+//// Vectors generators
+//---------------------
+// Lazy repetitions and sequences
+
+// Generator vector repeating a constant
+template<Num T = double>
+struct rep
+{
+	T value;
+	ptrdiff_t len;
+
+	constexpr ptrdiff_t ssize() const noexcept { return len; }
+
+	constexpr T operator[](const ptrdiff_t i) const noexcept
+	{
+		assert(0 <= i && i < len);
+		return value;
+	}
+};
+
+// Generator vector yielding a sequence
+template<Num T = double>
+struct seq
+{
+	T start;
+	ptrdiff_t len;
+	T step = 1;
+
+	constexpr ptrdiff_t ssize() const noexcept { return len; }
+
+	constexpr T operator[](const ptrdiff_t i) const noexcept
+	{
+		assert(0 <= i && i < len);
+		return start + (i * step);
+	}
+};
+
+//// Vector transformations
+//-------------------------
 // Gather, transform, and reduce
 
 // Gather vector elements at given indices
@@ -678,6 +710,22 @@ constexpr Vec auto transform(const L lhs, const R rhs) noexcept
 		return transform(lhs, rhs, binop<Op,T>{});
 }
 
+// Transform with elementwise binop and scalar RHS
+template<Binop Op, Num T = double, Vec L, Num R>
+constexpr Vec auto transform(const L lhs, const R rhs) noexcept
+{
+	auto _rhs = rep<T>{coerce_cast<T>(rhs), lhs.ssize()};
+	return transform<Op,T>(lhs, _rhs);
+}
+
+// Transform with elementwise binop and scalar LHS
+template<Binop Op, Num T = double, Num L, Vec R>
+constexpr Vec auto transform(const L lhs, const R rhs) noexcept
+{
+	auto _lhs = rep<T>{coerce_cast<T>(lhs), rhs.ssize()};
+	return transform<Op,T>(_lhs, rhs);
+}
+
 // Reduce vector to a scalar with a binary functor
 template<Num T = double, Vec V, BinaryOp Reduce>
 T reduce(const V x, const Reduce op, const T init) noexcept
@@ -701,78 +749,133 @@ T reduce(const V x) noexcept {
 //--------------------
 // Universal functions
 
-// Universal unary ops for Vecs
-template<Unop Op, Num T = double, Vec V>
-constexpr Vec auto ufunc(V x) noexcept {
-	return transform<Op,T>(x);
+template<Vec V>
+constexpr Vec auto abs(V x) noexcept {
+	return transform<Abs,typeof_vec<V>>(x);
 }
 
-// Universal binary ops for Vecs
-template<Binop Op, Num T = double, Vec L, Vec R>
-constexpr Vec auto ufunc(L lhs, R rhs) noexcept {
-	return transform<Op,T>(lhs, rhs);
+template<Vec V>
+constexpr Vec auto sign(V x) noexcept {
+	return transform<Sign,typeof_vec<V>>(x);
 }
 
-// Vec + Vec
+template<Vec V>
+constexpr Vec auto log(V x) noexcept {
+	return transform<Log,typeof_vec<V>>(x);
+}
+
+template<Vec V>
+constexpr Vec auto log2(V x) noexcept {
+	return transform<Log2,typeof_vec<V>>(x);
+}
+
+template<Vec V>
+constexpr Vec auto log1p(V x) noexcept {
+	return transform<Log1p,typeof_vec<V>>(x);
+}
+
+template<Vec V>
+constexpr Vec auto exp(V x) noexcept {
+	return transform<Exp,typeof_vec<V>>(x);
+}
+
+template<Vec V>
+constexpr Vec auto exp2(V x) noexcept {
+	return transform<Exp2,typeof_vec<V>>(x);
+}
+
+template<Vec V>
+constexpr Vec auto expm1(V x) noexcept {
+	return transform<Expm1,typeof_vec<V>>(x);
+}
+
+// operator+
 template<Vec L, Vec R>
 constexpr Vec auto operator+(L lhs, R rhs) noexcept {
-	return ufunc<Add>(lhs, rhs);
+	return transform<Add,typeof_vec<L>>(lhs, rhs);
+}
+template<Vec L, Num R>
+constexpr Vec auto operator+(L lhs, R rhs) noexcept {
+	return transform<Add,typeof_vec<L>>(lhs, rhs);
+}
+template<Num L, Vec R>
+constexpr Vec auto operator+(L lhs, R rhs) noexcept {
+	return transform<Add,typeof_vec<L>>(lhs, rhs);
 }
 
-// Vec - Vec
+// operator-
 template<Vec L, Vec R>
 constexpr Vec auto operator-(L lhs, R rhs) noexcept {
-	return ufunc<Sub>(lhs, rhs);
+	return transform<Sub,typeof_vec<L>>(lhs, rhs);
+}
+template<Vec L, Num R>
+constexpr Vec auto operator-(L lhs, R rhs) noexcept {
+	return transform<Sub,typeof_vec<L>>(lhs, rhs);
+}
+template<Num L, Vec R>
+constexpr Vec auto operator-(L lhs, R rhs) noexcept {
+	return transform<Sub,typeof_vec<R>>(lhs, rhs);
 }
 
-// Vec * Vec
+// operator*
 template<Vec L, Vec R>
 constexpr Vec auto operator*(L lhs, R rhs) noexcept {
-	return ufunc<Mul>(lhs, rhs);
+	return transform<Mul,typeof_vec<L>>(lhs, rhs);
+}
+template<Vec L, Num R>
+constexpr Vec auto operator*(L lhs, R rhs) noexcept {
+	return transform<Mul,typeof_vec<L>>(lhs, rhs);
+}
+template<Num L, Vec R>
+constexpr Vec auto operator*(L lhs, R rhs) noexcept {
+	return transform<Mul,typeof_vec<R>>(lhs, rhs);
 }
 
-// Vec / Vec
+// operator/
 template<Vec L, Vec R>
 constexpr Vec auto operator/(L lhs, R rhs) noexcept {
-	return ufunc<Div>(lhs, rhs);
+	return transform<Div,typeof_vec<L>>(lhs, rhs);
+}
+template<Vec L, Num R>
+constexpr Vec auto operator/(L lhs, R rhs) noexcept {
+	return transform<Div,typeof_vec<L>>(lhs, rhs);
+}
+template<Num L, Vec R>
+constexpr Vec auto operator/(L lhs, R rhs) noexcept {
+	return transform<Div,typeof_vec<R>>(lhs, rhs);
+}
+
+// operator&
+template<Vec L, Vec R>
+constexpr Vec auto operator&(L lhs, R rhs) noexcept {
+	return transform<And,typeof_vec<L>>(lhs, rhs);
+}
+template<Vec L, Num R>
+constexpr Vec auto operator&(L lhs, R rhs) noexcept {
+	return transform<And,typeof_vec<L>>(lhs, rhs);
+}
+template<Num L, Vec R>
+constexpr Vec auto operator&(L lhs, R rhs) noexcept {
+	return transform<And,typeof_vec<R>>(lhs, rhs);
+}
+
+// operator|
+template<Vec L, Vec R>
+constexpr Vec auto operator|(L lhs, R rhs) noexcept {
+	return transform<Or,typeof_vec<L>>(lhs, rhs);
+}
+template<Vec L, Num R>
+constexpr Vec auto operator|(L lhs, R rhs) noexcept {
+	return transform<Or,typeof_vec<L>>(lhs, rhs);
+}
+template<Num L, Vec R>
+constexpr Vec auto operator|(L lhs, R rhs) noexcept {
+	return transform<Or,typeof_vec<R>>(lhs, rhs);
 }
 
 //// Vectors
 //-----------
 // 1D array operations
-
-// Generator vector repeating a constant
-template<Num T = double>
-struct rep
-{
-	T value;
-	ptrdiff_t len;
-
-	constexpr ptrdiff_t ssize() const noexcept { return len; }
-
-	constexpr T operator[](const ptrdiff_t i) const noexcept
-	{
-		assert(0 <= i && i < len);
-		return value;
-	}
-};
-
-// Generator vector yielding a sequence
-template<Num T = double>
-struct seq
-{
-	T start;
-	ptrdiff_t len;
-	T step = 1;
-
-	constexpr ptrdiff_t ssize() const noexcept { return len; }
-
-	constexpr T operator[](const ptrdiff_t i) const noexcept
-	{
-		assert(0 <= i && i < len);
-		return start + (i * step);
-	}
-};
 
 // A non-owning strided vector
 // - Owner is responsible for managing memory
@@ -878,6 +981,13 @@ struct vec
 		return transform(src, binop<Op,T>{});
 	}
 
+	// Elementwise in-place binop with a scalar
+	template<Binop Op, Num V>
+	vec<T>& transform(const V src) noexcept {
+		auto _src = rep<T>{coerce_cast<T>(src), len};
+		return transform(_src, binop<Op,T>{});
+	}
+
 	// Assign (*this)[i] = src[index[i]] for i in index
 	template<Binop Op = Rhs, Vec Index, Vec V>
 	vec<T>& gather(const Index index, const V src) noexcept
@@ -910,28 +1020,40 @@ struct vec
 		return (*this);
 	}
 
-	// vec<T> += Vec
-	template<Vec V>
-	vec<T>& operator+=(const V src) noexcept {
+	// operator+=
+	template<class S>
+	vec<T>& operator+=(const S src) noexcept {
 		return this->transform<Add>(src);
 	}
 	
-	// vec<T> -= Vec
-	template<Vec V>
-	vec<T>& operator-=(const V src) noexcept {
+	// operator-=
+	template<class S>
+	vec<T>& operator-=(const S src) noexcept {
 		return this->transform<Sub>(src);
 	}
 
-	// vec<T> *= Vec
-	template<Vec V>
-	vec<T>& operator*=(const V src) noexcept {
+	// operator*=
+	template<class S>
+	vec<T>& operator*=(const S src) noexcept {
 		return this->transform<Mul>(src);
 	}
 
-	// vec<T> /= Vec
-	template<Vec V>
-	vec<T>& operator/=(const V src) noexcept {
+	// operator/=
+	template<class S>
+	vec<T>& operator/=(const S src) noexcept {
 		return this->transform<Div>(src);
+	}
+
+	// operator&=
+	template<class S>
+	vec<T>& operator&=(const S src) noexcept {
+		return this->transform<And>(src);
+	}
+
+	// operator|=
+	template<class S>
+	vec<T>& operator|=(const S src) noexcept {
+		return this->transform<Or>(src);
 	}
 
 	// Return a sliced view from b.start to b.stop
