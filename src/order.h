@@ -50,35 +50,6 @@ size_t max_depth(T n) {
 	return 1 + std::bit_width(static_cast<size_t>(n));
 }
 
-//// Comparison
-//--------------
-// Comparisons handling NA/missing/incomparable
-
-// Compute signed absolute or relative difference
-// - Safe to use with incomparables (NAs and NaNs)
-// - Incomparables sort last/highest (NA >> Inf)
-// - Incomparables sort equal to each other (NA == NA)
-template<Num T>
-double diff(
-	const T x, 
-	const T ref, 
-	const bool relative = false) noexcept
-{
-	if constexpr ( HasNA<T> )
-	{
-		if ( is_na(x) && is_na(ref) )
-			return 0;         // NAs sort equivalently
-		else if ( is_na(x) )
-			return +INFINITY; // NAs sort last so (x - ref) => +Inf
-		else if ( is_na(ref) )
-			return -INFINITY; // NAs sort last so (x - ref) => -Inf
-	}
-	if ( relative )
-		return static_cast<double>(x - ref) / ref;
-	else
-		return static_cast<double>(x - ref);
-}
-
 //// Quicksort and Quickselect
 //----------------------------
 // Sorting and selection routines

@@ -24,12 +24,12 @@ SEXP do_qmad(
 //--------------------------------
 SEXP do_bsearch(
 	SEXP query,
-	SEXP ref,
+	SEXP table,
 	SEXP tolerance,
 	SEXP relative,
-	SEXP nearest,
+	SEXP ref_side,
 	SEXP nomatch);
-SEXP do_kdtree_build(SEXP data);
+SEXP do_kdtree_build(SEXP table);
 SEXP do_kdtree_range_search(
 	SEXP query,
 	SEXP tree,

@@ -138,62 +138,62 @@ SEXP do_qmad(SEXP x, SEXP center, SEXP constant)
 
 SEXP do_bsearch(
 	SEXP query, 
-	SEXP ref, 
+	SEXP table, 
 	SEXP tolerance, 
 	SEXP relative, 
-	SEXP nearest, 
+	SEXP ref_side, 
 	SEXP nomatch)
 {
-	if ( TYPEOF(query) != TYPEOF(ref) )
-		Rf_error("'query' and 'ref' must have the same data type");
+	if ( TYPEOF(query) != TYPEOF(table) )
+		Rf_error("'query' and 'table' must have the same data type");
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, LENGTH(query)));
-	switch(TYPEOF(ref))
+	switch(TYPEOF(table))
 	{
 		case INTSXP:
-			binary_search(
+			bsearch(
 				vec<int>::from(index),
 				vec<int>::from(query),
-				vec<int>::from(ref),
+				vec<int>::from(table),
 				Rf_asReal(tolerance),
 				Rf_asLogical(relative),
-				Rf_asLogical(nearest),
+				static_cast<Ref>(Rf_asInteger(ref_side)),
 				Rf_asInteger(nomatch));
 			break;
 		case REALSXP:
-			binary_search(
+			bsearch(
 				vec<int>::from(index),
 				vec<double>::from(query),
-				vec<double>::from(ref),
+				vec<double>::from(table),
 				Rf_asReal(tolerance),
 				Rf_asLogical(relative),
-				Rf_asLogical(nearest),
+				static_cast<Ref>(Rf_asInteger(ref_side)),
 				Rf_asInteger(nomatch));
 			break;
 		default:
-			Rf_error("'query' and 'ref' must be integer or double");
+			Rf_error("'query' and 'table' must be integer or double");
 	}
 	UNPROTECT(1);
 	return index;
 }
 
-SEXP do_kdtree_build(SEXP data)
+SEXP do_kdtree_build(SEXP table)
 {
 	SEXP tree = PROTECT(Rf_allocVector(VECSXP, 4));
-	SEXP left = PROTECT(Rf_allocVector(INTSXP, Rf_nrows(data)));
-	SEXP right = PROTECT(Rf_allocVector(INTSXP, Rf_nrows(data)));
+	SEXP left = PROTECT(Rf_allocVector(INTSXP, Rf_nrows(table)));
+	SEXP right = PROTECT(Rf_allocVector(INTSXP, Rf_nrows(table)));
 	ptrdiff_t root;
-	SET_VECTOR_ELT(tree, 0, data);
+	SET_VECTOR_ELT(tree, 0, table);
 	SET_VECTOR_ELT(tree, 1, left);
 	SET_VECTOR_ELT(tree, 2, right);
 	SET_VECTOR_ELT(tree, 3, Rf_ScalarInteger(NA_INTEGER));
 	SEXP names = PROTECT(Rf_allocVector(STRSXP, 4));
-	SET_STRING_ELT(names, 0, Rf_mkChar("data"));
+	SET_STRING_ELT(names, 0, Rf_mkChar("table"));
 	SET_STRING_ELT(names, 1, Rf_mkChar("left"));
 	SET_STRING_ELT(names, 2, Rf_mkChar("right"));
 	SET_STRING_ELT(names, 3, Rf_mkChar("root"));
 	Rf_setAttrib(tree, R_NamesSymbol, names);
 	Rf_setAttrib(tree, R_ClassSymbol, Rf_mkString("kdtree"));
-	switch(TYPEOF(data))
+	switch(TYPEOF(table))
 	{
 		case INTSXP:
 			root = kdtree<int,int>::from(tree).build();
@@ -202,7 +202,7 @@ SEXP do_kdtree_build(SEXP data)
 			root = kdtree<int,double>::from(tree).build();
 			break;
 		default:
-			Rf_error("'data' must be integer or double");
+			Rf_error("'table' must be integer or double");
 	}
 	SET_VECTOR_ELT(tree, 3, Rf_ScalarInteger(root));
 	UNPROTECT(4);
@@ -216,15 +216,15 @@ SEXP do_kdtree_range_search(
 	SEXP relative,
 	SEXP num_threads)
 {
-	SEXP data = VECTOR_ELT(tree, 0);
-	if ( TYPEOF(query) != TYPEOF(data) )
-		Rf_error("'query' and 'data' must have the same data type");
-	if ( Rf_ncols(query) != Rf_ncols(data) )
-		Rf_error("'query' and 'data' must have the same number of cols");
-	if ( LENGTH(tolerance) != Rf_ncols(data) )
-		Rf_error("length of 'tolerance' must match ncol(data)");
-	if ( LENGTH(relative) != Rf_ncols(data) )
-		Rf_error("length of 'relative' must match ncol(data)");
+	SEXP table = VECTOR_ELT(tree, 0);
+	if ( TYPEOF(query) != TYPEOF(table) )
+		Rf_error("'query' and 'table' must have the same table type");
+	if ( Rf_ncols(query) != Rf_ncols(table) )
+		Rf_error("'query' and 'table' must have the same number of cols");
+	if ( LENGTH(tolerance) != Rf_ncols(table) )
+		Rf_error("length of 'tolerance' must match ncol(table)");
+	if ( LENGTH(relative) != Rf_ncols(table) )
+		Rf_error("length of 'relative' must match ncol(table)");
 	SEXP counts = PROTECT(Rf_allocVector(INTSXP, Rf_nrows(query)));
 	switch(TYPEOF(query))
 	{

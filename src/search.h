@@ -9,49 +9,98 @@
 //-----------
 // Search utilities
 
-// Does query neighbor ref within some tolerance(s)?
-template<Num T, Vec Tol, Vec Rel>
+enum Ref {
+	Query, // Use search 'query' as ref (for relative diff)
+	Table, // Use search 'table' as ref (for relative diff)
+};
+
+// Compute signed absolute or relative difference
+template<Num T = double, Num L, Num R>
+T diff(
+	const L x, 
+	const R ref, 
+	const bool relative = false) noexcept
+{
+	if ( is_na(x) || is_na(ref) )
+		return huge_positive_value<T>();
+	else if ( relative )
+		return (coerce_cast<T>(x) - coerce_cast<T>(ref)) / coerce_cast<T>(ref);
+	else
+		return coerce_cast<T>(x - ref);
+}
+
+template<Num L, Num R>
+double diff(
+	const L query_v,
+	const R table_v,
+	const bool relative,
+	const Ref ref_side) noexcept
+{
+	switch(ref_side) {
+		case Query: return diff(table_v, query_v, relative);
+		case Table: return diff(query_v, table_v, relative);
+	}
+}
+
+// Does x neighbor ref within some tolerance(s)?
+template<Vec L, Vec R, Vec Tol, Vec Rel>
 bool near(
-	const vec<T> query,
-	const vec<T> ref,
+	const L x,
+	const R ref,
 	const Tol tolerance,
 	const Rel relative) noexcept
 {
-	assert(query.ssize() == ref.ssize());
-	assert(query.ssize() == tolerance.ssize());
-	assert(query.ssize() == relative.ssize());
-	for ( ptrdiff_t i = 0; i < query.ssize(); ++i )
+	assert(x.ssize() == ref.ssize());
+	assert(x.ssize() == tolerance.ssize());
+	assert(x.ssize() == relative.ssize());
+	for ( ptrdiff_t i = 0; i < x.ssize(); ++i )
 	{
-		if ( std::fabs(diff(query[i], ref[i], relative[i])) > tolerance[i] )
+		double dx = diff(x[i], ref[i], coerce_cast<bool>(relative[i]));
+		if ( std::fabs(dx) > tolerance[i] )
 			return false;
 	}
 	return true;
 }
 
+template<Vec L, Vec R, Vec Tol, Vec Rel>
+bool near(
+	const L query_v,
+	const R table_v,
+	const Tol tolerance,
+	const Rel relative,
+	const Ref ref_side) noexcept
+{
+	switch(ref_side) {
+		case Query: return near(table_v, query_v, tolerance, relative);
+		case Table: return near(query_v, table_v, tolerance, relative);
+	}
+}
+
 //// Binary search
 //-----------------
 
-// Binary search for query in red
-// - Values of ref MUST be sorted (duplicated are accepted)
+// Binary search for query in table
+// - Values of table MUST be sorted (duplicates are ok)
 // - Differences <= tolerance are considered matches
+// - If relative == true, then ref_side determines the reference
 // - Default nomatch chosen so nomatch << 0 for signed types
-template<Num Index, Num T>
-Index binary_search(
+template<Num Index = ptrdiff_t, Num T, Vec V>
+Index bsearch(
 	const T query,
-	const vec<T> ref,
+	const V table,
 	const double tolerance = 0,
 	const bool relative = false,
-	const bool nearest = false,
+	const Ref ref_side = Query,
 	const Index nomatch = na_value<Index>())
 {
-	if ( ref.len == 0 )
+	if ( table.len == 0 )
 		return nomatch;
 	Index lo = 0;
-	Index hi = ref.len - 1;
+	Index hi = table.len - 1;
 	while ( lo <= hi )
 	{
 		Index mid = (lo + hi) / 2;
-		double dx = diff(query, ref[mid], relative);
+		double dx = diff(query, table[mid], relative, ref_side);
 		if ( dx > 0 )
 			lo = mid + 1;
 		else if ( dx < 0 )
@@ -59,11 +108,11 @@ Index binary_search(
 		else
 			return mid;
 	}
-	double dlo = std::fabs(diff(query, ref[lo], relative));
-	double dhi = std::fabs(diff(query, ref[hi], relative));
-	if ( dlo <= dhi && (nearest || dlo <= tolerance) )
+	double dlo = std::fabs(diff(query, table[lo], relative, ref_side));
+	double dhi = std::fabs(diff(query, table[hi], relative, ref_side));
+	if ( dlo <= dhi && dlo <= tolerance )
 		return lo;
-	if ( dhi <= dlo && (nearest || dhi <= tolerance) )
+	if ( dhi <= dlo && dhi <= tolerance )
 		return hi;
 	return nomatch;
 }
@@ -72,14 +121,14 @@ Index binary_search(
 // - Values of ref MUST be sorted (duplicated are accepted)
 // - Differences <= tolerance are considered matches
 // - Default nomatch chosen so nomatch << 0 for signed types
-template<Num Index, Num T>
-void binary_search(
+template<Num Index = ptrdiff_t, Vec L, Vec R>
+void bsearch(
 	vec<Index> index,
-	const vec<T> query,
-	const vec<T> ref,
+	const L query,
+	const R table,
 	const double tolerance = 0,
 	const bool relative = false,
-	const bool nearest = false,
+	const Ref ref_side = Query,
 	const Index nomatch = na_value<Index>())
 {
 	for ( ptrdiff_t i = 0; i < query.len; ++i )
@@ -88,12 +137,12 @@ void binary_search(
 			index[i] = nomatch;
 		else
 		{
-			index[i] = binary_search(
+			index[i] = bsearch(
 				query[i], 
-				ref, 
+				table, 
 				tolerance, 
 				relative, 
-				nearest, 
+				ref_side,
 				nomatch);
 		}
 	}
@@ -213,61 +262,6 @@ struct kdtree
 		}
 		return root;
 	}
-
-	// // Search for nearest neighbors of query
-	// // - Number of neighbors (k) given by hits.len
-	// // - Fill hits with indices up to hits.len
-	// // - Fill dists with distances up to hits.len
-	// template<Num Dist>
-	// size_t knn_search(
-	// 	vec<Index> hits,
-	// 	vec<Dist> dists,
-	// 	const vec<T> query) const
-	// {
-	// 	// invariants
-	// 	assert(query.len == data.ncols);
-	// 	assert(hits.len == dists.len)
-	// 	// initialize stack
-	// 	ptrdiff_t top = -1;
-	// 	struct frame { ptrdiff_t node, depth; };
-	// 	auto stack = std::make_unique<frame[]>(max_depth(data.nrows));
-	// 	stack[++top] = { root, 0 };
-	// 	// initialize hits
-	// 	size_t count = 0;
-	// 	hits.fill(na_value<Index>());
-	// 	// recursively search tree
-	// 	while ( top >= 0 )
-	// 	{
-	// 		// pop node
-	// 		frame cur = stack[top--];
-	// 		ptrdiff_t i = cur.depth % data.ncols;
-	// 		double ds = diff(query[i], data[{cur.node, i}], relative[i]);
-	// 		double du = std::fabs(ds);
-	// 		// search left subtree?
-	// 		if ( has_left(cur.node) && (ds < 0 || du <= tolerance[i]) )
-	// 			stack[++top] = { left[cur.node], cur.depth + 1 };
-	// 		// search right subtree?
-	// 		if ( has_right(cur.node) && (ds > 0 || du <= tolerance[i]) )
-	// 			stack[++top] = { right[cur.node], cur.depth + 1 };
-	// 		// is this a hit?
-	// 		if ( near(query, data.row(cur.node), tolerance, relative) )
-	// 		{
-	// 			if ( count < hits.len ) {
-	// 				hits[count] = cur.node;
-	// 				// sort into index order
-	// 				ptrdiff_t j = count;
-	// 				while ( j > 0 )
-	// 				{
-	// 					if ( hits[j] < hits[j - 1] )
-	// 						hits.swap(j, j - 1);
-	// 					--j;
-	// 				}
-	// 			}
-	// 			++count;
-	// 		}
-	// 	}
-	// 	return count;
-	// }
 
 	// Search for points within tolerance(s) of query
 	// - Both tolerance and relative are per-dimension

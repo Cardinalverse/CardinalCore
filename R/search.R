@@ -4,20 +4,21 @@
 
 bsearch <- function(
 	query,
-	ref,
+	table,
 	tolerance = 0,
 	relative = FALSE,
-	nearest = FALSE,
+	ref_side = c("query", "table"),
 	nomatch = NA_integer_)
 {
-	if ( is.double(query) && is.integer(ref) )
-		ref <- as.double(ref)
-	if ( is.integer(query) && is.double(ref) )
+	if ( is.double(query) && is.integer(table) )
+		table <- as.double(table)
+	if ( is.integer(query) && is.double(table) )
 		query <- as.double(query)
-	if ( is.unsorted(ref) )
-		stop("'ref' must be sorted")
-	.Call(C_do_bsearch, query, ref, tolerance,
-		isTRUE(relative), isTRUE(nearest), as.integer(nomatch)) + 1L
+	if ( is.unsorted(table) )
+		stop("'table' must be sorted")
+	ref_side <- c("query"=0L, "table"=1L)[match.arg(ref_side)]
+	.Call(C_do_bsearch, query, table, as.double(tolerance),
+		isTRUE(relative), ref_side, as.integer(nomatch)) + 1L
 }
 
 kdtree <- function(data)

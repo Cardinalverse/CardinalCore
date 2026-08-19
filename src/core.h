@@ -76,6 +76,26 @@ concept BinaryOp = std::invocable<F, num_arg, num_arg>;
 template<class T>
 constexpr bool dependent_false = false;
 
+// Most positive value for a type
+template<Num T>
+constexpr T huge_positive_value()
+{
+	if constexpr ( std::numeric_limits<T>::has_infinity )
+		return std::numeric_limits<T>::infinity();
+	else
+		return std::numeric_limits<T>::max();
+}
+
+// Most negative value for a type
+template<Num T>
+constexpr T huge_negative_value()
+{
+	if constexpr ( std::numeric_limits<T>::has_infinity )
+		return -std::numeric_limits<T>::infinity();
+	else
+		return std::numeric_limits<T>::lowest();
+}
+
 //// Sentinels
 //-------------
 // Coercion and NA/missing/incomparable values
@@ -339,19 +359,9 @@ struct binop
 		else if constexpr ( Op == Mul )
 			return 1;
 		else if constexpr ( Op == Max )
-		{
-			if constexpr ( std::numeric_limits<T>::has_infinity )
-				return -std::numeric_limits<T>::infinity();
-			else
-				return std::numeric_limits<T>::lowest();
-		}
+			return huge_negative_value<T>();
 		else if constexpr ( Op == Min )
-		{
-			if constexpr ( std::numeric_limits<T>::has_infinity )
-				return +std::numeric_limits<T>::infinity();
-			else
-				return std::numeric_limits<T>::max();
-		}
+			return huge_positive_value<T>();
 		// Not implemented
 		else
 			static_assert(dependent_false<T>, "unsupported reduction");
