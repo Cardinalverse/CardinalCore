@@ -1,25 +1,4 @@
 
-#### Compute differences
-## ---------------------
-
-qdiff <- function(x, ref, relative = FALSE)
-{
-	if ( missing(ref) ) {
-		ref <- x[-length(x)]
-		x <- x[-1L]
-		len <- length(x)
-	} else {
-		len <- max(length(x), length(ref))
-	}
-	if ( is.integer(x) && is.double(ref) )
-		x <- as.double(x)
-	if ( is.double(x) && is.integer(ref) )
-		ref <- as.double(ref)
-	x <- rep_len(x, len)
-	ref <- rep_len(ref, len)
-	.Call(C_do_qdiff, x, ref, isTRUE(relative))
-}
-
 #### Quickselect and Quicksort
 ## ----------------------------
 

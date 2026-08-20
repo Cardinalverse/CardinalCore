@@ -8,10 +8,6 @@ extern "C" {
 
 //// Sort and order
 //------------------
-SEXP do_qdiff(
-	SEXP x,
-	SEXP ref,
-	SEXP relative);
 SEXP do_qorder(SEXP x);
 SEXP do_qselect(SEXP x, SEXP k);
 SEXP do_qmedian(SEXP x);
@@ -51,7 +47,6 @@ SEXP do_test_expression(SEXP x, SEXP index);
 
 static const R_CallMethodDef callMethods[] = {
 	// Sort and order
-	CALLDEF(do_qdiff, 3),
 	CALLDEF(do_qselect, 2),
 	CALLDEF(do_qorder, 1),
 	CALLDEF(do_qmedian, 1),

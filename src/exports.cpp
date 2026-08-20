@@ -12,37 +12,6 @@ extern "C" {
 //// Quicksort and Quickselect
 //----------------------------
 
-SEXP do_qdiff(SEXP x, SEXP ref, SEXP relative)
-{
-	if ( TYPEOF(x) != TYPEOF(ref) )
-		Rf_error("'x' and 'ref' must have the same data type");
-	if ( LENGTH(x) != LENGTH(ref) )
-		Rf_error("'x' and 'ref' must have the same length");
-	SEXP dx = PROTECT(Rf_allocVector(REALSXP, LENGTH(x)));
-	for ( R_len_t i = 0; i < LENGTH(x); ++i )
-	{
-		switch(TYPEOF(x))
-		{
-			case INTSXP:
-				REAL(dx)[i] = diff(
-					INTEGER_ELT(x, i),
-					INTEGER_ELT(ref, i),
-					Rf_asLogical(relative));
-				break;
-			case REALSXP:
-				REAL(dx)[i] = diff(
-					REAL_ELT(x, i),
-					REAL_ELT(ref, i),
-					Rf_asLogical(relative));
-				break;
-			default:
-				Rf_error("'x' and 'ref' must be integer or double");
-		}
-	}
-	UNPROTECT(1);
-	return dx;
-}
-
 SEXP do_qorder(SEXP x)
 {
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, LENGTH(x)));

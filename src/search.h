@@ -14,54 +14,46 @@ enum Ref {
 	Table, // Use search 'table' as ref (for relative diff)
 };
 
+enum Diff {
+	Absolute, // Absolute diff
+	RefLhs,   // Relative diff using Lhs as ref
+	RefRhs,   // Relative diff using Rhs as ref
+};
+
+// Compute signed absolute or relative difference
+template<Diff Method = Absolute, Num T = double, Num L, Num R>
+T diff(const L lhs, const R rhs) noexcept
+{
+	if ( is_na(lhs) || is_na(rhs) )
+		return huge_positive_value<T>();
+	if constexpr ( Method == Absolute )
+		return lhs - rhs;
+	else if constexpr ( Method == RefLhs )
+		return coerce_cast<T>(lhs - rhs) / lhs;
+	else if constexpr ( Method == RefRhs )
+		return coerce_cast<T>(lhs - rhs) / rhs;
+	else
+		static_assert(dependent_false<T>, "unsupported difference method");
+}
+
 // Compute signed absolute or relative difference
 template<Num T = double, Num L, Num R>
 T diff(
-	const L x, 
-	const R ref, 
-	const bool relative = false) noexcept
-{
-	if ( is_na(x) || is_na(ref) )
-		return huge_positive_value<T>();
-	else if ( relative )
-		return (coerce_cast<T>(x) - coerce_cast<T>(ref)) / coerce_cast<T>(ref);
-	else
-		return coerce_cast<T>(x - ref);
-}
-
-template<Num L, Num R>
-double diff(
 	const L query_v,
 	const R table_v,
 	const bool relative,
 	const Ref ref_side) noexcept
 {
-	switch(ref_side) {
-		case Query: return diff(table_v, query_v, relative);
-		case Table: return diff(query_v, table_v, relative);
-	}
+	if ( relative )
+		switch(ref_side) {
+			case Query: return diff<RefLhs,T>(query_v, table_v);
+			case Table: return diff<RefRhs,T>(query_v, table_v);
+		}
+	else
+		return diff<Absolute,T>(query_v, table_v);
 }
 
 // Does x neighbor ref within some tolerance(s)?
-template<Vec L, Vec R, Vec Tol, Vec Rel>
-bool near(
-	const L x,
-	const R ref,
-	const Tol tolerance,
-	const Rel relative) noexcept
-{
-	assert(x.ssize() == ref.ssize());
-	assert(x.ssize() == tolerance.ssize());
-	assert(x.ssize() == relative.ssize());
-	for ( ptrdiff_t i = 0; i < x.ssize(); ++i )
-	{
-		double dx = diff(x[i], ref[i], coerce_cast<bool>(relative[i]));
-		if ( std::fabs(dx) > tolerance[i] )
-			return false;
-	}
-	return true;
-}
-
 template<Vec L, Vec R, Vec Tol, Vec Rel>
 bool near(
 	const L query_v,
@@ -70,10 +62,20 @@ bool near(
 	const Rel relative,
 	const Ref ref_side) noexcept
 {
-	switch(ref_side) {
-		case Query: return near(table_v, query_v, tolerance, relative);
-		case Table: return near(query_v, table_v, tolerance, relative);
+	assert(query_v.ssize() == table_v.ssize());
+	assert(query_v.ssize() == tolerance.ssize());
+	assert(query_v.ssize() == relative.ssize());
+	for ( ptrdiff_t i = 0; i < query_v.ssize(); ++i )
+	{
+		double dx = diff(
+			query_v[i],
+			table_v[i],
+			coerce_cast<bool>(relative[i]),
+			ref_side);
+		if ( std::fabs(dx) > tolerance[i] )
+			return false;
 	}
+	return true;
 }
 
 //// Binary search
@@ -292,7 +294,7 @@ struct kdtree
 			// pop node
 			frame cur = stack[top--];
 			ptrdiff_t i = cur.depth % data.ncols;
-			double ds = diff(query[i], data[{cur.node, i}], relative[i]);
+			double ds = diff(query[i], data[{cur.node, i}], relative[i], Query);
 			double du = std::fabs(ds);
 			// search left subtree?
 			if ( has_left(cur.node) && (ds < 0 || du <= tolerance[i]) )
@@ -301,7 +303,7 @@ struct kdtree
 			if ( has_right(cur.node) && (ds > 0 || du <= tolerance[i]) )
 				stack[++top] = { right[cur.node], cur.depth + 1 };
 			// is this a hit?
-			if ( near(query, data.row(cur.node), tolerance, relative) )
+			if ( near(query, data.row(cur.node), tolerance, relative, Query) )
 			{
 				if ( count < hits.len ) {
 					hits[count] = cur.node;
