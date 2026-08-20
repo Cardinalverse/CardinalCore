@@ -6,8 +6,8 @@ bsearch <- function(
 	query,
 	table,
 	tolerance = 0,
-	relative = FALSE,
-	ref_side = c("query", "table"),
+	relative = !missing(relative_to),
+	relative_to = c("query", "table"),
 	nomatch = NA_integer_)
 {
 	if ( is.double(query) && is.integer(table) )
@@ -16,9 +16,10 @@ bsearch <- function(
 		query <- as.double(query)
 	if ( is.unsorted(table) )
 		stop("'table' must be sorted")
-	ref_side <- c("query"=0L, "table"=1L)[match.arg(ref_side)]
+	relative <- isTRUE(relative)
+	ref_side <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
 	.Call(C_do_bsearch, query, table, as.double(tolerance),
-		isTRUE(relative), ref_side, as.integer(nomatch)) + 1L
+		relative, ref_side, as.integer(nomatch)) + 1L
 }
 
 kdtree <- function(data)
