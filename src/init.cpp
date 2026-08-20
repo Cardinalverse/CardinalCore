@@ -23,7 +23,7 @@ SEXP do_bsearch(
 	SEXP table,
 	SEXP tolerance,
 	SEXP relative,
-	SEXP ref_side,
+	SEXP referent,
 	SEXP nomatch);
 SEXP do_kdtree_build(SEXP table);
 SEXP do_kdtree_range_search(

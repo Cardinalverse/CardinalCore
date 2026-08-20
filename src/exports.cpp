@@ -110,7 +110,7 @@ SEXP do_bsearch(
 	SEXP table, 
 	SEXP tolerance, 
 	SEXP relative, 
-	SEXP ref_side, 
+	SEXP referent, 
 	SEXP nomatch)
 {
 	if ( TYPEOF(query) != TYPEOF(table) )
@@ -125,7 +125,7 @@ SEXP do_bsearch(
 				vec<int>::from(table),
 				Rf_asReal(tolerance),
 				Rf_asLogical(relative),
-				static_cast<Ref>(Rf_asInteger(ref_side)),
+				static_cast<Ref>(Rf_asInteger(referent)),
 				Rf_asInteger(nomatch));
 			break;
 		case REALSXP:
@@ -135,7 +135,7 @@ SEXP do_bsearch(
 				vec<double>::from(table),
 				Rf_asReal(tolerance),
 				Rf_asLogical(relative),
-				static_cast<Ref>(Rf_asInteger(ref_side)),
+				static_cast<Ref>(Rf_asInteger(referent)),
 				Rf_asInteger(nomatch));
 			break;
 		default:

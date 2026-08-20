@@ -37,15 +37,17 @@ T diff(const L lhs, const R rhs) noexcept
 }
 
 // Compute signed absolute or relative difference
+// - Use relative comparison if relative=true
+// - For relative diff, referent determines the reference used
 template<Num T = double, Num L, Num R>
 T diff(
 	const L query_v,
 	const R table_v,
 	const bool relative,
-	const Ref ref_side) noexcept
+	const Ref referent) noexcept
 {
 	if ( relative )
-		switch(ref_side) {
+		switch(referent) {
 			case Query: return diff<RefLhs,T>(query_v, table_v);
 			case Table: return diff<RefRhs,T>(query_v, table_v);
 		}
@@ -54,13 +56,16 @@ T diff(
 }
 
 // Does x neighbor ref within some tolerance(s)?
+// - Tolerances and whether to use relative comparison are both per-dimension
+// - For dimensions using relative diff, reference determines reference used
+// - All dimensions using relative diff use the same referent
 template<Vec L, Vec R, Vec Tol, Vec Rel>
 bool near(
 	const L query_v,
 	const R table_v,
 	const Tol tolerance,
 	const Rel relative,
-	const Ref ref_side) noexcept
+	const Ref referent) noexcept
 {
 	assert(query_v.ssize() == table_v.ssize());
 	assert(query_v.ssize() == tolerance.ssize());
@@ -71,7 +76,7 @@ bool near(
 			query_v[i],
 			table_v[i],
 			coerce_cast<bool>(relative[i]),
-			ref_side);
+			referent);
 		if ( std::fabs(dx) > tolerance[i] )
 			return false;
 	}
@@ -84,7 +89,7 @@ bool near(
 // Binary search for query in table
 // - Values of table MUST be sorted (duplicates are ok)
 // - Differences <= tolerance are considered matches
-// - If relative == true, then ref_side determines the reference
+// - If relative == true, then referent determines the reference
 // - Default nomatch chosen so nomatch << 0 for signed types
 template<Num Index = ptrdiff_t, Num T, Vec V>
 Index bsearch(
@@ -92,7 +97,7 @@ Index bsearch(
 	const V table,
 	const double tolerance = 0,
 	const bool relative = false,
-	const Ref ref_side = Query,
+	const Ref referent = Query,
 	const Index nomatch = na_value<Index>())
 {
 	if ( table.len == 0 )
@@ -102,7 +107,7 @@ Index bsearch(
 	while ( lo <= hi )
 	{
 		Index mid = (lo + hi) / 2;
-		double dx = diff(query, table[mid], relative, ref_side);
+		double dx = diff(query, table[mid], relative, referent);
 		if ( dx > 0 )
 			lo = mid + 1;
 		else if ( dx < 0 )
@@ -110,8 +115,8 @@ Index bsearch(
 		else
 			return mid;
 	}
-	double dlo = std::fabs(diff(query, table[lo], relative, ref_side));
-	double dhi = std::fabs(diff(query, table[hi], relative, ref_side));
+	double dlo = std::fabs(diff(query, table[lo], relative, referent));
+	double dhi = std::fabs(diff(query, table[hi], relative, referent));
 	if ( dlo <= dhi && dlo <= tolerance )
 		return lo;
 	if ( dhi <= dlo && dhi <= tolerance )
@@ -130,7 +135,7 @@ void bsearch(
 	const R table,
 	const double tolerance = 0,
 	const bool relative = false,
-	const Ref ref_side = Query,
+	const Ref referent = Query,
 	const Index nomatch = na_value<Index>())
 {
 	for ( ptrdiff_t i = 0; i < query.len; ++i )
@@ -144,7 +149,7 @@ void bsearch(
 				table, 
 				tolerance, 
 				relative, 
-				ref_side,
+				referent,
 				nomatch);
 		}
 	}
