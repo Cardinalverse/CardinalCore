@@ -17,50 +17,52 @@ bsearch <- function(
 	if ( is.unsorted(table) )
 		stop("'table' must be sorted")
 	relative <- isTRUE(relative)
-	ref_side <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
+	referent <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
 	.Call(C_do_bsearch, query, table, as.double(tolerance),
-		relative, ref_side, as.integer(nomatch)) + 1L
+		relative, referent, as.integer(nomatch)) + 1L
 }
 
-kdtree <- function(data)
+kdtree <- function(table)
 {
-	if ( inherits(data, "kdtree") )
-		return(data)
-	if ( is.null(dim(data)) ) {
-		data <- t(data)
+	if ( inherits(table, "kdtree") )
+		return(table)
+	if ( is.null(dim(table)) ) {
+		table <- t(table)
 	} else {
-		data <- as.matrix(data)
+		table <- as.matrix(table)
 	}
-	.Call(C_do_kdtree_build, data)
+	.Call(C_do_kdtree_build, table)
 }
 
 kdsearch <- function(
 	query,
-	ref,
+	table,
 	tolerance = 0,
-	relative = FALSE,
+	relative = !missing(relative_to),
+	relative_to = c("query", "table"),
 	num.threads = 1)
 {
-	if ( !inherits(ref, "kdtree") )
-		ref <- kdtree(ref)
+	if ( !inherits(table, "kdtree") )
+		table <- kdtree(table)
 	if ( is.null(dim(query)) ) {
 		query <- t(query)
 	} else {
 		query <- as.matrix(query)
 	}
-	if ( is.integer(query) && is.double(ref$data) )
+	if ( is.integer(query) && is.double(table$table) )
 		storage.mode(query) <- "double"
-	if ( is.double(query) && is.integer(ref$data) )
-		storage.mode(ref$data) <- "double"
-	if ( ncol(query) != ncol(ref$data) )
-		stop("'query' must have the same number of columns as 'ref'")
+	if ( is.double(query) && is.integer(table$table) )
+		storage.mode(table$table) <- "double"
+	if ( ncol(query) != ncol(table$table) )
+		stop("'query' must have the same number of columns as 'table'")
 	if ( anyNA(tolerance) )
 		stop("'tolerance' must not contain NAs")
 	if ( anyNA(relative) )
 		stop("'relative' must not contain NAs")
-	tolerance <- as.double(rep_len(tolerance, ncol(ref$data)))
-	relative <- ifelse(rep_len(relative, ncol(ref$data)), 1L, 0L)
-	.Call(C_do_kdtree_range_search,
-		query, ref, tolerance, relative, as.integer(num.threads))
+	tolerance <- as.double(rep_len(tolerance, ncol(table$table)))
+	relative <- as.logical(rep_len(relative, ncol(table$table)))
+	referent <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
+	.Call(C_do_kdtree_range_search, query, table, tolerance,
+		relative, referent, as.integer(num.threads))
 }
 

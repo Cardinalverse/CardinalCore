@@ -183,6 +183,7 @@ SEXP do_kdtree_range_search(
 	SEXP tree,
 	SEXP tolerance,
 	SEXP relative,
+	SEXP referent,
 	SEXP num_threads)
 {
 	SEXP table = VECTOR_ELT(tree, 0);
@@ -204,7 +205,9 @@ SEXP do_kdtree_range_search(
 					vec<int>::from(counts),
 					mat<int>::from(query),
 					vec<double>::from(tolerance),
-					vec<int>::from(relative)},
+					vec<int>::from(relative),
+					static_cast<Ref>(Rf_asInteger(referent)),
+				},
 				Rf_asInteger(num_threads));
 			break;
 		case REALSXP:
@@ -214,7 +217,9 @@ SEXP do_kdtree_range_search(
 					vec<int>::from(counts),
 					mat<double>::from(query),
 					vec<double>::from(tolerance),
-					vec<int>::from(relative)},
+					vec<int>::from(relative),
+					static_cast<Ref>(Rf_asInteger(referent)),
+				},
 				Rf_asInteger(num_threads));
 			break;
 	}
@@ -238,7 +243,9 @@ SEXP do_kdtree_range_search(
 					rag<int,int>::from(index, offset),
 					mat<int>::from(query),
 					vec<double>::from(tolerance),
-					vec<int>::from(relative)},
+					vec<int>::from(relative),
+					static_cast<Ref>(Rf_asInteger(referent)),
+				},
 				Rf_asInteger(num_threads));
 			break;
 		case REALSXP:
@@ -248,7 +255,9 @@ SEXP do_kdtree_range_search(
 					rag<int,int>::from(index, offset),
 					mat<double>::from(query),
 					vec<double>::from(tolerance),
-					vec<int>::from(relative)},
+					vec<int>::from(relative),
+					static_cast<Ref>(Rf_asInteger(referent)),
+				},
 				Rf_asInteger(num_threads));
 			break;
 	}
@@ -277,7 +286,7 @@ SEXP do_col_sums(SEXP x, SEXP num_threads)
 		case INTSXP:
 		{
 			compute(
-				col_sums<int>{
+				col_sums{
 					vec<double>::from(sums).fill(0),
 					mat<int>::from(x)},
 				Rf_asInteger(num_threads));
@@ -286,7 +295,7 @@ SEXP do_col_sums(SEXP x, SEXP num_threads)
 		case REALSXP:
 		{
 			compute(
-				col_sums<double>{
+				col_sums{
 					vec<double>::from(sums).fill(0),
 					mat<double>::from(x)},
 				Rf_asInteger(num_threads));

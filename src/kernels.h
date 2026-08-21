@@ -166,27 +166,27 @@ void compute(F kernel, int nthreads = 1, int ntasks = 1)
 //// Matrix statistics
 //---------------------
 
-template<typename T>
+template<Mat M>
 struct col_sums
 {
 	vec<double> sums;
-	mat<T> x;
+	M x;
 
 	ptrdiff_t ssize() const { return sums.len; }
 
 	void operator()()
 	{
-		if ( x.row_stride > x.col_stride )
-			for ( ptrdiff_t i = 0; i < x.nrows; ++i )
+		if ( x.prefer_rows() )
+			for ( ptrdiff_t i = 0; i < x.nrows(); ++i )
 				sums += mask(x.row(i));
 		else
-			for ( ptrdiff_t j = 0; j < x.ncols; ++j )
+			for ( ptrdiff_t j = 0; j < x.ncols(); ++j )
 				sums[j] = sum(mask(x.col(j)));
 	}
 
 	void operator()(bounds b)
 	{
-		col_sums<T>{sums.slice(b), x.slice_cols(b)}();
+		col_sums<M>{sums.slice(b), x.slice_cols(b)}();
 	}
 };
 

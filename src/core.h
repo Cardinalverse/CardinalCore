@@ -8,12 +8,24 @@
 #include <concepts>
 #include <type_traits>
 
-using size_t = std::size_t;
-using ptrdiff_t = std::ptrdiff_t;
-
 //// Concepts
 //------------
 // Traits supporting template dispatch
+
+using size_t = std::size_t;
+using ptrdiff_t = std::ptrdiff_t;
+
+// Array dimensions
+enum Dim {
+	Rows, // First dim
+	Cols, // Last dim
+};
+
+// Half-open [start, stop) index bounds
+struct bounds { ptrdiff_t start, stop; };
+
+// Matrix index
+struct mindex { ptrdiff_t row, col; };
 
 // A Num supports arithmetic operations
 template<class T>
@@ -22,7 +34,7 @@ concept Num = std::is_arithmetic_v<std::remove_cvref_t<T>>;
 // A Vec supports 1D tensor operations
 // - MUST be trivially copyable as a struct
 // - MUST implement ssize() -> ptrdiff_t
-// - MUST implement operator[](ptrdiff_t i)
+// - MUST implement operator[](ptrdiff_t i) -> Num
 template<class V>
 concept Vec = 
 	std::is_standard_layout_v<V> &&
@@ -39,13 +51,13 @@ using typeof_vec = std::remove_cvref_t<decltype(
 	std::declval<const std::remove_cvref_t<V>&>()[std::declval<ptrdiff_t>()])>;
 
 // A Masked Vec carries a mask for valid/invalid elements
-template<class M>
-concept Masked = Vec<M> &&
-	requires(const std::remove_cvref_t<M>& m, ptrdiff_t i)
+template<class Mask>
+concept Masked = Vec<Mask> &&
+	requires(const std::remove_cvref_t<Mask>& mask, ptrdiff_t i)
 	{
-		{ m.is_valid(i) } -> std::same_as<bool>;
-		{ m.get_data() } -> Vec;
-		{ m.get_mask() } -> Vec;
+		{ mask.is_valid(i) } -> std::same_as<bool>;
+		{ mask.get_data() } -> Vec;
+		{ mask.get_mask() } -> Vec;
 	};
 
 // Check if a Vec element is valid
@@ -57,6 +69,27 @@ constexpr bool is_valid(V& v, ptrdiff_t i)
 	else
 		return true;
 }
+
+// A Mat supports 2D tensor operations
+// - MUST satisfy Vec requirements
+// - MUST implement nrows() -> ptrdiff_t
+// - MUST implement ncols() -> ptrdiff_t
+// - MUST implement ncols() -> ptrdiff_t
+// - MUST implement row(ptrdiff_t i) -> Vec
+// - MUST implement col(ptrdiff_t i) -> Vec
+// - MUST implement operator[](mindex index) -> Num
+// - MUST implement prefer_rows() -> bool
+template<class M>
+concept Mat = Vec<M> &&
+	requires (const std::remove_cvref_t<M>& m, mindex index, ptrdiff_t i)
+	{
+		{ m.prefer_rows() } -> std::same_as<bool>;
+		{ m.nrows() } -> std::convertible_to<ptrdiff_t>;
+		{ m.ncols() } -> std::convertible_to<ptrdiff_t>;
+		{ m.row(i) } -> Vec;
+		{ m.col(i) } -> Vec;
+		{ m[index] } -> Num;
+	};
 
 // Proxy type to define UnaryOp and BinaryOp
 struct num_arg {
@@ -95,6 +128,16 @@ constexpr T huge_negative_value()
 	else
 		return std::numeric_limits<T>::lowest();
 }
+// A RawPointer we can use in defining other concepts
+template<class T>
+concept RawPointer = std::is_pointer_v<std::remove_cvref_t<T>>;
+
+// A Pointers array
+template<class P>
+concept Pointers = requires(P& p, ptrdiff_t i)
+	{
+		{ p[i] } -> RawPointer;
+	};
 
 //// Sentinels
 //-------------
@@ -201,29 +244,6 @@ inline int * data_ptr<int>(SEXP x) noexcept { return INTEGER(x); }
 template<>
 inline double * data_ptr<double>(SEXP x) noexcept { return REAL(x); }
 #endif // USING_R
-
-//// Indexing
-//-----------
-// Indexes and bounds
-
-// Half-open [start, stop) index bounds
-struct bounds
-{
-	ptrdiff_t start;
-	ptrdiff_t stop;
-};
-
-// Multidimensional index
-template<int N>
-struct loc
-{
-	ptrdiff_t loc[N];
-
-	ptrdiff_t operator[](ptrdiff_t i) const noexcept
-	{
-		return loc[i];
-	}
-};
 
 //// Unary operations
 //--------------------
@@ -967,18 +987,15 @@ struct vec
 
 	ptrdiff_t ssize() const noexcept { return len; }
 
-	T& operator[](const ptrdiff_t i) noexcept
+	const T& operator[](const ptrdiff_t i) const noexcept
 	{
 		assert(ptr != nullptr);
 		assert(0 <= i && i < len);
 		return ptr[stride * i];
 	}
 
-	const T& operator[](const ptrdiff_t i) const noexcept
-	{
-		assert(ptr != nullptr);
-		assert(0 <= i && i < len);
-		return ptr[stride * i];
+	T& operator[](const ptrdiff_t i) noexcept {
+		return const_cast<T&>(std::as_const(*this)[i]);
 	}
 
 	// Compare elements at i and j
@@ -1203,36 +1220,62 @@ struct local_vec : vec<T>
 // A non-owning strided matrix
 // - Owner is responsible for managing memory
 // - Owner is responsible for data validity
-template<Num T>
+template<Num T, Dim Order = Cols>
 struct mat
 {
 	T * ptr;
-	ptrdiff_t nrows;
-	ptrdiff_t ncols;
+	ptrdiff_t nr;
+	ptrdiff_t nc;
 	ptrdiff_t row_stride;
 	ptrdiff_t col_stride;
 
-	ptrdiff_t ssize() const noexcept { return nrows * ncols; }
+	ptrdiff_t ssize() const noexcept { return nr * nc; }
+	ptrdiff_t nrows() const noexcept { return nr ; }
+	ptrdiff_t ncols() const noexcept { return nc ; }
 
-	T& operator[](const loc<2> i) noexcept
-	{
-		assert(0 <= i[0] && i[0] < nrows);
-		assert(0 <= i[1] && i[1] < ncols);
-		return ptr[row_stride * i[0] + col_stride * i[1]];
+	bool prefer_rows() const noexcept { 
+		return row_stride > col_stride;
 	}
 
-	const T& operator[](const loc<2> i) const noexcept
+	const T& operator[](const ptrdiff_t i) const noexcept
 	{
-		assert(0 <= i[0] && i[0] < nrows);
-		assert(0 <= i[1] && i[1] < ncols);
-		return ptr[row_stride * i[0] + col_stride * i[1]];
+		assert(0 <= i && i < ssize());
+		if constexpr ( Order == Rows ) {
+			if ((nc <= 1 || col_stride == 1) && (nr <= 1 || row_stride == nc))
+				return ptr[i];
+			else
+				return (*this)[{i / nc, i % nc}];
+		}
+		else if constexpr ( Order == Cols ) {
+			if ((nr <= 1 || row_stride == 1) && (nc <= 1 || col_stride == nr))
+				return ptr[i];
+			else
+				return (*this)[{i % nr, i / nr}];
+		}
+		else
+			static_assert(dependent_false<T>, "invalid matrix order");
+	}
+
+	T& operator[](const ptrdiff_t i) noexcept {
+		return const_cast<T&>(std::as_const(*this)[i]);
+	}
+
+	const T& operator[](const mindex index) const noexcept
+	{
+		assert(0 <= index.row && index.row < nr);
+		assert(0 <= index.col && index.col < nc);
+		return ptr[row_stride * index.row + col_stride * index.col];
+	}
+
+	T& operator[](const mindex index) noexcept {
+		return const_cast<T&>(std::as_const(*this)[index]);
 	}
 
 	vec<T> row(const ptrdiff_t i) const noexcept
 	{
 		return {
 			.ptr = ptr + (row_stride * i), 
-			.len = ncols, 
+			.len = nc, 
 			.stride = col_stride,
 		};
 	}
@@ -1241,7 +1284,7 @@ struct mat
 	{
 		return {
 			.ptr = ptr + (col_stride * i), 
-			.len = nrows, 
+			.len = nr, 
 			.stride = row_stride,
 		};
 	}
@@ -1250,8 +1293,8 @@ struct mat
 	{
 		return {
 			.ptr = ptr + (row_stride * b.start),
-			.nrows = b.stop - b.start,
-			.ncols = ncols,
+			.nr = b.stop - b.start,
+			.nc = nc,
 			.row_stride = row_stride,
 			.col_stride = col_stride,
 		};
@@ -1261,8 +1304,8 @@ struct mat
 	{
 		return {
 			.ptr = ptr + (col_stride * b.start),
-			.nrows = nrows,
-			.ncols = b.stop - b.start,
+			.nr = nr,
+			.nc = b.stop - b.start,
 			.row_stride = row_stride,
 			.col_stride = col_stride,
 		};
@@ -1275,8 +1318,8 @@ struct mat
 		{
 			return {
 				.ptr = data_ptr<T>(x),
-				.nrows = static_cast<ptrdiff_t>(Rf_nrows(x)),
-				.ncols = static_cast<ptrdiff_t>(Rf_ncols(x)),
+				.nr = static_cast<ptrdiff_t>(Rf_nrows(x)),
+				.nc = static_cast<ptrdiff_t>(Rf_ncols(x)),
 				.row_stride = 1,
 				.col_stride = Rf_nrows(x),
 			};

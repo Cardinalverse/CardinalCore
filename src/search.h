@@ -44,7 +44,7 @@ T diff(
 	const L query_v,
 	const R table_v,
 	const bool relative,
-	const Ref referent) noexcept
+	const Ref referent = Query) noexcept
 {
 	if ( relative )
 		switch(referent) {
@@ -65,7 +65,7 @@ bool near(
 	const R table_v,
 	const Tol tolerance,
 	const Rel relative,
-	const Ref referent) noexcept
+	const Ref referent = Query) noexcept
 {
 	assert(query_v.ssize() == table_v.ssize());
 	assert(query_v.ssize() == tolerance.ssize());
@@ -160,57 +160,57 @@ void bsearch(
 
 // KDTree for nearest neighbor and range searches
 // - Owner is responsible for managing memory
-// - Rows are observations and cols are features
-// - Tree uses vectors giving indices of children
+// - Table rows are observations and cols are features
+// - Tree builds vectors of indices of children
 // - NA or negative indices indicate leaf nodes
 template<Num Index, Num T>
 struct kdtree
 {
-	mat<T> data;
+	mat<T> table;
 	vec<Index> left;
 	vec<Index> right;
 	Index root = na_value<Index>();
 
 	ptrdiff_t ssize() const noexcept
 	{
-		return data.nrows;
+		return table.nrows();
 	}
 
 	bool has_left(ptrdiff_t node) const noexcept
 	{
-		return 0 <= left[node] && left[node] < data.nrows;
+		return 0 <= left[node] && left[node] < table.nrows();
 	}
 
 	bool has_right(ptrdiff_t node) const noexcept
 	{
-		return 0 <= right[node] && right[node] < data.nrows;
+		return 0 <= right[node] && right[node] < table.nrows();
 	}
 
 	// Build the tree and return the index of the root node
 	ptrdiff_t build()
 	{
 		// invariants
-		assert(left.len == data.nrows);
-		assert(right.len == data.nrows);
-		if ( data.ssize() <= 0 )
+		assert(left.len == table.nrows());
+		assert(right.len == table.nrows());
+		if ( table.ssize() <= 0 )
 			return root;
 		// initialize indices
-		local_vec<Index> index{data.nrows};
+		local_vec<Index> index{table.nrows()};
 		index.fill_seq();
 		left.fill_na();
 		right.fill_na();
 		// find root from median of first dim
-		vec<T> ref = data.col(0);
-		qsort_index(index.borrow(), ref);
-		ptrdiff_t mid = data.nrows / 2;
+		vec<T> column = table.col(0);
+		qsort_index(index.borrow(), column);
+		ptrdiff_t mid = table.nrows() / 2;
 		// handle duplicates and update root
-		while ( mid > 0 && ref[index[mid - 1]] == ref[index[mid]] )
+		while ( mid > 0 && column.compare(index[mid - 1], index[mid]) == 0 )
 			--mid;
 		root = index[mid];
 		// initialize stack
 		ptrdiff_t top = -1;
 		struct frame { ptrdiff_t parent, depth, start, stop; };
-		auto stack = std::make_unique<frame[]>(max_depth(data.nrows));
+		auto stack = std::make_unique<frame[]>(max_depth(table.nrows()));
 		// push initial left span to stack
 		if ( mid > 0 ) {
 			stack[++top] = {
@@ -221,12 +221,12 @@ struct kdtree
 			};
 		}
 		// push initial right span to stack
-		if ( mid + 1 < data.nrows ) {
+		if ( mid + 1 < table.nrows() ) {
 			stack[++top] = {
 				.parent = root,
 				.depth = 1,
 				.start = mid + 1,
-				.stop = data.nrows,
+				.stop = table.nrows(),
 			};
 		}
 		// recursively build the tree
@@ -235,16 +235,16 @@ struct kdtree
 			// pop stack
 			frame cur = stack[top--];
 			// get current dim
-			ref = data.col(cur.depth % data.ncols);
-			// find median of current dim within current span
-			if ( data.ncols > 1 )
-				qsort_index(index.borrow(), ref, {cur.start, cur.stop});
+			column = table.col(cur.depth % table.ncols());
+			// find median of current dim within span of unprocessed rows
+			if ( table.ncols() > 1 )
+				qsort_index(index.borrow(), column, {cur.start, cur.stop});
 			mid = (cur.start + cur.stop) / 2;
-			while ( mid > 0 && ref[index[mid - 1]] == ref[index[mid]] )
+			while ( mid > 0 && column.compare(index[mid - 1], index[mid]) == 0 )
 				--mid;
 			// insert child under parent
-			ptrdiff_t iprev = (cur.depth - 1) % data.ncols;
-			if ( data[{index[mid], iprev}] < data[{cur.parent, iprev}] )
+			vec<T> previous = table.col((cur.depth - 1) % table.ncols());
+			if ( previous.compare(index[mid], cur.parent) < 0 )
 				left[cur.parent] = index[mid];
 			else
 				right[cur.parent] = index[mid];
@@ -274,21 +274,22 @@ struct kdtree
 	// - Both tolerance and relative are per-dimension
 	// - Fill hits with indices up to hits.len
 	// - Return the count of hits
-	template<Vec Tol, Vec Rel>
+	template<Vec V, Vec Tol, Vec Rel>
 	size_t range_search(
 		vec<Index> hits,
-		const vec<T> query,
+		const V query,
 		const Tol tolerance,
-		const Rel relative) const
+		const Rel relative,
+		const Ref referent = Query) const
 	{
 		// invariants
-		assert(query.len == data.ncols);
-		assert(tolerance.ssize() == data.ncols);
-		assert(relative.ssize() == data.ncols);
+		assert(query.ssize() == table.ncols());
+		assert(tolerance.ssize() == table.ncols());
+		assert(relative.ssize() == table.ncols());
 		// initialize stack
 		ptrdiff_t top = -1;
 		struct frame { ptrdiff_t node, depth; };
-		auto stack = std::make_unique<frame[]>(max_depth(data.nrows));
+		auto stack = std::make_unique<frame[]>(max_depth(table.nrows()));
 		stack[++top] = { root, 0 };
 		// initialize hits
 		size_t count = 0;
@@ -298,8 +299,12 @@ struct kdtree
 		{
 			// pop node
 			frame cur = stack[top--];
-			ptrdiff_t i = cur.depth % data.ncols;
-			double ds = diff(query[i], data[{cur.node, i}], relative[i], Query);
+			ptrdiff_t i = cur.depth % table.ncols();
+			double ds = diff(
+				query[i], 
+				table[{cur.node, i}], 
+				relative[i], 
+				referent);
 			double du = std::fabs(ds);
 			// search left subtree?
 			if ( has_left(cur.node) && (ds < 0 || du <= tolerance[i]) )
@@ -308,7 +313,13 @@ struct kdtree
 			if ( has_right(cur.node) && (ds > 0 || du <= tolerance[i]) )
 				stack[++top] = { right[cur.node], cur.depth + 1 };
 			// is this a hit?
-			if ( near(query, data.row(cur.node), tolerance, relative, Query) )
+			bool is_hit = near(
+				query, 
+				table.row(cur.node), 
+				tolerance, 
+				relative, 
+				referent);
+			if ( is_hit )
 			{
 				if ( count < hits.len ) {
 					hits[count] = cur.node;
@@ -327,24 +338,26 @@ struct kdtree
 		return count;
 	}
 
-	template<Vec Tol, Vec Rel>
+	template<Vec V, Vec Tol, Vec Rel>
 	size_t range_count(
-		const vec<T> query,
+		const V query,
 		const Tol tolerance,
-		const Rel relative) const
+		const Rel relative,
+		const Ref referent = Query) const
 	{
 		return range_search(
 			vec<Index>{nullptr, 0, 0},
 			query,
 			tolerance,
-			relative);
+			relative,
+			referent);
 	}
 
 	#ifdef USING_R
 	static kdtree<Index,T> from(SEXP obj)
 	{
 		return {
-			.data = mat<T>::from(VECTOR_ELT(obj, 0)),
+			.table = mat<T>::from(VECTOR_ELT(obj, 0)),
 			.left = vec<Index>::from(VECTOR_ELT(obj, 1)),
 			.right = vec<Index>::from(VECTOR_ELT(obj, 2)),
 			.root = *data_ptr<Index>(VECTOR_ELT(obj, 3)),
@@ -356,25 +369,27 @@ struct kdtree
 template<Num Index, Num T, Vec Tol, Vec Rel>
 struct range_counts
 {
-	kdtree<Index,T> searcher;
+	kdtree<Index,T> tree;
 	vec<Index> counts;
 	mat<T> query;
 	Tol tolerance;
 	Rel relative;
+	Ref referent;
 
 	ptrdiff_t ssize() const
 	{
-		return query.nrows;
+		return query.nrows();
 	}
 
 	void operator()(bounds b)
 	{
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 		{
-			counts[i] = searcher.range_count(
+			counts[i] = tree.range_count(
 				query.row(i),
 				tolerance,
-				relative);
+				relative,
+				referent);
 		}
 	}
 };
@@ -382,26 +397,28 @@ struct range_counts
 template<Num Index, Num T, Vec Tol, Vec Rel>
 struct range_searches
 {
-	kdtree<Index,T> searcher;
+	kdtree<Index,T> tree;
 	rag<Index,Index> hits;
 	mat<T> query;
 	Tol tolerance;
 	Rel relative;
+	Ref referent;
 
 	ptrdiff_t ssize() const
 	{
-		return query.nrows;
+		return query.nrows();
 	}
 
 	void operator()(bounds b)
 	{
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 		{
-			searcher.range_search(
+			tree.range_search(
 				hits[i],
 				query.row(i),
 				tolerance,
-				relative);
+				relative,
+				referent);
 		}
 	}
 };

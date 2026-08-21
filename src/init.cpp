@@ -31,6 +31,7 @@ SEXP do_kdtree_range_search(
 	SEXP tree,
 	SEXP tolerance,
 	SEXP relative,
+	SEXP referent,
 	SEXP num_threads);
 
 //// Matrix statistics
@@ -54,7 +55,7 @@ static const R_CallMethodDef callMethods[] = {
 	// Search and nearest neighbors
 	CALLDEF(do_bsearch, 6),
 	CALLDEF(do_kdtree_build, 1),
-	CALLDEF(do_kdtree_range_search, 5),
+	CALLDEF(do_kdtree_range_search, 6),
 	// Matrix statistics
 	CALLDEF(do_col_sums, 2),
 	// Test expressions
