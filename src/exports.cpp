@@ -188,7 +188,7 @@ SEXP do_kdtree_range_search(
 {
 	SEXP table = VECTOR_ELT(tree, 0);
 	if ( TYPEOF(query) != TYPEOF(table) )
-		Rf_error("'query' and 'table' must have the same table type");
+		Rf_error("'query' and 'table' must have the same data type");
 	if ( Rf_ncols(query) != Rf_ncols(table) )
 		Rf_error("'query' and 'table' must have the same number of cols");
 	if ( LENGTH(tolerance) != Rf_ncols(table) )
@@ -272,6 +272,59 @@ SEXP do_kdtree_range_search(
 	SET_STRING_ELT(names, 2, Rf_mkChar("counts"));
 	Rf_setAttrib(hits, R_NamesSymbol, names);
 	UNPROTECT(5);
+	return hits;
+}
+
+SEXP do_kdtree_knn_search(
+	SEXP query,
+	SEXP tree,
+	SEXP k,
+	SEXP p,
+	SEXP num_threads)
+{
+	int K = Rf_asInteger(k);
+	SEXP table = VECTOR_ELT(tree, 0);
+	if ( TYPEOF(query) != TYPEOF(table) )
+		Rf_error("'query' and 'table' must have the same data type");
+	if ( Rf_ncols(query) != Rf_ncols(table) )
+		Rf_error("'query' and 'table' must have the same number of cols");
+	SEXP index = PROTECT(Rf_allocMatrix(INTSXP, Rf_nrows(query), K));
+	SEXP dists = PROTECT(Rf_allocMatrix(REALSXP, Rf_nrows(query), K));
+	switch(TYPEOF(query))
+	{
+		case INTSXP:
+			compute(
+				knn_searches{
+					kdtree<int,int>::from(tree),
+					r_mat<int>(index),
+					r_mat<double>(dists),
+					r_mat<int>(query),
+					static_cast<Norm>(Rf_asInteger(p)),
+				},
+				Rf_asInteger(num_threads));
+			break;
+		case REALSXP:
+			compute(
+				knn_searches{
+					kdtree<int,double>::from(tree),
+					r_mat<int>(index),
+					r_mat<double>(dists),
+					r_mat<double>(query),
+					static_cast<Norm>(Rf_asInteger(p)),
+				},
+				Rf_asInteger(num_threads));
+			break;
+	}
+	for ( ptrdiff_t j = 0; j < Rf_ncols(index); ++j )
+		r_mat<int>(index).col(j) += 1;
+	SEXP hits = PROTECT(Rf_allocVector(VECSXP, 2));
+	SEXP names = PROTECT(Rf_allocVector(STRSXP, 2));
+	SET_VECTOR_ELT(hits, 0, index);
+	SET_VECTOR_ELT(hits, 1, dists);
+	SET_STRING_ELT(names, 0, Rf_mkChar("index"));
+	SET_STRING_ELT(names, 1, Rf_mkChar("distance"));
+	Rf_setAttrib(hits, R_NamesSymbol, names);
+	UNPROTECT(4);
 	return hits;
 }
 

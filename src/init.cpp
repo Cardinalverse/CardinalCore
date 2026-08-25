@@ -33,6 +33,12 @@ SEXP do_kdtree_range_search(
 	SEXP relative,
 	SEXP referent,
 	SEXP num_threads);
+SEXP do_kdtree_knn_search(
+	SEXP query,
+	SEXP tree,
+	SEXP k,
+	SEXP p,
+	SEXP num_threads);
 
 //// Matrix statistics
 //---------------------
@@ -56,6 +62,7 @@ static const R_CallMethodDef callMethods[] = {
 	CALLDEF(do_bsearch, 6),
 	CALLDEF(do_kdtree_build, 1),
 	CALLDEF(do_kdtree_range_search, 6),
+	CALLDEF(do_kdtree_knn_search, 5),
 	// Matrix statistics
 	CALLDEF(do_col_sums, 2),
 	// Test expressions

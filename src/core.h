@@ -755,6 +755,16 @@ T reduce(const V x) noexcept {
 //--------------------
 // Universal functions with one vector
 
+// Coercion
+template<Num T, Vec V>
+constexpr Vec auto cast(V x) noexcept
+{
+	if constexpr ( std::same_as<T,typeof_vec<V>> )
+		return x;
+	else
+		return transform<Identity,T>(x);
+}
+
 // Math
 template<Vec V>
 constexpr Vec auto abs(V x) noexcept {

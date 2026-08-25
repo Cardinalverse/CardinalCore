@@ -3,8 +3,9 @@
 
 #include <memory>
 #include "core.h"
-#include "order.h"
 #include "kernels.h"
+#include "order.h"
+#include "dist.h"
 
 //// Utility
 //-----------
@@ -22,40 +23,40 @@ enum Ref {
 };
 
 // Compute signed absolute or relative difference
-template<Diff Method = Absolute, Num T = double>
-T diff(const T lhs, const T rhs) noexcept
+template<Diff Method = Absolute, Num L, Num R>
+double diff(const L lhs, const R rhs) noexcept
 {
 	if ( is_na(lhs) || is_na(rhs) )
-		return huge_positive_value<T>();
+		return huge_positive_value<double>();
+	double _lhs = coerce_cast<double>(lhs);
+	double _rhs = coerce_cast<double>(rhs);
 	if constexpr ( Method == Absolute )
-		return lhs - rhs;
+		return _lhs - _rhs;
 	else if constexpr ( Method == RefLhs )
-		return (lhs - rhs) / lhs;
+		return (_lhs - _rhs) / _lhs;
 	else if constexpr ( Method == RefRhs )
-		return (lhs - rhs) / rhs;
+		return (_lhs - _rhs) / _rhs;
 	else
-		static_assert(dependent_false<T>, "unsupported difference method");
+		static_assert(dependent_false<L>, "unsupported difference method");
 }
 
 // Compute signed absolute or relative difference
 // - Use relative comparison if relative=true
 // - For relative diff, referent determines the reference used
 template<Num T = double, Num L, Num R>
-T diff(
+double diff(
 	const L query_v,
 	const R table_v,
 	const bool relative,
 	const Ref referent = Query) noexcept
 {
-	T _query_v = coerce_cast<T>(query_v);
-	T _table_v = coerce_cast<T>(table_v);
 	if ( relative )
 		switch(referent) {
-			case Query: return diff<RefLhs>(_query_v, _table_v);
-			case Table: return diff<RefRhs>(_query_v, _table_v);
+			case Query: return diff<RefLhs>(query_v, table_v);
+			case Table: return diff<RefRhs>(query_v, table_v);
 		}
 	else
-		return diff<Absolute>(_query_v, _table_v);
+		return diff<Absolute>(query_v, table_v);
 }
 
 // Does x neighbor ref within some tolerance(s)?
@@ -308,10 +309,9 @@ struct kdtree
 		return root;
 	}
 
-	// Search for points within tolerance(s) of query
-	// - Both tolerance and relative are per-dimension
-	// - Fill hits with indices up to hits.len
-	// - Return the count of hits
+	// Apply Callable to indices of table within tolerance(s) of query
+	// - Both tolerance and relative parameters are per-dimension
+	// - Returns the count of hits
 	template<UnaryOp Callable, Vec V, Vec Tol, Vec Rel>
 	Index range_apply(
 		Callable f,
@@ -337,18 +337,13 @@ struct kdtree
 			// pop node
 			frame cur = stack[top--];
 			Index i = cur.depth % table.ncols();
+			// compute distances
 			double ds = diff(
 				query[i], 
 				table[{cur.node, i}], 
 				relative[i], 
 				referent);
 			double du = std::fabs(ds);
-			// search left subtree?
-			if ( has_left(cur.node) && (ds < 0 || du <= tolerance[i]) )
-				stack[++top] = { left[cur.node], cur.depth + 1 };
-			// search right subtree?
-			if ( has_right(cur.node) && (ds > 0 || du <= tolerance[i]) )
-				stack[++top] = { right[cur.node], cur.depth + 1 };
 			// is this a hit?
 			bool is_hit = near(
 				query, 
@@ -361,8 +356,80 @@ struct kdtree
 				f(cur.node);
 				++count;
 			}
+			// search left subtree?
+			if ( has_left(cur.node) && (ds < 0 || du <= tolerance[i]) )
+				stack[++top] = { left[cur.node], cur.depth + 1 };
+			// search right subtree?
+			if ( has_right(cur.node) && (ds > 0 || du <= tolerance[i]) )
+				stack[++top] = { right[cur.node], cur.depth + 1 };
 		}
 		return count;
+	}
+
+	// Find the K-nearest neighbors of a query in table
+	// - Fills index with hits
+	// - Fills dists with distances to hits
+	// - Results ordered according to distance
+	template<Vec V>
+	void find_knn(
+		vec<Index> index,
+		vec<double> dists,
+		const V query,
+		const int k,
+		const Norm p = L2) const
+	{
+		// invariants
+		assert(query.ssize() == table.ncols());
+		// initialize stack
+		Index top = -1;
+		struct frame { Index node, depth; };
+		auto stack = std::make_unique<frame[]>(max_depth(table.nrows()));
+		stack[++top] = { root, 0 };
+		// initialize KNN
+		index.fill_na();
+		dists.fill(huge_positive_value<double>());
+		// recursively search tree
+		while ( top >= 0 )
+		{
+			// pop node
+			frame cur = stack[top--];
+			Index i = cur.depth % table.ncols();
+			// compute distances
+			double ds = diff(query[i], table[{cur.node, i}]);
+			double du = std::fabs(ds);
+			double D = dist<double>(query, table.row(cur.node), p);
+			// is this a hit?
+			if ( D <= dists[k - 1] )
+			{
+				int j = k - 1;
+				// process strictly better nodes and/or ties
+				if ( D <= dists[j] || cur.node < index[j] )
+				{
+					index[j] = cur.node;
+					dists[j] = D;
+					// sort neighbor into place
+					while ( j > 0 && dists.compare(j, j - 1) <= 0 )
+					{
+						// break ties by index
+						if ( dists.compare(j, j - 1) < 0 
+							|| index.compare(j, j - 1) < 0 )
+						{
+							dists.swap(j, j - 1);
+							index.swap(j, j - 1);
+							--j;
+						}
+						else
+							break;
+					}
+				}
+			}
+			// search left subtree?
+			if ( has_left(cur.node) && (ds < 0 || du <= dists[k - 1]) )
+				stack[++top] = { left[cur.node], cur.depth + 1 };
+			// search right subtree?
+			if ( has_right(cur.node) && (ds > 0 || du <= dists[k - 1]) )
+				stack[++top] = { right[cur.node], cur.depth + 1 };
+		}
 	}
 
 	#ifdef USING_R
@@ -433,6 +500,34 @@ struct range_searches
 				relative,
 				referent);
 			qsort(hits.get(i));
+		}
+	}
+};
+
+template<Num Index, Num T>
+struct knn_searches
+{
+	kdtree<Index,T> tree;
+	mat<Index> hits;
+	mat<double> dists;
+	mat<T> query;
+	Norm p;
+
+	ptrdiff_t ssize() const
+	{
+		return query.nrows();
+	}
+
+	void operator()(bounds b, task ctx)
+	{
+		int k = hits.ncols();
+		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
+		{
+			tree.find_knn(
+				hits.row(i),
+				dists.row(i),
+				query.row(i),
+				k, p);
 		}
 	}
 };

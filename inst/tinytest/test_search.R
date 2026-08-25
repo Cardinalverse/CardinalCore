@@ -49,3 +49,8 @@ expect_equal(ks2a$index, c(1L, 11L, 14L))
 expect_equal(ks2b$index, c(2L, 5L, 6L, 8L))
 expect_equal(ks2c$index, c(ks2a$index, ks2b$index))
 
+# kdtree knn search
+knnsearch(c(2,3,3), d1, k=3)
+knnsearch(c(7,2,6), d1, k=3)
+knnsearch(rbind(c(2,3,3), c(7,2,6)), d1, k=3)
+

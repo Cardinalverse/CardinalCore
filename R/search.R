@@ -66,3 +66,29 @@ kdsearch <- function(
 		relative, referent, as.integer(num.threads))
 }
 
+knnsearch <- function(
+	query,
+	table,
+	k = 1,
+	metric = c("Euclidean", "Manhattan", "Maximum"),
+	num.threads = 1)
+{
+	if ( !inherits(table, "kdtree") )
+		table <- kdtree(table)
+	if ( is.null(dim(query)) ) {
+		query <- t(query)
+	} else {
+		query <- as.matrix(query)
+	}
+	if ( is.integer(query) && is.double(table$table) )
+		storage.mode(query) <- "double"
+	if ( is.double(query) && is.integer(table$table) )
+		storage.mode(table$table) <- "double"
+	if ( ncol(query) != ncol(table$table) )
+		stop("'query' must have the same number of columns as 'table'")
+	metric <- match.arg(metric)
+	metric <- c("Manhattan"=0L, "Euclidean"=1L, "Maximum"=2L)[metric]
+	.Call(C_do_kdtree_knn_search, query, table, k,
+		metric, as.integer(num.threads))
+}
+
