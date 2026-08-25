@@ -91,12 +91,12 @@ template<Num T>
 struct sink
 {
 	vec<T> out{};
-	ptrdiff_t counter = 0;
+	ptrdiff_t count = 0;
 
 	void operator()(T x) noexcept
 	{
-		if ( counter < out.len )
-			out[counter++] = x;
+		if ( count < out.len )
+			out[count++] = x;
 	}
 };
 
@@ -106,17 +106,17 @@ struct sink2
 {
 	vec<L> lout{};
 	vec<R> rout{};
-	ptrdiff_t counter = 0;
+	ptrdiff_t count = 0;
 
 	void operator()(L lhs, R rhs) noexcept
 	{
-		if ( counter < lout.len || counter < rout.len )
+		if ( count < lout.len || count < rout.len )
 		{
-			if ( counter < lout.len )
-				lout[counter] = lhs;
-			if ( counter < rout.len )
-				rout[counter] = rhs;
-			++counter;
+			if ( count < lout.len )
+				lout[count] = lhs;
+			if ( count < rout.len )
+				rout[count] = rhs;
+			++count;
 		}
 	}
 };
@@ -214,18 +214,18 @@ struct kdtree
 		return table.nrows();
 	}
 
-	bool has_left(ptrdiff_t node) const noexcept
+	bool has_left(Index node) const noexcept
 	{
 		return 0 <= left[node] && left[node] < table.nrows();
 	}
 
-	bool has_right(ptrdiff_t node) const noexcept
+	bool has_right(Index node) const noexcept
 	{
 		return 0 <= right[node] && right[node] < table.nrows();
 	}
 
 	// Build the tree and return the index of the root node
-	ptrdiff_t build()
+	Index build()
 	{
 		// invariants
 		assert(left.len == table.nrows());
@@ -240,14 +240,14 @@ struct kdtree
 		// find root from median of first dim
 		vec<T> column = table.col(0);
 		qsort_index(index.borrow(), column);
-		ptrdiff_t mid = table.nrows() / 2;
+		Index mid = table.nrows() / 2;
 		// handle duplicates and update root
 		while ( mid > 0 && column.compare(index[mid - 1], index[mid]) == 0 )
 			--mid;
 		root = index[mid];
 		// initialize stack
-		ptrdiff_t top = -1;
-		struct frame { ptrdiff_t parent, depth, start, stop; };
+		Index top = -1;
+		struct frame { Index parent, depth, start, stop; };
 		auto stack = std::make_unique<frame[]>(max_depth(table.nrows()));
 		// push initial left span to stack
 		if ( mid > 0 ) {
@@ -264,7 +264,7 @@ struct kdtree
 				.parent = root,
 				.depth = 1,
 				.start = mid + 1,
-				.stop = table.nrows(),
+				.stop = static_cast<Index>(table.nrows()),
 			};
 		}
 		// recursively build the tree
@@ -313,7 +313,7 @@ struct kdtree
 	// - Fill hits with indices up to hits.len
 	// - Return the count of hits
 	template<UnaryOp Callable, Vec V, Vec Tol, Vec Rel>
-	size_t range_apply(
+	Index range_apply(
 		Callable f,
 		const V query,
 		const Tol tolerance,
@@ -325,18 +325,18 @@ struct kdtree
 		assert(tolerance.ssize() == table.ncols());
 		assert(relative.ssize() == table.ncols());
 		// initialize stack
-		ptrdiff_t top = -1;
-		struct frame { ptrdiff_t node, depth; };
+		Index top = -1;
+		struct frame { Index node, depth; };
 		auto stack = std::make_unique<frame[]>(max_depth(table.nrows()));
 		stack[++top] = { root, 0 };
 		// initialize count of hits
-		size_t count = 0;
+		Index count = 0;
 		// recursively search tree
 		while ( top >= 0 )
 		{
 			// pop node
 			frame cur = stack[top--];
-			ptrdiff_t i = cur.depth % table.ncols();
+			Index i = cur.depth % table.ncols();
 			double ds = diff(
 				query[i], 
 				table[{cur.node, i}], 
