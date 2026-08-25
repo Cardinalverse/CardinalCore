@@ -1268,13 +1268,13 @@ struct mat
 	}
 };
 
-//// Ragged arrays
-//-----------------
+//// Arrays of Vecs
+//------------------
 // Vectors of different lenghts
 
-// A non-owning ragged array
+// A non-owning ragged array of packed vecs
 template<Num T, Num Offset>
-struct rag
+struct vecs_pack
 {
 	vec<T> x;
 	vec<Offset> offset;
@@ -1289,17 +1289,6 @@ struct rag
 		assert(0 <= i && i + 1 < offset.len);
 		return x.slice({offset[i], offset[i + 1]});
 	}
-
-	#ifdef USING_R
-	static rag<T,Offset> from(SEXP x, SEXP offset) noexcept
-	{
-		return {
-			.x = r_vec<T>(x),
-			.offset = r_vec<Offset>(offset),
-		};
-	}
-	#endif // USING_R
-
 };
 
 //// R compatibility
@@ -1366,6 +1355,17 @@ mat<T> r_mat(SEXP x) noexcept
 	{
 		return {nullptr, 0, 0, 0, 0};
 	}
+}
+#endif // USING_R
+
+#ifdef USING_R
+template<Num T, Num Offset>
+vecs_pack<T,Offset> r_vecs_pack(SEXP x, SEXP offset) noexcept
+{
+	return {
+		.x = r_vec<T>(x),
+		.offset = r_vec<Offset>(offset),
+	};
 }
 #endif // USING_R
 
