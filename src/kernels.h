@@ -209,8 +209,8 @@ void compute(F kernel, int nthreads = 1, int ntasks = 1)
 template<Mat M>
 struct col_sums
 {
-	vec<double> sums{};
-	M x{};
+	vec<double> sums;
+	M x;
 
 	ptrdiff_t ssize() const { return sums.len; }
 

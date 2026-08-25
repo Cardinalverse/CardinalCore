@@ -427,12 +427,12 @@ struct range_searches
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 		{
 			tree.range_apply(
-				sink<Index>{hits[i]},
+				sink<Index>{hits.get(i)},
 				query.row(i),
 				tolerance,
 				relative,
 				referent);
-			qsort(hits[i]);
+			qsort(hits.get(i));
 		}
 	}
 };

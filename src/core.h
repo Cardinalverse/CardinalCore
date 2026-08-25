@@ -1185,7 +1185,7 @@ struct vecs_pack
 		return offset.len - 1;
 	}
 
-	vec<T> operator[](ptrdiff_t i) const noexcept
+	vec<T> get(ptrdiff_t i) const noexcept
 	{
 		assert(0 <= i && i + 1 < offset.len);
 		return data.slice({offset[i], offset[i + 1]});
@@ -1204,7 +1204,7 @@ struct vecs_list
 		return lens.len;
 	}
 
-	vec<T> operator[](ptrdiff_t i) const noexcept
+	vec<T> get(ptrdiff_t i) const noexcept
 	{
 		assert(0 <= i && i < lens.len);
 		return {
