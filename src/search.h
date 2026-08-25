@@ -86,10 +86,11 @@ bool near(
 	return true;
 }
 
+// Sink unary input to an output vector
 template<Num T>
 struct sink
 {
-	vec<T> out;
+	vec<T> out{};
 	ptrdiff_t counter = 0;
 
 	void operator()(T x) noexcept
@@ -99,11 +100,12 @@ struct sink
 	}
 };
 
+// Sink binary input to two output vectors
 template<Num L, Num R>
 struct sink2
 {
-	vec<L> lout;
-	vec<R> rout;
+	vec<L> lout{};
+	vec<R> rout{};
 	ptrdiff_t counter = 0;
 
 	void operator()(L lhs, R rhs) noexcept
@@ -310,9 +312,9 @@ struct kdtree
 	// - Both tolerance and relative are per-dimension
 	// - Fill hits with indices up to hits.len
 	// - Return the count of hits
-	template<Vec V, Vec Tol, Vec Rel>
-	size_t range_search(
-		vec<Index> hits,
+	template<UnaryOp Callable, Vec V, Vec Tol, Vec Rel>
+	size_t range_apply(
+		Callable f,
 		const V query,
 		const Tol tolerance,
 		const Rel relative,
@@ -327,9 +329,8 @@ struct kdtree
 		struct frame { ptrdiff_t node, depth; };
 		auto stack = std::make_unique<frame[]>(max_depth(table.nrows()));
 		stack[++top] = { root, 0 };
-		// initialize hits
+		// initialize count of hits
 		size_t count = 0;
-		hits.fill_na();
 		// recursively search tree
 		while ( top >= 0 )
 		{
@@ -357,36 +358,11 @@ struct kdtree
 				referent);
 			if ( is_hit )
 			{
-				if ( count < hits.len ) {
-					hits[count] = cur.node;
-					// sort into index order
-					ptrdiff_t j = count;
-					while ( j > 0 )
-					{
-						if ( hits[j] < hits[j - 1] )
-							hits.swap(j, j - 1);
-						--j;
-					}
-				}
+				f(cur.node);
 				++count;
 			}
 		}
 		return count;
-	}
-
-	template<Vec V, Vec Tol, Vec Rel>
-	size_t range_count(
-		const V query,
-		const Tol tolerance,
-		const Rel relative,
-		const Ref referent = Query) const
-	{
-		return range_search(
-			vec<Index>{nullptr, 0, 0},
-			query,
-			tolerance,
-			relative,
-			referent);
 	}
 
 	#ifdef USING_R
@@ -421,7 +397,8 @@ struct range_counts
 	{
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 		{
-			counts[i] = tree.range_count(
+			counts[i] = tree.range_apply(
+				sink<Index>{},
 				query.row(i),
 				tolerance,
 				relative,
@@ -433,8 +410,8 @@ struct range_counts
 template<Num Index, Num T, Vec Tol, Vec Rel>
 struct range_searches
 {
-	kdtree<Index,T> tree;
 	rag<Index,Index> hits;
+	kdtree<Index,T> tree;
 	mat<T> query;
 	Tol tolerance;
 	Rel relative;
@@ -449,12 +426,13 @@ struct range_searches
 	{
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 		{
-			tree.range_search(
-				hits[i],
+			tree.range_apply(
+				sink<Index>{hits[i]},
 				query.row(i),
 				tolerance,
 				relative,
 				referent);
+			qsort(hits[i]);
 		}
 	}
 };
