@@ -4,15 +4,11 @@
 #include <memory>
 #include "core.h"
 #include "order.h"
+#include "kernels.h"
 
 //// Utility
 //-----------
 // Search utilities
-
-enum Ref {
-	Query, // Use search 'query' as ref (for relative diff)
-	Table, // Use search 'table' as ref (for relative diff)
-};
 
 enum Diff {
 	Absolute, // Absolute diff
@@ -20,18 +16,23 @@ enum Diff {
 	RefRhs,   // Relative diff using Rhs as ref
 };
 
+enum Ref {
+	Query, // Use search 'query' as ref (for relative diff)
+	Table, // Use search 'table' as ref (for relative diff)
+};
+
 // Compute signed absolute or relative difference
-template<Diff Method = Absolute, Num T = double, Num L, Num R>
-T diff(const L lhs, const R rhs) noexcept
+template<Diff Method = Absolute, Num T = double>
+T diff(const T lhs, const T rhs) noexcept
 {
 	if ( is_na(lhs) || is_na(rhs) )
 		return huge_positive_value<T>();
 	if constexpr ( Method == Absolute )
 		return lhs - rhs;
 	else if constexpr ( Method == RefLhs )
-		return coerce_cast<T>(lhs - rhs) / lhs;
+		return (lhs - rhs) / lhs;
 	else if constexpr ( Method == RefRhs )
-		return coerce_cast<T>(lhs - rhs) / rhs;
+		return (lhs - rhs) / rhs;
 	else
 		static_assert(dependent_false<T>, "unsupported difference method");
 }
@@ -46,20 +47,22 @@ T diff(
 	const bool relative,
 	const Ref referent = Query) noexcept
 {
+	T _query_v = coerce_cast<T>(query_v);
+	T _table_v = coerce_cast<T>(table_v);
 	if ( relative )
 		switch(referent) {
-			case Query: return diff<RefLhs,T>(query_v, table_v);
-			case Table: return diff<RefRhs,T>(query_v, table_v);
+			case Query: return diff<RefLhs>(_query_v, _table_v);
+			case Table: return diff<RefRhs>(_query_v, _table_v);
 		}
 	else
-		return diff<Absolute,T>(query_v, table_v);
+		return diff<Absolute>(_query_v, _table_v);
 }
 
 // Does x neighbor ref within some tolerance(s)?
 // - Tolerances and whether to use relative comparison are both per-dimension
 // - For dimensions using relative diff, reference determines reference used
 // - All dimensions using relative diff use the same referent
-template<Vec L, Vec R, Vec Tol, Vec Rel>
+template<Num T = double, Vec L, Vec R, Vec Tol, Vec Rel>
 bool near(
 	const L query_v,
 	const R table_v,
@@ -73,8 +76,8 @@ bool near(
 	for ( ptrdiff_t i = 0; i < query_v.ssize(); ++i )
 	{
 		double dx = diff(
-			query_v[i],
-			table_v[i],
+			coerce_cast<T>(query_v[i]),
+			coerce_cast<T>(table_v[i]),
 			coerce_cast<bool>(relative[i]),
 			referent);
 		if ( std::fabs(dx) > tolerance[i] )
@@ -381,7 +384,7 @@ struct range_counts
 		return query.nrows();
 	}
 
-	void operator()(bounds b)
+	void operator()(bounds b, task ctx)
 	{
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 		{
@@ -409,7 +412,7 @@ struct range_searches
 		return query.nrows();
 	}
 
-	void operator()(bounds b)
+	void operator()(bounds b, task ctx)
 	{
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 		{

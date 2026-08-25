@@ -128,6 +128,7 @@ constexpr T huge_negative_value()
 	else
 		return std::numeric_limits<T>::lowest();
 }
+
 // A RawPointer we can use in defining other concepts
 template<class T>
 concept RawPointer = std::is_pointer_v<std::remove_cvref_t<T>>;
