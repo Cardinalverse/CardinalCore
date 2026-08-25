@@ -369,9 +369,9 @@ struct kdtree
 	static kdtree<Index,T> from(SEXP obj)
 	{
 		return {
-			.table = mat<T>::from(VECTOR_ELT(obj, 0)),
-			.left = vec<Index>::from(VECTOR_ELT(obj, 1)),
-			.right = vec<Index>::from(VECTOR_ELT(obj, 2)),
+			.table = r_mat<T>(VECTOR_ELT(obj, 0)),
+			.left = r_vec<Index>(VECTOR_ELT(obj, 1)),
+			.right = r_vec<Index>(VECTOR_ELT(obj, 2)),
 			.root = *data_ptr<Index>(VECTOR_ELT(obj, 3)),
 		};
 	}

@@ -19,13 +19,13 @@ SEXP do_qorder(SEXP x)
 	{
 		case INTSXP:
 			qsort_index(
-				vec<int>::from(index).fill_seq(),
-				vec<int>::from(x));
+				r_vec<int>(index).fill_seq(),
+				r_vec<int>(x));
 			break;
 		case REALSXP:
 			qsort_index(
-				vec<int>::from(index).fill_seq(),
-				vec<double>::from(x));
+				r_vec<int>(index).fill_seq(),
+				r_vec<double>(x));
 			break;
 		default:
 			Rf_error("'x' must be integer or double");
@@ -44,14 +44,14 @@ SEXP do_qselect(SEXP x, SEXP k)
 		{
 			case INTSXP:
 				INTEGER(order)[i] = qselect_index(
-					vec<int>::from(index).fill_seq(),
-					vec<int>::from(x),
+					r_vec<int>(index).fill_seq(),
+					r_vec<int>(x),
 					INTEGER_ELT(k, i));
 				break;
 			case REALSXP:
 				REAL(order)[i] = qselect_index(
-					vec<int>::from(index).fill_seq(),
-					vec<double>::from(x),
+					r_vec<int>(index).fill_seq(),
+					r_vec<double>(x),
 					INTEGER_ELT(k, i));
 				break;
 			default:
@@ -68,10 +68,10 @@ SEXP do_qmedian(SEXP x)
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
-			median = qmedian(vec<int>::from(x));
+			median = qmedian(r_vec<int>(x));
 			break;
 		case REALSXP:
-			median = qmedian(vec<double>::from(x));
+			median = qmedian(r_vec<double>(x));
 			break;
 		default:
 			Rf_error("'x' must be integer or double");
@@ -86,13 +86,13 @@ SEXP do_qmad(SEXP x, SEXP center, SEXP constant)
 	{
 		case INTSXP:
 			mad = qmad(
-				vec<int>::from(x),
+				r_vec<int>(x),
 				Rf_asReal(center),
 				Rf_asReal(constant));
 			break;
 		case REALSXP:
 			mad = qmad(
-				vec<double>::from(x),
+				r_vec<double>(x),
 				Rf_asReal(center),
 				Rf_asReal(constant));
 			break;
@@ -120,9 +120,9 @@ SEXP do_bsearch(
 	{
 		case INTSXP:
 			bsearch(
-				vec<int>::from(index),
-				vec<int>::from(query),
-				vec<int>::from(table),
+				r_vec<int>(index),
+				r_vec<int>(query),
+				r_vec<int>(table),
 				Rf_asReal(tolerance),
 				Rf_asLogical(relative),
 				static_cast<Ref>(Rf_asInteger(referent)),
@@ -130,9 +130,9 @@ SEXP do_bsearch(
 			break;
 		case REALSXP:
 			bsearch(
-				vec<int>::from(index),
-				vec<double>::from(query),
-				vec<double>::from(table),
+				r_vec<int>(index),
+				r_vec<double>(query),
+				r_vec<double>(table),
 				Rf_asReal(tolerance),
 				Rf_asLogical(relative),
 				static_cast<Ref>(Rf_asInteger(referent)),
@@ -202,10 +202,10 @@ SEXP do_kdtree_range_search(
 			compute(
 				range_counts{
 					kdtree<int,int>::from(tree),
-					vec<int>::from(counts),
-					mat<int>::from(query),
-					vec<double>::from(tolerance),
-					vec<int>::from(relative),
+					r_vec<int>(counts),
+					r_mat<int>(query),
+					r_vec<double>(tolerance),
+					r_vec<int>(relative),
 					static_cast<Ref>(Rf_asInteger(referent)),
 				},
 				Rf_asInteger(num_threads));
@@ -214,10 +214,10 @@ SEXP do_kdtree_range_search(
 			compute(
 				range_counts{
 					kdtree<int,double>::from(tree),
-					vec<int>::from(counts),
-					mat<double>::from(query),
-					vec<double>::from(tolerance),
-					vec<int>::from(relative),
+					r_vec<int>(counts),
+					r_mat<double>(query),
+					r_vec<double>(tolerance),
+					r_vec<int>(relative),
 					static_cast<Ref>(Rf_asInteger(referent)),
 				},
 				Rf_asInteger(num_threads));
@@ -241,9 +241,9 @@ SEXP do_kdtree_range_search(
 				range_searches{
 					rag<int,int>::from(index, offset),
 					kdtree<int,int>::from(tree),
-					mat<int>::from(query),
-					vec<double>::from(tolerance),
-					vec<int>::from(relative),
+					r_mat<int>(query),
+					r_vec<double>(tolerance),
+					r_vec<int>(relative),
 					static_cast<Ref>(Rf_asInteger(referent)),
 				},
 				Rf_asInteger(num_threads));
@@ -253,15 +253,15 @@ SEXP do_kdtree_range_search(
 				range_searches{
 					rag<int,int>::from(index, offset),
 					kdtree<int,double>::from(tree),
-					mat<double>::from(query),
-					vec<double>::from(tolerance),
-					vec<int>::from(relative),
+					r_mat<double>(query),
+					r_vec<double>(tolerance),
+					r_vec<int>(relative),
 					static_cast<Ref>(Rf_asInteger(referent)),
 				},
 				Rf_asInteger(num_threads));
 			break;
 	}
-	vec<int>::from(index) += 1;
+	r_vec<int>(index) += 1;
 	SEXP hits = PROTECT(Rf_allocVector(VECSXP, 3));
 	SEXP names = PROTECT(Rf_allocVector(STRSXP, 3));
 	SET_VECTOR_ELT(hits, 0, index);
@@ -287,8 +287,8 @@ SEXP do_col_sums(SEXP x, SEXP num_threads)
 		{
 			compute(
 				col_sums{
-					vec<double>::from(sums).fill(0),
-					mat<int>::from(x)},
+					r_vec<double>(sums).fill(0),
+					r_mat<int>(x)},
 				Rf_asInteger(num_threads));
 			break;
 		}
@@ -296,8 +296,8 @@ SEXP do_col_sums(SEXP x, SEXP num_threads)
 		{
 			compute(
 				col_sums{
-					vec<double>::from(sums).fill(0),
-					mat<double>::from(x)},
+					r_vec<double>(sums).fill(0),
+					r_mat<double>(x)},
 				Rf_asInteger(num_threads));
 			break;
 		}
@@ -317,17 +317,17 @@ SEXP do_test_expression(SEXP x, SEXP index)
 		case INTSXP:
 		{
 			test_expression(
-				vec<int>::from(result),
-				vec<int>::from(x),
-				vec<int>::from(index));
+				r_vec<int>(result),
+				r_vec<int>(x),
+				r_vec<int>(index));
 			break;
 		}
 		case REALSXP:
 		{
 			test_expression(
-				vec<double>::from(result),
-				vec<double>::from(x),
-				vec<int>::from(index));
+				r_vec<double>(result),
+				r_vec<double>(x),
+				r_vec<int>(index));
 			break;
 		}
 	}

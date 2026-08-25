@@ -187,20 +187,6 @@ constexpr bool is_na(const T x) noexcept
 		return false;
 }
 
-// R NAs
-#ifdef USING_R
-template<>
-struct num_traits<int> {
-	static int na_value() noexcept { return NA_INTEGER; }
-	static bool is_na(const int x) noexcept { return x == NA_INTEGER; }
-};
-template<>
-struct num_traits<double> {
-	static double na_value() noexcept { return NA_REAL; }
-	static bool is_na(const double x) noexcept { return std::isnan(x); }
-};
-#endif // USING_R
-
 // Count of invalid/missing/NA items in x
 template<Vec V>
 ptrdiff_t n_missing(V x) noexcept
@@ -232,19 +218,6 @@ constexpr Out coerce_cast(In x) noexcept
 			return static_cast<Out>(x);
 	}
 }
-
-//// Data Pointer
-//----------------
-// Get a mutable data pointer from a managed object
-
-#ifdef USING_R
-template<class T>
-T * data_ptr(SEXP x) noexcept;
-template<>
-inline int * data_ptr<int>(SEXP x) noexcept { return INTEGER(x); }
-template<>
-inline double * data_ptr<double>(SEXP x) noexcept { return REAL(x); }
-#endif // USING_R
 
 //// Unary operations
 //--------------------
@@ -1167,24 +1140,6 @@ struct vec
 			.stride = stride,
 		};
 	}
-	
-	#ifdef USING_R
-	static vec<T> from(SEXP x) noexcept
-	{
-		if ( x != R_NilValue )
-		{
-			return {
-				.ptr = data_ptr<T>(x),
-				.len = static_cast<ptrdiff_t>(XLENGTH(x)),
-				.stride = 1,
-			};
-		}
-		else
-		{
-			return {nullptr, 0, 0};
-		}
-	}
-	#endif // USING_R
 };
 
 // An locally-scoped owning vector
@@ -1311,26 +1266,6 @@ struct mat
 			.col_stride = col_stride,
 		};
 	}
-
-	#ifdef USING_R
-	static mat<T> from(SEXP x) noexcept
-	{
-		if ( x != R_NilValue )
-		{
-			return {
-				.ptr = data_ptr<T>(x),
-				.nr = static_cast<ptrdiff_t>(Rf_nrows(x)),
-				.nc = static_cast<ptrdiff_t>(Rf_ncols(x)),
-				.row_stride = 1,
-				.col_stride = Rf_nrows(x),
-			};
-		}
-		else
-		{
-			return {nullptr, 0, 0, 0, 0};
-		}
-	}
-	#endif // USING_R
 };
 
 //// Ragged arrays
@@ -1359,12 +1294,79 @@ struct rag
 	static rag<T,Offset> from(SEXP x, SEXP offset) noexcept
 	{
 		return {
-			.x = vec<T>::from(x),
-			.offset = vec<Offset>::from(offset),
+			.x = r_vec<T>(x),
+			.offset = r_vec<Offset>(offset),
 		};
 	}
 	#endif // USING_R
 
 };
+
+//// R compatibility
+//-------------------
+
+// SEXP data pointers
+#ifdef USING_R
+template<class T>
+T * data_ptr(SEXP x) noexcept;
+template<>
+inline int * data_ptr<int>(SEXP x) noexcept { return INTEGER(x); }
+template<>
+inline double * data_ptr<double>(SEXP x) noexcept { return REAL(x); }
+#endif // USING_R
+
+// R NAs
+#ifdef USING_R
+template<>
+struct num_traits<int> {
+	static int na_value() noexcept { return NA_INTEGER; }
+	static bool is_na(const int x) noexcept { return x == NA_INTEGER; }
+};
+template<>
+struct num_traits<double> {
+	static double na_value() noexcept { return NA_REAL; }
+	static bool is_na(const double x) noexcept { return std::isnan(x); }
+};
+#endif // USING_R
+
+#ifdef USING_R
+template<Num T>
+vec<T> r_vec(SEXP x) noexcept
+{
+	if ( x != R_NilValue )
+	{
+		return {
+			.ptr = data_ptr<T>(x),
+			.len = static_cast<ptrdiff_t>(XLENGTH(x)),
+			.stride = 1,
+		};
+	}
+	else
+	{
+		return {nullptr, 0, 0};
+	}
+}
+#endif // USING_R
+
+#ifdef USING_R
+template<Num T>
+mat<T> r_mat(SEXP x) noexcept
+{
+	if ( x != R_NilValue )
+	{
+		return {
+			.ptr = data_ptr<T>(x),
+			.nr = static_cast<ptrdiff_t>(Rf_nrows(x)),
+			.nc = static_cast<ptrdiff_t>(Rf_ncols(x)),
+			.row_stride = 1,
+			.col_stride = Rf_nrows(x),
+		};
+	}
+	else
+	{
+		return {nullptr, 0, 0, 0, 0};
+	}
+}
+#endif // USING_R
 
 #endif // CARDINAL_CORE_CORE
