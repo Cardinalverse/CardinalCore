@@ -86,6 +86,39 @@ bool near(
 	return true;
 }
 
+template<Num T>
+struct sink
+{
+	vec<T> out;
+	ptrdiff_t counter = 0;
+
+	void operator()(T x) noexcept
+	{
+		if ( counter < out.len )
+			out[counter++] = x;
+	}
+};
+
+template<Num L, Num R>
+struct sink2
+{
+	vec<L> lout;
+	vec<R> rout;
+	ptrdiff_t counter = 0;
+
+	void operator()(L lhs, R rhs) noexcept
+	{
+		if ( counter < lout.len || counter < rout.len )
+		{
+			if ( counter < lout.len )
+				lout[counter] = lhs;
+			if ( counter < rout.len )
+				rout[counter] = rhs;
+			++counter;
+		}
+	}
+};
+
 //// Binary search
 //-----------------
 

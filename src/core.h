@@ -982,9 +982,9 @@ constexpr Vec auto operator|(L lhs, R rhs) noexcept {
 template<Num T>
 struct vec
 {
-	T * ptr;
-	ptrdiff_t len;
-	ptrdiff_t stride;
+	T * ptr = nullptr;
+	ptrdiff_t len = 0;
+	ptrdiff_t stride = 0;
 
 	ptrdiff_t ssize() const noexcept { return len; }
 
@@ -1224,11 +1224,11 @@ struct local_vec : vec<T>
 template<Num T, Dim Order = Cols>
 struct mat
 {
-	T * ptr;
-	ptrdiff_t nr;
-	ptrdiff_t nc;
-	ptrdiff_t row_stride;
-	ptrdiff_t col_stride;
+	T * ptr = nullptr;
+	ptrdiff_t nr = 0;
+	ptrdiff_t nc = 0;
+	ptrdiff_t row_stride = 0;
+	ptrdiff_t col_stride = 0;
 
 	ptrdiff_t ssize() const noexcept { return nr * nc; }
 	ptrdiff_t nrows() const noexcept { return nr ; }
