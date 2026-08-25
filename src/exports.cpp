@@ -239,8 +239,8 @@ SEXP do_kdtree_range_search(
 		case INTSXP:
 			compute(
 				range_searches{
-					r_vecs_pack<int,int>(index, offset),
 					kdtree<int,int>::from(tree),
+					r_vecs_pack<int,int>(index, offset),
 					r_mat<int>(query),
 					r_vec<double>(tolerance),
 					r_vec<int>(relative),
@@ -251,8 +251,8 @@ SEXP do_kdtree_range_search(
 		case REALSXP:
 			compute(
 				range_searches{
-					r_vecs_pack<int,int>(index, offset),
 					kdtree<int,double>::from(tree),
+					r_vecs_pack<int,int>(index, offset),
 					r_mat<double>(query),
 					r_vec<double>(tolerance),
 					r_vec<int>(relative),

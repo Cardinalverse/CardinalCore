@@ -410,8 +410,8 @@ struct range_counts
 template<Num Index, Num T, Vec Tol, Vec Rel>
 struct range_searches
 {
-	vecs_pack<Index,Index> hits;
 	kdtree<Index,T> tree;
+	vecs_pack<Index,Index> hits;
 	mat<T> query;
 	Tol tolerance;
 	Rel relative;

@@ -1169,6 +1169,52 @@ struct local_vec : vec<T>
 	}
 };
 
+//// Arrays of vectors
+//--------------------
+// Containers for vectors of different lengths
+
+// A non-owning array of contiguous vecs
+template<Num T, Num Offset>
+struct vecs_pack
+{
+	vec<T> data;
+	vec<Offset> offset;
+
+	ptrdiff_t ssize() const noexcept
+	{
+		return offset.len - 1;
+	}
+
+	vec<T> operator[](ptrdiff_t i) const noexcept
+	{
+		assert(0 <= i && i + 1 < offset.len);
+		return data.slice({offset[i], offset[i + 1]});
+	}
+};
+
+// A non-owning array of fragmented vecs
+template<Num T, Num Length>
+struct vecs_list
+{
+	T ** ptrs;
+	vec<Length> lens;
+
+	ptrdiff_t ssize() const noexcept
+	{
+		return lens.len;
+	}
+
+	vec<T> operator[](ptrdiff_t i) const noexcept
+	{
+		assert(0 <= i && i < lens.len);
+		return {
+			.ptr = ptrs[i],
+			.len = lens[i],
+			.stride = 1,
+		};
+	}
+};
+
 //// Matrices
 //------------
 // 2D array operations
@@ -1268,29 +1314,6 @@ struct mat
 	}
 };
 
-//// Arrays of Vecs
-//------------------
-// Vectors of different lenghts
-
-// A non-owning ragged array of packed vecs
-template<Num T, Num Offset>
-struct vecs_pack
-{
-	vec<T> x;
-	vec<Offset> offset;
-
-	ptrdiff_t ssize() const noexcept
-	{
-		return offset.len - 1;
-	}
-
-	vec<T> operator[](ptrdiff_t i) const noexcept
-	{
-		assert(0 <= i && i + 1 < offset.len);
-		return x.slice({offset[i], offset[i + 1]});
-	}
-};
-
 //// R compatibility
 //-------------------
 
@@ -1360,10 +1383,10 @@ mat<T> r_mat(SEXP x) noexcept
 
 #ifdef USING_R
 template<Num T, Num Offset>
-vecs_pack<T,Offset> r_vecs_pack(SEXP x, SEXP offset) noexcept
+vecs_pack<T,Offset> r_vecs_pack(SEXP data, SEXP offset) noexcept
 {
 	return {
-		.x = r_vec<T>(x),
+		.data = r_vec<T>(data),
 		.offset = r_vec<Offset>(offset),
 	};
 }
