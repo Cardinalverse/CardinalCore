@@ -366,26 +366,28 @@ struct kdtree
 		return count;
 	}
 
-	// Find the K-nearest neighbors of a query in table
+	// Find the nearest neighbors of a query in table
+	// - KNN where K is the index.ssize() == dists.ssize()
 	// - Fills index with hits
 	// - Fills dists with distances to hits
 	// - Results ordered according to distance
 	template<Vec V>
-	void find_knn(
+	void find_neighbors(
 		vec<Index> index,
 		vec<double> dists,
 		const V query,
-		const int k,
 		const Norm p = L2) const
 	{
 		// invariants
 		assert(query.ssize() == table.ncols());
+		assert(index.ssize() == dists.ssize());
 		// initialize stack
 		Index top = -1;
 		struct frame { Index node, depth; };
 		auto stack = std::make_unique<frame[]>(max_depth(table.nrows()));
 		stack[++top] = { root, 0 };
 		// initialize KNN
+		Index k = index.ssize();
 		index.fill_na();
 		dists.fill(huge_positive_value<double>());
 		// recursively search tree
@@ -401,7 +403,7 @@ struct kdtree
 			// is this a hit?
 			if ( D <= dists[k - 1] )
 			{
-				int j = k - 1;
+				Index j = k - 1;
 				// process strictly better nodes and/or ties
 				if ( D <= dists[j] || cur.node < index[j] )
 				{
@@ -478,7 +480,7 @@ template<Num Index, Num T, Vec Tol, Vec Rel>
 struct range_searches
 {
 	kdtree<Index,T> tree;
-	vecs_pack<Index,Index> hits;
+	vecs_pack<Index,Index> index;
 	mat<T> query;
 	Tol tolerance;
 	Rel relative;
@@ -494,12 +496,12 @@ struct range_searches
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 		{
 			tree.range_apply(
-				sink<Index>{hits.get(i)},
+				sink<Index>{index.get(i)},
 				query.row(i),
 				tolerance,
 				relative,
 				referent);
-			qsort(hits.get(i));
+			qsort(index.get(i));
 		}
 	}
 };
@@ -508,8 +510,8 @@ template<Num Index, Num T>
 struct knn_searches
 {
 	kdtree<Index,T> tree;
-	mat<Index> hits;
-	mat<double> dists;
+	vecs_pack<Index,Index> index;
+	vecs_pack<double,Index> dists;
 	mat<T> query;
 	Norm p;
 
@@ -520,14 +522,13 @@ struct knn_searches
 
 	void operator()(bounds b, task ctx)
 	{
-		int k = hits.ncols();
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 		{
-			tree.find_knn(
-				hits.row(i),
-				dists.row(i),
+			tree.find_neighbors(
+				index.get(i),
+				dists.get(i),
 				query.row(i),
-				k, p);
+				p);
 		}
 	}
 };

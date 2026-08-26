@@ -31,7 +31,7 @@ auto norm(V x) noexcept
 template<Num T = double, Vec L, Vec R>
 T dist(L lhs, R rhs, Norm p = L2) noexcept
 {
-	auto d = cast<T>(lhs) - cast<T>(rhs);
+	auto d = coerce<T>(lhs) - coerce<T>(rhs);
 	switch(p) {
 		case L1: return norm<L1>(d);
 		case L2: return norm<L2>(d);

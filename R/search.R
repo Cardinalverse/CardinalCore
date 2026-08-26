@@ -69,7 +69,7 @@ kdsearch <- function(
 knnsearch <- function(
 	query,
 	table,
-	k = 1,
+	k = 1L,
 	metric = c("Euclidean", "Manhattan", "Maximum"),
 	num.threads = 1)
 {
@@ -86,6 +86,7 @@ knnsearch <- function(
 		storage.mode(table$table) <- "double"
 	if ( ncol(query) != ncol(table$table) )
 		stop("'query' must have the same number of columns as 'table'")
+	k <- rep_len(as.integer(k), nrow(query))
 	metric <- match.arg(metric)
 	metric <- c("Manhattan"=0L, "Euclidean"=1L, "Maximum"=2L)[metric]
 	.Call(C_do_kdtree_knn_search, query, table, k,

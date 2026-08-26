@@ -226,8 +226,7 @@ SEXP do_kdtree_range_search(
 	SEXP offset = PROTECT(Rf_allocVector(INTSXP, 1 + XLENGTH(counts)));
 	int * poffset = INTEGER(offset);
 	int * pcounts = INTEGER(counts);
-	for ( ptrdiff_t i = 0; i < XLENGTH(offset); ++i )
-	{
+	for ( ptrdiff_t i = 0; i < XLENGTH(offset); ++i ) {
 		if ( i == 0 )
 			poffset[i] = 0;
 		else
@@ -282,22 +281,30 @@ SEXP do_kdtree_knn_search(
 	SEXP p,
 	SEXP num_threads)
 {
-	int K = Rf_asInteger(k);
 	SEXP table = VECTOR_ELT(tree, 0);
 	if ( TYPEOF(query) != TYPEOF(table) )
 		Rf_error("'query' and 'table' must have the same data type");
 	if ( Rf_ncols(query) != Rf_ncols(table) )
 		Rf_error("'query' and 'table' must have the same number of cols");
-	SEXP index = PROTECT(Rf_allocMatrix(INTSXP, Rf_nrows(query), K));
-	SEXP dists = PROTECT(Rf_allocMatrix(REALSXP, Rf_nrows(query), K));
+	SEXP offset = PROTECT(Rf_allocVector(INTSXP, 1 + XLENGTH(k)));
+	int * poffset = INTEGER(offset);
+	int * pcounts = INTEGER(k);
+	for ( ptrdiff_t i = 0; i < XLENGTH(offset); ++i ) {
+		if ( i == 0 )
+			poffset[i] = 0;
+		else
+			poffset[i] = poffset[i - 1] + pcounts[i - 1];
+	}
+	SEXP index = PROTECT(Rf_allocVector(INTSXP, poffset[XLENGTH(k)]));
+	SEXP dists = PROTECT(Rf_allocVector(REALSXP, poffset[XLENGTH(k)]));
 	switch(TYPEOF(query))
 	{
 		case INTSXP:
 			compute(
 				knn_searches{
 					kdtree<int,int>::from(tree),
-					r_mat<int>(index),
-					r_mat<double>(dists),
+					r_vecs_pack<int,int>(index, offset),
+					r_vecs_pack<double,int>(dists, offset),
 					r_mat<int>(query),
 					static_cast<Norm>(Rf_asInteger(p)),
 				},
@@ -307,24 +314,27 @@ SEXP do_kdtree_knn_search(
 			compute(
 				knn_searches{
 					kdtree<int,double>::from(tree),
-					r_mat<int>(index),
-					r_mat<double>(dists),
+					r_vecs_pack<int,int>(index, offset),
+					r_vecs_pack<double,int>(dists, offset),
 					r_mat<double>(query),
 					static_cast<Norm>(Rf_asInteger(p)),
 				},
 				Rf_asInteger(num_threads));
 			break;
 	}
-	for ( ptrdiff_t j = 0; j < Rf_ncols(index); ++j )
-		r_mat<int>(index).col(j) += 1;
-	SEXP hits = PROTECT(Rf_allocVector(VECSXP, 2));
-	SEXP names = PROTECT(Rf_allocVector(STRSXP, 2));
+	r_vec<int>(index) += 1;
+	SEXP hits = PROTECT(Rf_allocVector(VECSXP, 4));
+	SEXP names = PROTECT(Rf_allocVector(STRSXP, 4));
 	SET_VECTOR_ELT(hits, 0, index);
 	SET_VECTOR_ELT(hits, 1, dists);
+	SET_VECTOR_ELT(hits, 2, offset);
+	SET_VECTOR_ELT(hits, 3, k);
 	SET_STRING_ELT(names, 0, Rf_mkChar("index"));
 	SET_STRING_ELT(names, 1, Rf_mkChar("distance"));
+	SET_STRING_ELT(names, 2, Rf_mkChar("offset"));
+	SET_STRING_ELT(names, 3, Rf_mkChar("counts"));
 	Rf_setAttrib(hits, R_NamesSymbol, names);
-	UNPROTECT(4);
+	UNPROTECT(5);
 	return hits;
 }
 

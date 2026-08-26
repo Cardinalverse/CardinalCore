@@ -757,7 +757,7 @@ T reduce(const V x) noexcept {
 
 // Coercion
 template<Num T, Vec V>
-constexpr Vec auto cast(V x) noexcept
+constexpr Vec auto coerce(V x) noexcept
 {
 	if constexpr ( std::same_as<T,typeof_vec<V>> )
 		return x;
