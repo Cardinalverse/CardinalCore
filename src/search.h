@@ -101,27 +101,6 @@ struct sink
 	}
 };
 
-// Sink binary input to two output vectors
-template<Num L, Num R>
-struct sink2
-{
-	vec<L> lout{};
-	vec<R> rout{};
-	ptrdiff_t count = 0;
-
-	void operator()(L lhs, R rhs) noexcept
-	{
-		if ( count < lout.len || count < rout.len )
-		{
-			if ( count < lout.len )
-				lout[count] = lhs;
-			if ( count < rout.len )
-				rout[count] = rhs;
-			++count;
-		}
-	}
-};
-
 //// Binary search
 //-----------------
 
@@ -164,7 +143,7 @@ Index bsearch(
 }
 
 // Binary search for multiple queries in ref
-// - Values of ref MUST be sorted (duplicated are accepted)
+// - Values of table MUST be sorted (duplicated are accepted)
 // - Differences <= tolerance are considered matches
 // - Default nomatch chosen so nomatch << 0 for signed types
 template<Num Index = ptrdiff_t, Vec L, Vec R>
@@ -190,6 +169,78 @@ void bsearch(
 				relative, 
 				referent,
 				nomatch);
+		}
+	}
+}
+
+// Ranged binary search for query in table
+// - Values of table MUST be sorted (duplicates are ok)
+// - Differences <= tolerance are considered matches
+// - If relative == true, then referent determines the reference
+// - Returns bounds [start, stop) range of matches
+template<Num Index = ptrdiff_t, Num T, Vec V>
+bounds rsearch(
+	const T query,
+	const V table,
+	const double tolerance = 0,
+	const bool relative = false,
+	const Ref referent = Query,
+	const Index nomatch = na_value<Index>())
+{
+	Index i = bsearch(query, table, tolerance, relative, referent, nomatch);
+	if ( 0 <= i && i < table.ssize() )
+	{
+		Index lo = i;
+		while ( 0 < lo && lo < table.ssize() - 1 && 
+			std::fabs(diff(query, table[lo - 1], relative, referent)) <= tolerance )
+		{
+			--lo;
+		}
+		Index hi = i;
+		while ( 0 < hi && hi < table.ssize() - 1 &&
+			std::fabs(diff(query, table[hi + 1], relative, referent)) <= tolerance )
+		{
+			++hi;
+		}
+		return {lo, hi + 1};
+	}
+	else
+		return {nomatch, nomatch};
+}
+
+// Ranged binary search for multiple queries in ref
+// - Values of table MUST be sorted (duplicated are accepted)
+// - Differences <= tolerance are considered matches
+// - Default nomatch chosen so nomatch << 0 for signed types
+template<Num Index = ptrdiff_t, Vec L, Vec R>
+void rsearch(
+	vec<Index> start,
+	vec<Index> stop,
+	const L query,
+	const R table,
+	const double tolerance = 0,
+	const bool relative = false,
+	const Ref referent = Query,
+	const Index nomatch = na_value<Index>())
+{
+	for ( ptrdiff_t i = 0; i < query.len; ++i )
+	{
+		if ( is_na(query[i]) )
+		{
+			start[i] = nomatch;
+			stop[i] = nomatch;
+		}
+		else
+		{
+			bounds b = rsearch(
+				query[i], 
+				table, 
+				tolerance, 
+				relative, 
+				referent,
+				nomatch);
+			start[i] = b.start;
+			stop[i] = b.stop;
 		}
 	}
 }

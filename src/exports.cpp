@@ -106,11 +106,11 @@ SEXP do_qmad(SEXP x, SEXP center, SEXP constant)
 //-------------------------------
 
 SEXP do_bsearch(
-	SEXP query, 
-	SEXP table, 
-	SEXP tolerance, 
-	SEXP relative, 
-	SEXP referent, 
+	SEXP query,
+	SEXP table,
+	SEXP tolerance,
+	SEXP relative,
+	SEXP referent,
 	SEXP nomatch)
 {
 	if ( TYPEOF(query) != TYPEOF(table) )
@@ -141,8 +141,59 @@ SEXP do_bsearch(
 		default:
 			Rf_error("'query' and 'table' must be integer or double");
 	}
+	r_vec<int>(index) += 1;
 	UNPROTECT(1);
 	return index;
+}
+
+SEXP do_rsearch(
+	SEXP query,
+	SEXP table,
+	SEXP tolerance,
+	SEXP relative,
+	SEXP referent,
+	SEXP nomatch)
+{
+	if ( TYPEOF(query) != TYPEOF(table) )
+		Rf_error("'query' and 'table' must have the same data type");
+	SEXP ends = PROTECT(Rf_allocMatrix(INTSXP, LENGTH(query), 2));
+	switch(TYPEOF(table))
+	{
+		case INTSXP:
+			rsearch(
+				r_mat<int>(ends).col(0),
+				r_mat<int>(ends).col(1),
+				r_vec<int>(query),
+				r_vec<int>(table),
+				Rf_asReal(tolerance),
+				Rf_asLogical(relative),
+				static_cast<Ref>(Rf_asInteger(referent)),
+				Rf_asInteger(nomatch));
+			break;
+		case REALSXP:
+			rsearch(
+				r_mat<int>(ends).col(0),
+				r_mat<int>(ends).col(1),
+				r_vec<double>(query),
+				r_vec<double>(table),
+				Rf_asReal(tolerance),
+				Rf_asLogical(relative),
+				static_cast<Ref>(Rf_asInteger(referent)),
+				Rf_asInteger(nomatch));
+			break;
+		default:
+			Rf_error("'query' and 'table' must be integer or double");
+	}
+	r_mat<int>(ends).col(0) += 1;
+	SEXP colnames = PROTECT(Rf_allocVector(STRSXP, 2));
+	SET_STRING_ELT(colnames, 0, Rf_mkChar("start"));
+	SET_STRING_ELT(colnames, 1, Rf_mkChar("end"));
+	SEXP dimnames = PROTECT(Rf_allocVector(VECSXP, 2));
+	SET_VECTOR_ELT(dimnames, 0, R_NilValue);
+	SET_VECTOR_ELT(dimnames, 1, colnames);
+	Rf_setAttrib(ends, R_DimNamesSymbol, dimnames);
+	UNPROTECT(3);
+	return ends;
 }
 
 SEXP do_kdtree_build(SEXP table)

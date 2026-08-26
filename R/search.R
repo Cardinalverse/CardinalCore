@@ -19,7 +19,27 @@ bsearch <- function(
 	relative <- isTRUE(relative)
 	referent <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
 	.Call(C_do_bsearch, query, table, as.double(tolerance),
-		relative, referent, as.integer(nomatch)) + 1L
+		relative, referent, as.integer(nomatch))
+}
+
+rsearch <- function(
+	query,
+	table,
+	tolerance = 0,
+	relative = !missing(relative_to),
+	relative_to = c("query", "table"),
+	nomatch = NA_integer_)
+{
+	if ( is.double(query) && is.integer(table) )
+		table <- as.double(table)
+	if ( is.integer(query) && is.double(table) )
+		query <- as.double(query)
+	if ( is.unsorted(table) )
+		stop("'table' must be sorted")
+	relative <- isTRUE(relative)
+	referent <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
+	.Call(C_do_rsearch, query, table, as.double(tolerance),
+		relative, referent, as.integer(nomatch))
 }
 
 kdtree <- function(table)
