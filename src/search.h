@@ -366,13 +366,49 @@ struct kdtree
 		return count;
 	}
 
-	// Find the nearest neighbors of a query in table
-	// - KNN where K is the index.ssize() == dists.ssize()
+	// Get count of rows in table within tolerance of query
+	template<Vec V, Vec Tol, Vec Rel>
+	Index range_count(
+		const V query,
+		const Tol tolerance,
+		const Rel relative,
+		const Ref referent = Query) const
+	{
+		return range_apply(
+			sink<Index>{},
+			query,
+			tolerance,
+			relative,
+			referent);
+	}
+
+	// Find indices of rows in table within tolerance of query
+	// - Fills index with hits (up to index.len)
+	// - Results ordering is arbitary
+	// - Returns count of hits (may be > index.len)
+	template<Vec V, Vec Tol, Vec Rel>
+	Index range_search(
+		vec<Index> index,
+		const V query,
+		const Tol tolerance,
+		const Rel relative,
+		const Ref referent = Query) const
+	{
+		return range_apply(
+			sink<Index>{index},
+			query,
+			tolerance,
+			relative,
+			referent);
+	}
+
+	// Find indices of the K-nearest neighbors of a query in table
+	// - Where K == index.len == dists.len
 	// - Fills index with hits
 	// - Fills dists with distances to hits
 	// - Results ordered according to distance
 	template<Vec V>
-	void find_neighbors(
+	void knn_search(
 		vec<Index> index,
 		vec<double> dists,
 		const V query,
@@ -447,6 +483,7 @@ struct kdtree
 	#endif // USING_R
 };
 
+// Range count kernel
 template<Num Index, Num T, Vec Tol, Vec Rel>
 struct range_counts
 {
@@ -466,8 +503,7 @@ struct range_counts
 	{
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 		{
-			counts[i] = tree.range_apply(
-				sink<Index>{},
+			counts[i] = tree.range_count(
 				query.row(i),
 				tolerance,
 				relative,
@@ -476,6 +512,7 @@ struct range_counts
 	}
 };
 
+// Range search kernel
 template<Num Index, Num T, Vec Tol, Vec Rel>
 struct range_searches
 {
@@ -486,17 +523,14 @@ struct range_searches
 	Rel relative;
 	Ref referent;
 
-	ptrdiff_t ssize() const
-	{
-		return query.nrows();
-	}
+	ptrdiff_t ssize() const { return query.nrows(); }
 
 	void operator()(bounds b, task ctx)
 	{
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 		{
-			tree.range_apply(
-				sink<Index>{index.get(i)},
+			tree.range_search(
+				index.get(i),
 				query.row(i),
 				tolerance,
 				relative,
@@ -506,6 +540,7 @@ struct range_searches
 	}
 };
 
+// KNN search kernel
 template<Num Index, Num T>
 struct knn_searches
 {
@@ -515,16 +550,13 @@ struct knn_searches
 	mat<T> query;
 	Norm p;
 
-	ptrdiff_t ssize() const
-	{
-		return query.nrows();
-	}
+	ptrdiff_t ssize() const { return query.nrows(); }
 
 	void operator()(bounds b, task ctx)
 	{
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 		{
-			tree.find_neighbors(
+			tree.knn_search(
 				index.get(i),
 				dists.get(i),
 				query.row(i),
