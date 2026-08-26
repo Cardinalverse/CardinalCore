@@ -487,12 +487,12 @@ struct kdtree
 template<Num Index, Num T, Vec Tol, Vec Rel>
 struct range_counts
 {
-	kdtree<Index,T> tree;
-	vec<Index> counts;
-	mat<T> query;
-	Tol tolerance;
-	Rel relative;
-	Ref referent;
+	vec<Index> counts;    // out
+	kdtree<Index,T> tree; // in
+	mat<T> query;         // in
+	Tol tolerance;        // in
+	Rel relative;         // in
+	Ref referent;         // in
 
 	ptrdiff_t ssize() const
 	{
@@ -516,12 +516,12 @@ struct range_counts
 template<Num Index, Num T, Vec Tol, Vec Rel>
 struct range_searches
 {
-	kdtree<Index,T> tree;
-	vecs_pack<Index,Index> index;
-	mat<T> query;
-	Tol tolerance;
-	Rel relative;
-	Ref referent;
+	vecs_pack<Index,Index> index; // out
+	kdtree<Index,T> tree;         // in
+	mat<T> query;                 // in
+	Tol tolerance;                // in
+	Rel relative;                 // in
+	Ref referent;                 // in
 
 	ptrdiff_t ssize() const { return query.nrows(); }
 
@@ -544,11 +544,11 @@ struct range_searches
 template<Num Index, Num T>
 struct knn_searches
 {
-	kdtree<Index,T> tree;
-	vecs_pack<Index,Index> index;
-	vecs_pack<double,Index> dists;
-	mat<T> query;
-	Norm p;
+	vecs_pack<Index,Index> index;  // out
+	vecs_pack<double,Index> dists; // out
+	kdtree<Index,T> tree;          // in
+	mat<T> query;                  // in
+	Norm p;                        // in
 
 	ptrdiff_t ssize() const { return query.nrows(); }
 

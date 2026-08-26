@@ -201,8 +201,8 @@ SEXP do_kdtree_range_search(
 		case INTSXP:
 			compute(
 				range_counts{
-					kdtree<int,int>::from(tree),
 					r_vec<int>(counts),
+					kdtree<int,int>::from(tree),
 					r_mat<int>(query),
 					r_vec<double>(tolerance),
 					r_vec<int>(relative),
@@ -213,8 +213,8 @@ SEXP do_kdtree_range_search(
 		case REALSXP:
 			compute(
 				range_counts{
-					kdtree<int,double>::from(tree),
 					r_vec<int>(counts),
+					kdtree<int,double>::from(tree),
 					r_mat<double>(query),
 					r_vec<double>(tolerance),
 					r_vec<int>(relative),
@@ -238,8 +238,8 @@ SEXP do_kdtree_range_search(
 		case INTSXP:
 			compute(
 				range_searches{
-					kdtree<int,int>::from(tree),
 					r_vecs_pack<int,int>(index, offset),
+					kdtree<int,int>::from(tree),
 					r_mat<int>(query),
 					r_vec<double>(tolerance),
 					r_vec<int>(relative),
@@ -250,8 +250,8 @@ SEXP do_kdtree_range_search(
 		case REALSXP:
 			compute(
 				range_searches{
-					kdtree<int,double>::from(tree),
 					r_vecs_pack<int,int>(index, offset),
+					kdtree<int,double>::from(tree),
 					r_mat<double>(query),
 					r_vec<double>(tolerance),
 					r_vec<int>(relative),
@@ -302,9 +302,9 @@ SEXP do_kdtree_knn_search(
 		case INTSXP:
 			compute(
 				knn_searches{
-					kdtree<int,int>::from(tree),
 					r_vecs_pack<int,int>(index, offset),
 					r_vecs_pack<double,int>(dists, offset),
+					kdtree<int,int>::from(tree),
 					r_mat<int>(query),
 					static_cast<Norm>(Rf_asInteger(p)),
 				},
@@ -313,9 +313,9 @@ SEXP do_kdtree_knn_search(
 		case REALSXP:
 			compute(
 				knn_searches{
-					kdtree<int,double>::from(tree),
 					r_vecs_pack<int,int>(index, offset),
 					r_vecs_pack<double,int>(dists, offset),
+					kdtree<int,double>::from(tree),
 					r_mat<double>(query),
 					static_cast<Norm>(Rf_asInteger(p)),
 				},
