@@ -1034,10 +1034,7 @@ struct vec
 	vec<T>& transform(const Tform op) noexcept
 	{
 		for ( ptrdiff_t i = 0; i < len; ++i )
-		{
-			if ( !is_na((*this)[i]) )
-				(*this)[i] = op((*this)[i]);
-		}
+			(*this)[i] = op((*this)[i]);
 		return (*this);
 	}
 
@@ -1054,7 +1051,7 @@ struct vec
 		assert(src.ssize() == len);
 		for ( ptrdiff_t i = 0; i < len; ++i )
 		{
-			if ( !is_na((*this)[i]) && is_valid(src, i) )
+			if ( is_valid(src, i) )
 				(*this)[i] = op((*this)[i], coerce_cast<T>(src[i]));
 		}
 		return (*this);
