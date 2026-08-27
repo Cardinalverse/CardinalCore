@@ -192,13 +192,15 @@ bounds rsearch(
 	{
 		Index lo = i;
 		while ( 0 < lo && lo < table.ssize() - 1 && 
-			std::fabs(diff(query, table[lo - 1], relative, referent)) <= tolerance )
+			std::fabs(diff(query, table[lo - 1], relative, referent))
+				<= tolerance )
 		{
 			--lo;
 		}
 		Index hi = i;
 		while ( 0 < hi && hi < table.ssize() - 1 &&
-			std::fabs(diff(query, table[hi + 1], relative, referent)) <= tolerance )
+			std::fabs(diff(query, table[hi + 1], relative, referent))
+				<= tolerance )
 		{
 			++hi;
 		}

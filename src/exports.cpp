@@ -7,6 +7,20 @@
 #include "search.h"
 #include "kernels.h"
 
+//// Helpers
+//-----------
+
+// Vector += 1 (NA preserving)
+template<Num T>
+vec<T> add1(vec<T> x) noexcept { return x.assign(mask(x) + 1); }
+
+// Vector -= 1 (NA preserving)
+template<Num T>
+vec<T> sub1(vec<T> x) noexcept { return x.assign(mask(x) - 1); }
+
+//// Exports
+//-----------
+
 extern "C" {
 
 //// Quicksort and Quickselect
@@ -141,7 +155,7 @@ SEXP do_bsearch(
 		default:
 			Rf_error("'query' and 'table' must be integer or double");
 	}
-	r_vec<int>(index) += 1;
+	add1(r_vec<int>(index));
 	UNPROTECT(1);
 	return index;
 }
@@ -184,7 +198,7 @@ SEXP do_rsearch(
 		default:
 			Rf_error("'query' and 'table' must be integer or double");
 	}
-	r_mat<int>(ends).col(0) += 1;
+	add1(r_mat<int>(ends).col(0));
 	SEXP colnames = PROTECT(Rf_allocVector(STRSXP, 2));
 	SET_STRING_ELT(colnames, 0, Rf_mkChar("start"));
 	SET_STRING_ELT(colnames, 1, Rf_mkChar("end"));
@@ -311,7 +325,7 @@ SEXP do_kdtree_range_search(
 				Rf_asInteger(num_threads));
 			break;
 	}
-	r_vec<int>(index) += 1;
+	add1(r_vec<int>(index));
 	SEXP hits = PROTECT(Rf_allocVector(VECSXP, 3));
 	SEXP names = PROTECT(Rf_allocVector(STRSXP, 3));
 	SET_VECTOR_ELT(hits, 0, index);
@@ -373,7 +387,7 @@ SEXP do_kdtree_knn_search(
 				Rf_asInteger(num_threads));
 			break;
 	}
-	r_vec<int>(index) += 1;
+	add1(r_vec<int>(index));
 	SEXP hits = PROTECT(Rf_allocVector(VECSXP, 4));
 	SEXP names = PROTECT(Rf_allocVector(STRSXP, 4));
 	SET_VECTOR_ELT(hits, 0, index);
