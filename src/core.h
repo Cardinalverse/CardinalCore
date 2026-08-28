@@ -1179,6 +1179,20 @@ struct local_vec : vec<T>
 	}
 };
 
+// Sink unary input to an output vector
+template<Num T>
+struct sink
+{
+	vec<T> out{};
+	ptrdiff_t count = 0;
+
+	void operator()(T x) noexcept
+	{
+		if ( count < out.len )
+			out[count++] = x;
+	}
+};
+
 //// Arrays of vectors
 //--------------------
 // Containers for vectors of different lengths

@@ -87,20 +87,6 @@ bool near(
 	return true;
 }
 
-// Sink unary input to an output vector
-template<Num T>
-struct sink
-{
-	vec<T> out{};
-	ptrdiff_t count = 0;
-
-	void operator()(T x) noexcept
-	{
-		if ( count < out.len )
-			out[count++] = x;
-	}
-};
-
 //// Binary search
 //-----------------
 
