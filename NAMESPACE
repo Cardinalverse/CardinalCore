@@ -11,6 +11,8 @@ export(
 	"kdsearch",
 	"knnsearch")
 
+export("peaks_find")
+
 export("col_sums")
 
 useDynLib("CardinalCore", .registration=TRUE, .fixes="C_")

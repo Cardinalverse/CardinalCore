@@ -349,6 +349,7 @@ struct kdtree
 	}
 
 	// Apply Callable to indices of table within tolerance(s) of query
+	// - Callable will be called as f(Index)
 	// - Both tolerance and relative parameters are per-dimension
 	// - Returns the count of hits
 	template<UnaryOp Callable, Vec V, Vec Tol, Vec Rel>

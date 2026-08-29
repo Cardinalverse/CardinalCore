@@ -646,6 +646,16 @@ constexpr Vec auto gather(const Index index, const V data) noexcept
 	}
 }
 
+// Slice vector elements
+template<Num T = double, Vec V>
+constexpr Vec auto slice(const V x, bounds b) noexcept
+{
+	assert(b.start <= b.stop);
+	assert(0 <= b.start && b.start < x.ssize());
+	assert(0 <= b.stop && b.stop <= x.ssize());
+	return gather(seq{b.start, b.stop - b.start}, x);
+}
+
 // Transform with elementwise unary functor
 template<Num T = double, Vec V, UnaryOp Tform>
 constexpr Vec auto transform(const V x, const Tform op) noexcept
@@ -1373,7 +1383,7 @@ vec<T> r_vec(SEXP x) noexcept
 	{
 		return {
 			.ptr = data_ptr<T>(x),
-			.len = static_cast<ptrdiff_t>(XLENGTH(x)),
+			.len = XLENGTH(x),
 			.stride = 1,
 		};
 	}
@@ -1392,8 +1402,8 @@ mat<T> r_mat(SEXP x) noexcept
 	{
 		return {
 			.ptr = data_ptr<T>(x),
-			.nr = static_cast<ptrdiff_t>(Rf_nrows(x)),
-			.nc = static_cast<ptrdiff_t>(Rf_ncols(x)),
+			.nr = Rf_nrows(x),
+			.nc = Rf_ncols(x),
 			.row_stride = 1,
 			.col_stride = Rf_nrows(x),
 		};

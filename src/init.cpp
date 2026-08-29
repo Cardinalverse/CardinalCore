@@ -47,6 +47,10 @@ SEXP do_kdtree_knn_search(
 	SEXP p,
 	SEXP num_threads);
 
+//// Peak processing
+//------------------
+SEXP do_peaks_find(SEXP x, SEXP k);
+
 //// Matrix statistics
 //---------------------
 SEXP do_col_sums(SEXP x, SEXP num_threads);
@@ -71,6 +75,8 @@ static const R_CallMethodDef callMethods[] = {
 	CALLDEF(do_kdtree_build, 1),
 	CALLDEF(do_kdtree_range_search, 6),
 	CALLDEF(do_kdtree_knn_search, 5),
+	// Peak processing
+	CALLDEF(do_peaks_find, 2),
 	// Matrix statistics
 	CALLDEF(do_col_sums, 2),
 	// Test expressions

@@ -3,9 +3,10 @@
 #include <R.h>
 #include <Rinternals.h>
 
+#include "kernels.h"
 #include "order.h"
 #include "search.h"
-#include "kernels.h"
+#include "peaks.h"
 
 //// Helpers
 //-----------
@@ -401,6 +402,35 @@ SEXP do_kdtree_knn_search(
 	Rf_setAttrib(hits, R_NamesSymbol, names);
 	UNPROTECT(5);
 	return hits;
+}
+
+//// Peak processing
+//------------------
+SEXP do_peaks_find(SEXP x, SEXP k)
+{
+	int count = 0;
+	switch(TYPEOF(x))
+	{
+		case INTSXP:
+			count = peaks_count(r_vec<int>(x), Rf_asInteger(k));
+			break;
+		case REALSXP:
+			count = peaks_count(r_vec<double>(x), Rf_asInteger(k));
+			break;
+	}
+	SEXP peaks = PROTECT(Rf_allocVector(INTSXP, count));
+	switch(TYPEOF(x))
+	{
+		case INTSXP:
+			peaks_find(r_vec<int>(peaks), r_vec<int>(x), Rf_asInteger(k));
+			break;
+		case REALSXP:
+			peaks_find(r_vec<int>(peaks), r_vec<double>(x), Rf_asInteger(k));
+			break;
+	}
+	add1(r_vec<int>(peaks));
+	UNPROTECT(1);
+	return peaks;
 }
 
 //// Matrix statistics
