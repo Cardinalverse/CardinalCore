@@ -13,7 +13,8 @@ export(
 
 export(
 	"peaks_find",
-	"peaks_find_limits")
+	"peaks_sums",
+	"peaks_prominences")
 
 export("col_sums")
 

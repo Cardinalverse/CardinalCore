@@ -435,7 +435,7 @@ SEXP do_peaks_find(SEXP x, SEXP k)
 	return index;
 }
 
-SEXP do_peaks_find_limits(SEXP x, SEXP k)
+SEXP do_peaks_sums(SEXP x, SEXP k)
 {
 	int count = 0;
 	switch(TYPEOF(x))
@@ -448,51 +448,99 @@ SEXP do_peaks_find_limits(SEXP x, SEXP k)
 			break;
 	}
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
-	SEXP end_left = PROTECT(Rf_allocVector(INTSXP, count));
-	SEXP end_right = PROTECT(Rf_allocVector(INTSXP, count));
-	SEXP base_left = PROTECT(Rf_allocVector(INTSXP, count));
-	SEXP base_right = PROTECT(Rf_allocVector(INTSXP, count));
+	SEXP left_end = PROTECT(Rf_allocVector(INTSXP, count));
+	SEXP right_end = PROTECT(Rf_allocVector(INTSXP, count));
+	SEXP sums = PROTECT(Rf_allocVector(REALSXP, count));
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
 			peaks{r_vec<int>(x), Rf_asInteger(k)}
-				.limits_into(
+				.sums_into(
 					r_vec<int>(index),
-					r_vec<int>(end_left),
-					r_vec<int>(end_right),
-					r_vec<int>(base_left),
-					r_vec<int>(base_right));
+					r_vec<int>(left_end),
+					r_vec<int>(right_end),
+					r_vec<double>(sums));
 			break;
 		case REALSXP:
 			peaks{r_vec<double>(x), Rf_asInteger(k)}
-				.limits_into(
+				.sums_into(
 					r_vec<int>(index),
-					r_vec<int>(end_left),
-					r_vec<int>(end_right),
-					r_vec<int>(base_left),
-					r_vec<int>(base_right));
+					r_vec<int>(left_end),
+					r_vec<int>(right_end),
+					r_vec<double>(sums));
 			break;
 	}
 	add1(r_vec<int>(index));
-	add1(r_vec<int>(end_left));
-	add1(r_vec<int>(end_right));
-	add1(r_vec<int>(base_left));
-	add1(r_vec<int>(base_right));
-	SEXP limits = PROTECT(Rf_allocVector(VECSXP, 5));
-	SEXP names = PROTECT(Rf_allocVector(STRSXP, 5));
-	SET_VECTOR_ELT(limits, 0, index);
-	SET_VECTOR_ELT(limits, 1, end_left);
-	SET_VECTOR_ELT(limits, 2, end_right);
-	SET_VECTOR_ELT(limits, 3, base_left);
-	SET_VECTOR_ELT(limits, 4, base_right);
+	add1(r_vec<int>(left_end));
+	add1(r_vec<int>(right_end));
+	SEXP out = PROTECT(Rf_allocVector(VECSXP, 4));
+	SEXP names = PROTECT(Rf_allocVector(STRSXP, 4));
+	SET_VECTOR_ELT(out, 0, index);
+	SET_VECTOR_ELT(out, 1, left_end);
+	SET_VECTOR_ELT(out, 2, right_end);
+	SET_VECTOR_ELT(out, 3, sums);
 	SET_STRING_ELT(names, 0, Rf_mkChar("index"));
-	SET_STRING_ELT(names, 1, Rf_mkChar("end_left"));
-	SET_STRING_ELT(names, 2, Rf_mkChar("end_right"));
-	SET_STRING_ELT(names, 3, Rf_mkChar("base_left"));
-	SET_STRING_ELT(names, 4, Rf_mkChar("base_right"));
-	Rf_setAttrib(limits, R_NamesSymbol, names);
-	UNPROTECT(7);
-	return limits;
+	SET_STRING_ELT(names, 1, Rf_mkChar("left_end"));
+	SET_STRING_ELT(names, 2, Rf_mkChar("right_end"));
+	SET_STRING_ELT(names, 3, Rf_mkChar("sum"));
+	Rf_setAttrib(out, R_NamesSymbol, names);
+	UNPROTECT(6);
+	return out;
+}
+
+SEXP do_peaks_prominences(SEXP x, SEXP k, SEXP wlen)
+{
+	int count = 0;
+	switch(TYPEOF(x))
+	{
+		case INTSXP:
+			count = peaks{r_vec<int>(x), Rf_asInteger(k)}.count();
+			break;
+		case REALSXP:
+			count = peaks{r_vec<double>(x), Rf_asInteger(k)}.count();
+			break;
+	}
+	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
+	SEXP left_base = PROTECT(Rf_allocVector(INTSXP, count));
+	SEXP right_base = PROTECT(Rf_allocVector(INTSXP, count));
+	SEXP prominences = PROTECT(Rf_allocVector(REALSXP, count));
+	switch(TYPEOF(x))
+	{
+		case INTSXP:
+			peaks{r_vec<int>(x), Rf_asInteger(k)}
+				.prominences_into(
+					r_vec<int>(index),
+					r_vec<int>(left_base),
+					r_vec<int>(right_base),
+					r_vec<double>(prominences),
+					Rf_asInteger(wlen));
+			break;
+		case REALSXP:
+			peaks{r_vec<double>(x), Rf_asInteger(k)}
+				.prominences_into(
+					r_vec<int>(index),
+					r_vec<int>(left_base),
+					r_vec<int>(right_base),
+					r_vec<double>(prominences),
+					Rf_asInteger(wlen));
+			break;
+	}
+	add1(r_vec<int>(index));
+	add1(r_vec<int>(left_base));
+	add1(r_vec<int>(right_base));
+	SEXP out = PROTECT(Rf_allocVector(VECSXP, 4));
+	SEXP names = PROTECT(Rf_allocVector(STRSXP, 4));
+	SET_VECTOR_ELT(out, 0, index);
+	SET_VECTOR_ELT(out, 1, left_base);
+	SET_VECTOR_ELT(out, 2, right_base);
+	SET_VECTOR_ELT(out, 3, prominences);
+	SET_STRING_ELT(names, 0, Rf_mkChar("index"));
+	SET_STRING_ELT(names, 1, Rf_mkChar("left_base"));
+	SET_STRING_ELT(names, 2, Rf_mkChar("right_base"));
+	SET_STRING_ELT(names, 3, Rf_mkChar("prominence"));
+	Rf_setAttrib(out, R_NamesSymbol, names);
+	UNPROTECT(6);
+	return out;
 }
 
 //// Matrix statistics
