@@ -57,6 +57,84 @@ struct peaks
 		return n;
 	}
 
+	// Sum of peak at i
+	template<Num T = double>
+	T sum(ptrdiff_t i) const noexcept
+	{
+		assert(is_peak(i));
+		return sum(left_end(i), right_end(i));
+	}
+
+	// Sum of signal on closed interval [lo, hi]
+	template<Num T = double>
+	T sum(ptrdiff_t lo, ptrdiff_t hi) const noexcept
+	{
+		T sum = 0;
+		for ( ptrdiff_t i = lo; i <= hi; ++i )
+			sum += y[i];
+		return sum;
+	}
+
+	// Area of peak at i
+	// - Integrates signal y sampled at x
+	// - Computed using trapezoidal rule
+	template<Num T = double, Vec V>
+	T area(V x, ptrdiff_t i) const noexcept
+	{
+		assert(is_peak(i));
+		return area(left_end(i), right_end(i));
+	}
+
+	// Area of signal on closed interval [lo, hi]
+	// - Integrates signal y sampled at x
+	// - Computed using trapezoidal rule
+	template<Num T = double, Vec V>
+	T area(V x, ptrdiff_t lo, ptrdiff_t hi) const noexcept
+	{
+		assert(x.ssize() == y.ssize());
+		T area = 0;
+		auto y_ = coerce<T>(y);
+		auto x_ = coerce<T>(x);
+		for ( ptrdiff_t i = lo; i < hi; ++i )
+		{
+			T dx = x_[i + 1] - x_[i];
+			area += 0.5 * (y_[i + 1] + y_[i]) * dx;
+		}
+		return area;
+	}
+
+	// Prominence of peak at i (height above lowest contour line)
+	// - Lowest contour line is the higher of its bases
+	// - Window wlen gives number of points to search
+	// - Window is centered on the peak at i
+	template<Num T = double>
+	T prominence(ptrdiff_t i, double wlen = 0) const noexcept
+	{
+		assert(is_peak(i));
+		ptrdiff_t w = wlen > 0 ? wlen : ssize();
+		return prominence(i, left_base(i, w), right_base(i, w));
+	}
+
+	// Prominence of peak at i (given bases at lo and hi)
+	template<Num T = double>
+	T prominence(ptrdiff_t i, ptrdiff_t lo, ptrdiff_t hi) const noexcept
+	{
+		T ylo = coerce_cast<T>(y[lo]);
+		T yhi = coerce_cast<T>(y[hi]);
+		T ymax = ylo;
+		for ( ptrdiff_t i = lo; i <= hi; ++i )
+			ymax = y[i] > ymax ? y[i] : ymax;
+		return y[i] - (ylo > yhi ? ylo : yhi);
+	}
+
+	// Width of peak at i (at a fraction of max)
+	template<Num T = double, Vec V>
+	T width(V x, ptrdiff_t i, double fmax = 0.5) const noexcept
+	{
+		assert(is_peak(i));
+		return right_ips<T>(x, i, fmax) - left_ips<T>(x, i, fmax);
+	}
+
 	// Find left endpoint of a peak at i (nearest local minimum)
 	ptrdiff_t left_end(ptrdiff_t i) const noexcept
 	{
@@ -83,44 +161,6 @@ struct peaks
 			++i;
 		}
 		return end;
-	}
-
-	// Sum of peak at i
-	template<Num T = double>
-	T sum(ptrdiff_t i) const noexcept {
-		return sum(left_end(i), right_end(i));
-	}
-
-	// Sum of signal on closed interval [lo, hi]
-	template<Num T = double>
-	T sum(ptrdiff_t lo, ptrdiff_t hi) const noexcept
-	{
-		T sum = 0;
-		for ( ptrdiff_t i = lo; i <= hi; ++i )
-			sum += y[i];
-		return sum;
-	}
-
-	// Area of peak at i (trapezoidal integration)
-	template<Num T = double, Vec V>
-	T area(V x, ptrdiff_t i) const noexcept {
-		return area(left_end(i), right_end(i));
-	}
-
-	// Area of signal on closed interval [lo, hi] (trapezoidal integration)
-	template<Num T = double, Vec V>
-	T area(V x, ptrdiff_t lo, ptrdiff_t hi) const noexcept
-	{
-		assert(x.ssize() == y.ssize());
-		T area = 0;
-		auto y_ = coerce<T>(y);
-		auto x_ = coerce<T>(x);
-		for ( ptrdiff_t i = lo; i < hi; ++i )
-		{
-			T dx = x_[i + 1] - x_[i];
-			area += 0.5 * (y_[i + 1] + y_[i]) * dx;
-		}
-		return area;
 	}
 
 	// Find left base of a peak at i (minimum to next higher peak)
@@ -161,23 +201,6 @@ struct peaks
 		return base;
 	}
 
-	// Width of peak at i (at a fraction of max)
-	template<Num T = double>
-	T prominence(ptrdiff_t i, double wlen = 0) const noexcept
-	{
-		ptrdiff_t w = wlen > 0 ? wlen : ssize();
-		return prominence(i, left_base(i, w), right_base(i, w));
-	}
-
-	// Width of peak at i given bases at [lo, hi]
-	template<Num T = double>
-	T prominence(ptrdiff_t i, ptrdiff_t lo, ptrdiff_t hi) const noexcept
-	{
-		T ylo = coerce_cast<T>(y[lo]);
-		T yhi = coerce_cast<T>(y[hi]);
-		return y[i] - (ylo > yhi ? ylo : yhi);
-	}
-
 	// Find left intersection at a fraction of the max of peak i
 	template<Num T = double, Vec V>
 	T left_ips(V x, ptrdiff_t i, double fmax = 0.5) const noexcept
@@ -216,13 +239,6 @@ struct peaks
 				++j;
 		}
 		return x[j];
-	}
-
-	// Width of peak at i (at a fraction of max)
-	template<Num T = double, Vec V>
-	T width(V x, ptrdiff_t i, double fmax = 0.5) const noexcept
-	{
-		return right_ips<T>(x, i, fmax) - left_ips<T>(x, i, fmax);
 	}
 
 	// Get indices of peaks and copy into index
@@ -279,6 +295,53 @@ struct peaks
 				left_base[n] = this->left_base(i, w);
 				right_base[n] = this->right_base(i, w);
 				prominences[n] = prominence<T>(i, left_base[n], right_base[n]);
+				++n;
+			}
+		}
+		return n;
+	}
+
+	// Get areas of peaks and copy into output vectors
+	template<Vec V, Num Index, Num T = double>
+	ptrdiff_t areas_into(
+		vec<Index> index,
+		vec<Index> left_end,
+		vec<Index> right_end,
+		vec<T> areas,
+		const V x) const noexcept
+	{
+		ptrdiff_t n = 0;
+		for ( ptrdiff_t i = 0; i < ssize(); ++i )
+		{
+			if ( is_peak(i) ) {
+				index[n] = i;
+				left_end[n] = this->left_end(i);
+				right_end[n] = this->right_end(i);
+				areas[n] = area<T>(x, left_end[n], right_end[n]);
+				++n;
+			}
+		}
+		return n;
+	}
+
+	// Get widths of peaks and copy into output vectors
+	template<Vec V, Num Index, Num T = double>
+	ptrdiff_t widths_into(
+		vec<Index> index,
+		vec<T> left_ips,
+		vec<T> right_ips,
+		vec<T> widths,
+		const V x,
+		const double fmax = 0.5) const noexcept
+	{
+		ptrdiff_t n = 0;
+		for ( ptrdiff_t i = 0; i < ssize(); ++i )
+		{
+			if ( is_peak(i) ) {
+				index[n] = i;
+				left_ips[n] = this->left_ips<T>(x, i, fmax);
+				right_ips[n] = this->right_ips<T>(x, i, fmax);
+				widths[n] = right_ips[n] - left_ips[n];
 				++n;
 			}
 		}
