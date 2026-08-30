@@ -11,7 +11,9 @@ export(
 	"kdsearch",
 	"knnsearch")
 
-export("peaks_find")
+export(
+	"peaks_find",
+	"peaks_find_limits")
 
 export("col_sums")
 

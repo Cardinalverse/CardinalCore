@@ -412,25 +412,87 @@ SEXP do_peaks_find(SEXP x, SEXP k)
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
-			count = peaks_count(r_vec<int>(x), Rf_asInteger(k));
+			count = peaks{r_vec<int>(x), Rf_asInteger(k)}.count();
 			break;
 		case REALSXP:
-			count = peaks_count(r_vec<double>(x), Rf_asInteger(k));
+			count = peaks{r_vec<double>(x), Rf_asInteger(k)}.count();
 			break;
 	}
-	SEXP peaks = PROTECT(Rf_allocVector(INTSXP, count));
+	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
-			peaks_find(r_vec<int>(peaks), r_vec<int>(x), Rf_asInteger(k));
+			peaks{r_vec<int>(x), Rf_asInteger(k)}
+				.index_into(r_vec<int>(index));
 			break;
 		case REALSXP:
-			peaks_find(r_vec<int>(peaks), r_vec<double>(x), Rf_asInteger(k));
+			peaks{r_vec<double>(x), Rf_asInteger(k)}
+				.index_into(r_vec<int>(index));
 			break;
 	}
-	add1(r_vec<int>(peaks));
+	add1(r_vec<int>(index));
 	UNPROTECT(1);
-	return peaks;
+	return index;
+}
+
+SEXP do_peaks_find_limits(SEXP x, SEXP k)
+{
+	int count = 0;
+	switch(TYPEOF(x))
+	{
+		case INTSXP:
+			count = peaks{r_vec<int>(x), Rf_asInteger(k)}.count();
+			break;
+		case REALSXP:
+			count = peaks{r_vec<double>(x), Rf_asInteger(k)}.count();
+			break;
+	}
+	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
+	SEXP end_left = PROTECT(Rf_allocVector(INTSXP, count));
+	SEXP end_right = PROTECT(Rf_allocVector(INTSXP, count));
+	SEXP base_left = PROTECT(Rf_allocVector(INTSXP, count));
+	SEXP base_right = PROTECT(Rf_allocVector(INTSXP, count));
+	switch(TYPEOF(x))
+	{
+		case INTSXP:
+			peaks{r_vec<int>(x), Rf_asInteger(k)}
+				.limits_into(
+					r_vec<int>(index),
+					r_vec<int>(end_left),
+					r_vec<int>(end_right),
+					r_vec<int>(base_left),
+					r_vec<int>(base_right));
+			break;
+		case REALSXP:
+			peaks{r_vec<double>(x), Rf_asInteger(k)}
+				.limits_into(
+					r_vec<int>(index),
+					r_vec<int>(end_left),
+					r_vec<int>(end_right),
+					r_vec<int>(base_left),
+					r_vec<int>(base_right));
+			break;
+	}
+	add1(r_vec<int>(index));
+	add1(r_vec<int>(end_left));
+	add1(r_vec<int>(end_right));
+	add1(r_vec<int>(base_left));
+	add1(r_vec<int>(base_right));
+	SEXP limits = PROTECT(Rf_allocVector(VECSXP, 5));
+	SEXP names = PROTECT(Rf_allocVector(STRSXP, 5));
+	SET_VECTOR_ELT(limits, 0, index);
+	SET_VECTOR_ELT(limits, 1, end_left);
+	SET_VECTOR_ELT(limits, 2, end_right);
+	SET_VECTOR_ELT(limits, 3, base_left);
+	SET_VECTOR_ELT(limits, 4, base_right);
+	SET_STRING_ELT(names, 0, Rf_mkChar("index"));
+	SET_STRING_ELT(names, 1, Rf_mkChar("end_left"));
+	SET_STRING_ELT(names, 2, Rf_mkChar("end_right"));
+	SET_STRING_ELT(names, 3, Rf_mkChar("base_left"));
+	SET_STRING_ELT(names, 4, Rf_mkChar("base_right"));
+	Rf_setAttrib(limits, R_NamesSymbol, names);
+	UNPROTECT(7);
+	return limits;
 }
 
 //// Matrix statistics
