@@ -28,14 +28,14 @@ double diff(const L lhs, const R rhs) noexcept
 {
 	if ( is_na(lhs) || is_na(rhs) )
 		return huge_positive_value<double>();
-	double _lhs = coerce_cast<double>(lhs);
-	double _rhs = coerce_cast<double>(rhs);
+	double lhs_ = coerce_cast<double>(lhs);
+	double rhs_ = coerce_cast<double>(rhs);
 	if constexpr ( Method == Absolute )
-		return _lhs - _rhs;
+		return lhs_ - rhs_;
 	else if constexpr ( Method == RefLhs )
-		return (_lhs - _rhs) / _lhs;
+		return (lhs_ - rhs_) / lhs_;
 	else if constexpr ( Method == RefRhs )
-		return (_lhs - _rhs) / _rhs;
+		return (lhs_ - rhs_) / rhs_;
 	else
 		static_assert(dependent_false<L>, "unsupported difference method");
 }
@@ -43,7 +43,7 @@ double diff(const L lhs, const R rhs) noexcept
 // Compute signed absolute or relative difference
 // - Use relative comparison if relative=true
 // - For relative diff, referent determines the reference used
-template<Num T = double, Num L, Num R>
+template<Num L, Num R>
 double diff(
 	const L query_v,
 	const R table_v,

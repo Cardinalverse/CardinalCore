@@ -9,12 +9,14 @@
 //-----------
 // Search utilities
 
+// P-norms
 enum Norm {
 	L1,   // L1 norm:  sum(|x_i|)   -> Manhattan distance
 	L2,   // L2 norm:  sum(|x_i|^2) -> Euclidean distance
 	LInf, // Max norm: max(|x_i|)   -> Maximum distance
 };
 
+// Get the p-norm of a vector
 template<Norm P, Vec V>
 auto norm(V x) noexcept
 {
@@ -28,6 +30,7 @@ auto norm(V x) noexcept
 		static_assert(dependent_false<V>, "unsupported norm");
 }
 
+// Get a Minkowski distance between two vectors
 template<Num T = double, Vec L, Vec R>
 T dist(L lhs, R rhs, Norm p = L2) noexcept
 {

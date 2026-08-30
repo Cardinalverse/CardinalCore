@@ -4,6 +4,29 @@
 #include "core.h"
 #include "search.h"
 
+//// Utility
+//-----------
+// Peak utilities
+
+// Get area under the curve by numeric integration
+// - Signal y sampled at points x
+// - Integral computed within bounds b
+// - Estimated using trapezoidal rule
+template<Vec U, Vec V>
+double trapz(U y, V x, bounds b)
+{
+	assert(y.ssize() == x.ssize());
+	auto y_ = coerce<double>(y);
+	auto x_ = coerce<double>(x);
+	double sum = 0;
+	for ( ptrdiff_t i = b.start; i < b.stop - 1; ++i )
+	{
+		double dx = x_[i + 1] - x_[i];
+		sum += 0.5 * (y_[i + 1] + y_[i]) * dx;
+	}
+	return sum;
+}
+
 //// Vector peaks
 //---------------
 // Summarize peaks in a signal
@@ -48,7 +71,7 @@ struct vec_peaks
 		return peak;
 	}
 
-	// Find left endpoint of a peak at i
+	// Find left endpoint of a peak at i (nearest local minimum)
 	ptrdiff_t end_left(ptrdiff_t i) const noexcept
 	{
 		ptrdiff_t end = i > 0 ? i - 1 : 0;
@@ -61,7 +84,7 @@ struct vec_peaks
 		return end;
 	}
 
-	// Find right endpoint of a peak at i
+	// Find right endpoint of a peak at i (nearest local minimum)
 	ptrdiff_t end_right(ptrdiff_t i) const noexcept
 	{
 		ptrdiff_t end = i < ssize() - 1 ? i + 1 : ssize() - 1;
@@ -74,7 +97,7 @@ struct vec_peaks
 		return end;
 	}
 
-	// Find left base of a peak at i
+	// Find left base of a peak at i (minimum to next highest peak)
 	ptrdiff_t base_left(ptrdiff_t i) const noexcept
 	{
 		ptrdiff_t base = i > 0 ? i - 1 : 0;
@@ -88,7 +111,7 @@ struct vec_peaks
 		return base;
 	}
 
-	// Find right base of a peak at i
+	// Find right base of a peak at i (minimum to next highest peak)
 	ptrdiff_t base_right(ptrdiff_t i) const noexcept
 	{
 		ptrdiff_t base = i < ssize() - 1 ? i + 1 : ssize() - 1;
