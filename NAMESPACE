@@ -16,7 +16,8 @@ export(
 	"peaks_sums",
 	"peaks_prominences",
 	"peaks_areas",
-	"peaks_widths")
+	"peaks_widths",
+	"peaks_centroids")
 
 export("col_sums")
 

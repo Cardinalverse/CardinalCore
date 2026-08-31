@@ -111,8 +111,8 @@ struct peaks
 	T prominence(ptrdiff_t i, double wlen = 0) const noexcept
 	{
 		assert(is_peak(i));
-		ptrdiff_t w = wlen > 0 ? wlen : ssize();
-		return prominence(i, left_base(i, w), right_base(i, w));
+		ptrdiff_t wl = wlen > 0 ? wlen : ssize();
+		return prominence(i, left_base(i, wl), right_base(i, wl));
 	}
 
 	// Prominence of peak at i (given bases at lo and hi)
@@ -133,6 +133,28 @@ struct peaks
 	{
 		assert(is_peak(i));
 		return right_ips<T>(x, i, fmax) - left_ips<T>(x, i, fmax);
+	}
+
+	// Centroid of peak at i
+	template<Num T = double, Vec V>
+	T centroid(V x, ptrdiff_t i) const noexcept
+	{
+		assert(is_peak(i));
+		return centroid(x, left_end(i), right_end(i));
+	}
+
+	// Centroid of peak at i
+	template<Num T = double, Vec V>
+	T centroid(V x, ptrdiff_t lo, ptrdiff_t hi) const noexcept
+	{
+		T sxy = 0;
+		T sy = 0;
+		for ( ptrdiff_t i = lo; i <= hi; ++i )
+		{
+			sxy += y[i] * x[i];
+			sy += y[i];
+		}
+		return sxy / sy;
 	}
 
 	// Find left endpoint of a peak at i (nearest local minimum)
@@ -169,14 +191,13 @@ struct peaks
 	ptrdiff_t left_base(ptrdiff_t i, ptrdiff_t wlen = 0) const noexcept
 	{
 		assert(is_peak(i));
-		ptrdiff_t w = wlen > 0 ? wlen : ssize();
-		ptrdiff_t wmin = i - (w / 2);
+		ptrdiff_t wlo = wlen > 0 ? i - (wlen / 2) : 0;
 		ptrdiff_t base = i > 0 ? i - 1 : 0;
-		for ( ptrdiff_t j = base; j > 0 && j > wmin; --j )
+		for ( ptrdiff_t j = base; j > 0 && j >= wlo; --j )
 		{
-			if ( diff(y[j], y[base]) < 0 )
+			if ( y[j] < y[base] )
 				base = j;
-			if ( diff(y[j], y[i]) > 0 )
+			if ( y[j] > y[i] )
 				break;
 		}
 		return base;
@@ -188,14 +209,13 @@ struct peaks
 	ptrdiff_t right_base(ptrdiff_t i, ptrdiff_t wlen = 0) const noexcept
 	{
 		assert(is_peak(i));
-		ptrdiff_t w = wlen > 0 ? wlen : ssize();
-		ptrdiff_t wmax = i + (w / 2);
+		ptrdiff_t whi = wlen > 0 ? i + (wlen / 2) : ssize() - 1;
 		ptrdiff_t base = i < ssize() - 1 ? i + 1 : ssize() - 1;
-		for ( ptrdiff_t j = base; j < ssize() - 1 && j < wmax; ++j )
+		for ( ptrdiff_t j = base; j < ssize() - 1 && j <= whi; ++j )
 		{
-			if ( diff(y[j], y[base]) < 0 )
+			if ( y[j] < y[base] )
 				base = j;
-			if ( diff(y[j], y[i]) > 0 )
+			if ( y[j] > y[i] )
 				break;
 		}
 		return base;
@@ -287,13 +307,13 @@ struct peaks
 		const ptrdiff_t wlen = 0) const noexcept
 	{
 		ptrdiff_t n = 0;
-		ptrdiff_t w = wlen > 0 ? wlen : ssize();
+		ptrdiff_t wl = wlen > 0 ? wlen : ssize();
 		for ( ptrdiff_t i = 0; i < ssize(); ++i )
 		{
 			if ( is_peak(i) ) {
 				index[n] = i;
-				left_base[n] = this->left_base(i, w);
-				right_base[n] = this->right_base(i, w);
+				left_base[n] = this->left_base(i, wl);
+				right_base[n] = this->right_base(i, wl);
 				prominences[n] = prominence<T>(i, left_base[n], right_base[n]);
 				++n;
 			}
@@ -342,6 +362,29 @@ struct peaks
 				left_ips[n] = this->left_ips<T>(x, i, fmax);
 				right_ips[n] = this->right_ips<T>(x, i, fmax);
 				widths[n] = right_ips[n] - left_ips[n];
+				++n;
+			}
+		}
+		return n;
+	}
+
+	// Get centroids of peaks and copy into output vectors
+	template<Vec V, Num Index, Num T = double>
+	ptrdiff_t centroids_into(
+		vec<Index> index,
+		vec<Index> left_end,
+		vec<Index> right_end,
+		vec<T> centroids,
+		const V x) const noexcept
+	{
+		ptrdiff_t n = 0;
+		for ( ptrdiff_t i = 0; i < ssize(); ++i )
+		{
+			if ( is_peak(i) ) {
+				index[n] = i;
+				left_end[n] = this->left_end(i);
+				right_end[n] = this->right_end(i);
+				centroids[n] = centroid<T>(x, left_end[n], right_end[n]);
 				++n;
 			}
 		}

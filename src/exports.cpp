@@ -655,6 +655,61 @@ SEXP do_peaks_widths(SEXP y, SEXP x, SEXP k, SEXP fmax)
 	return out;
 }
 
+SEXP do_peaks_centroids(SEXP y, SEXP x, SEXP k)
+{
+	int count = 0;
+	switch(TYPEOF(y))
+	{
+		case INTSXP:
+			count = peaks{r_vec<int>(y), Rf_asInteger(k)}.count();
+			break;
+		case REALSXP:
+			count = peaks{r_vec<double>(y), Rf_asInteger(k)}.count();
+			break;
+	}
+	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
+	SEXP left_end = PROTECT(Rf_allocVector(INTSXP, count));
+	SEXP right_end = PROTECT(Rf_allocVector(INTSXP, count));
+	SEXP centroids = PROTECT(Rf_allocVector(REALSXP, count));
+	switch(TYPEOF(y))
+	{
+		case INTSXP:
+			peaks{r_vec<int>(y), Rf_asInteger(k)}
+				.centroids_into(
+					r_vec<int>(index),
+					r_vec<int>(left_end),
+					r_vec<int>(right_end),
+					r_vec<double>(centroids),
+					r_vec<int>(x));
+			break;
+		case REALSXP:
+			peaks{r_vec<double>(y), Rf_asInteger(k)}
+				.centroids_into(
+					r_vec<int>(index),
+					r_vec<int>(left_end),
+					r_vec<int>(right_end),
+					r_vec<double>(centroids),
+					r_vec<double>(x));
+			break;
+	}
+	add1(r_vec<int>(index));
+	add1(r_vec<int>(left_end));
+	add1(r_vec<int>(right_end));
+	SEXP out = PROTECT(Rf_allocVector(VECSXP, 4));
+	SEXP names = PROTECT(Rf_allocVector(STRSXP, 4));
+	SET_VECTOR_ELT(out, 0, index);
+	SET_VECTOR_ELT(out, 1, left_end);
+	SET_VECTOR_ELT(out, 2, right_end);
+	SET_VECTOR_ELT(out, 3, centroids);
+	SET_STRING_ELT(names, 0, Rf_mkChar("index"));
+	SET_STRING_ELT(names, 1, Rf_mkChar("left_end"));
+	SET_STRING_ELT(names, 2, Rf_mkChar("right_end"));
+	SET_STRING_ELT(names, 3, Rf_mkChar("centroid"));
+	Rf_setAttrib(out, R_NamesSymbol, names);
+	UNPROTECT(6);
+	return out;
+}
+
 //// Matrix statistics
 //---------------------
 
