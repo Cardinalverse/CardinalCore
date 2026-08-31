@@ -7,14 +7,14 @@ peaks_find <- function(y, k = 5L)
 	.Call(C_do_peaks_find, y, as.integer(k))
 }
 
-peaks_prominences <- function(y, k = 5L, wlen = length(y))
-{
-	.Call(C_do_peaks_prominences, y, as.integer(k), as.integer(wlen))
-}
-
 peaks_sums <- function(y, k = 5L)
 {
 	.Call(C_do_peaks_sums, y, as.integer(k))
+}
+
+peaks_prominences <- function(y, k = 5L, wlen = length(y))
+{
+	.Call(C_do_peaks_prominences, y, as.integer(k), as.integer(wlen))
 }
 
 peaks_areas <- function(y, x = seq_along(y), k = 5L)
