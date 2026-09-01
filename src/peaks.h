@@ -127,14 +127,6 @@ struct peaks
 		return y[i] - (ylo > yhi ? ylo : yhi);
 	}
 
-	// Width of peak at i (at a fraction of max)
-	template<Num T = double, Vec V>
-	T width(V x, ptrdiff_t i, double fmax = 0.5) const noexcept
-	{
-		assert(is_peak(i));
-		return right_ips<T>(x, i, fmax) - left_ips<T>(x, i, fmax);
-	}
-
 	// Centroid of peak at i
 	template<Num T = double, Vec V>
 	T centroid(V x, ptrdiff_t i) const noexcept
@@ -155,6 +147,14 @@ struct peaks
 			sy += y[i];
 		}
 		return sxy / sy;
+	}
+
+	// Width of peak at i (at a fraction of max)
+	template<Num T = double, Vec V>
+	T width(V x, ptrdiff_t i, double fmax = 0.5) const noexcept
+	{
+		assert(is_peak(i));
+		return right_ips<T>(x, i, fmax) - left_ips<T>(x, i, fmax);
 	}
 
 	// Find left endpoint of a peak at i (nearest local minimum)
@@ -344,30 +344,6 @@ struct peaks
 		return n;
 	}
 
-	// Get widths of peaks and copy into output vectors
-	template<Vec V, Num Index, Num T = double>
-	ptrdiff_t widths_into(
-		vec<Index> index,
-		vec<T> left_ips,
-		vec<T> right_ips,
-		vec<T> widths,
-		const V x,
-		const double fmax = 0.5) const noexcept
-	{
-		ptrdiff_t n = 0;
-		for ( ptrdiff_t i = 0; i < ssize(); ++i )
-		{
-			if ( is_peak(i) ) {
-				index[n] = i;
-				left_ips[n] = this->left_ips<T>(x, i, fmax);
-				right_ips[n] = this->right_ips<T>(x, i, fmax);
-				widths[n] = right_ips[n] - left_ips[n];
-				++n;
-			}
-		}
-		return n;
-	}
-
 	// Get centroids of peaks and copy into output vectors
 	template<Vec V, Num Index, Num T = double>
 	ptrdiff_t centroids_into(
@@ -391,6 +367,29 @@ struct peaks
 		return n;
 	}
 
+	// Get widths of peaks and copy into output vectors
+	template<Vec V, Num Index, Num T = double>
+	ptrdiff_t widths_into(
+		vec<Index> index,
+		vec<T> left_ips,
+		vec<T> right_ips,
+		vec<T> widths,
+		const V x,
+		const double fmax = 0.5) const noexcept
+	{
+		ptrdiff_t n = 0;
+		for ( ptrdiff_t i = 0; i < ssize(); ++i )
+		{
+			if ( is_peak(i) ) {
+				index[n] = i;
+				left_ips[n] = this->left_ips<T>(x, i, fmax);
+				right_ips[n] = this->right_ips<T>(x, i, fmax);
+				widths[n] = right_ips[n] - left_ips[n];
+				++n;
+			}
+		}
+		return n;
+	}
 };
 
 #endif // CARDINAL_CORE_PEAKS

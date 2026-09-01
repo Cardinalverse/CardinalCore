@@ -26,15 +26,6 @@ peaks_areas <- function(y, x = seq_along(y), k = 5L)
 	.Call(C_do_peaks_areas, y, x, as.integer(k))
 }
 
-peaks_widths <- function(y, x = seq_along(y), k = 5L, fmax = 0.5)
-{
-	if ( is.double(y) && is.integer(x) )
-		x <- as.double(x)
-	if ( is.integer(y) && is.double(x) )
-		y <- as.double(y)
-	.Call(C_do_peaks_widths, y, x, as.integer(k), as.double(fmax))
-}
-
 peaks_centroids <- function(y, x = seq_along(y), k = 5L)
 {
 	if ( is.double(y) && is.integer(x) )
@@ -42,5 +33,14 @@ peaks_centroids <- function(y, x = seq_along(y), k = 5L)
 	if ( is.integer(y) && is.double(x) )
 		y <- as.double(y)
 	.Call(C_do_peaks_centroids, y, x, as.integer(k))
+}
+
+peaks_widths <- function(y, x = seq_along(y), k = 5L, fmax = 0.5)
+{
+	if ( is.double(y) && is.integer(x) )
+		x <- as.double(x)
+	if ( is.integer(y) && is.double(x) )
+		y <- as.double(y)
+	.Call(C_do_peaks_widths, y, x, as.integer(k), as.double(fmax))
 }
 

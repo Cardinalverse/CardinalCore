@@ -50,8 +50,8 @@ SEXP do_peaks_find(SEXP y, SEXP k);
 SEXP do_peaks_sums(SEXP y, SEXP k);
 SEXP do_peaks_prominences(SEXP y, SEXP k, SEXP wlen);
 SEXP do_peaks_areas(SEXP y, SEXP x, SEXP k);
-SEXP do_peaks_widths(SEXP y, SEXP x, SEXP k, SEXP fmax);
 SEXP do_peaks_centroids(SEXP y, SEXP x, SEXP k);
+SEXP do_peaks_widths(SEXP y, SEXP x, SEXP k, SEXP fmax);
 
 //// Matrix statistics
 //---------------------
