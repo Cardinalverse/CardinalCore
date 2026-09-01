@@ -7,6 +7,7 @@
 #include "kernels.h"
 #include "order.h"
 #include "search.h"
+#include "signal.h"
 #include "peaks.h"
 
 //// Exports
@@ -278,6 +279,8 @@ SEXP do_kdtree_range_search(
 				},
 				Rf_asInteger(num_threads));
 			break;
+		default:
+			Rf_error("'query' and 'table' must be integer or double");
 	}
 	SEXP offset = PROTECT(Rf_allocVector(INTSXP, 1 + XLENGTH(counts)));
 	int * poffset = INTEGER(offset);
@@ -315,6 +318,8 @@ SEXP do_kdtree_range_search(
 				},
 				Rf_asInteger(num_threads));
 			break;
+		default:
+			Rf_error("'query' and 'table' must be integer or double");
 	}
 	add1(r_vec<int>(index));
 	SEXP hits = PROTECT(Rf_allocVector(VECSXP, 3));
@@ -377,6 +382,8 @@ SEXP do_kdtree_knn_search(
 				},
 				Rf_asInteger(num_threads));
 			break;
+		default:
+			Rf_error("'query' and 'table' must be integer or double");
 	}
 	add1(r_vec<int>(index));
 	SEXP hits = PROTECT(Rf_allocVector(VECSXP, 4));
@@ -394,8 +401,60 @@ SEXP do_kdtree_knn_search(
 	return hits;
 }
 
+//// Signal processing
+//--------------------
+
+SEXP do_filt1_mean(SEXP y, SEXP k)
+{
+	SEXP yout = PROTECT(Rf_allocVector(REALSXP, XLENGTH(y)));
+	switch(TYPEOF(y))
+	{
+		case INTSXP:
+			filt1_mean(
+				r_vec<double>(yout),
+				r_vec<int>(y),
+				Rf_asInteger(k));
+			break;
+		case REALSXP:
+			filt1_mean(
+				r_vec<double>(yout),
+				r_vec<double>(y),
+				Rf_asInteger(k));
+			break;
+		default:
+			Rf_error("'y' must be integer or double");
+	}
+	UNPROTECT(1);
+	return yout;
+}
+
+SEXP do_filt1_conv(SEXP y, SEXP w)
+{
+	SEXP yout = PROTECT(Rf_allocVector(REALSXP, XLENGTH(y)));
+	switch(TYPEOF(y))
+	{
+		case INTSXP:
+			filt1_conv(
+				r_vec<double>(yout),
+				r_vec<int>(y),
+				r_vec<double>(w));
+			break;
+		case REALSXP:
+			filt1_conv(
+				r_vec<double>(yout),
+				r_vec<double>(y),
+				r_vec<double>(w));
+			break;
+		default:
+			Rf_error("'y' must be integer or double");
+	}
+	UNPROTECT(1);
+	return yout;
+}
+
 //// Peak processing
 //------------------
+
 SEXP do_peaks_find(SEXP y, SEXP k)
 {
 	int count = 0;
@@ -407,6 +466,8 @@ SEXP do_peaks_find(SEXP y, SEXP k)
 		case REALSXP:
 			count = peaks{r_vec<double>(y), Rf_asInteger(k)}.count();
 			break;
+		default:
+			Rf_error("'y' must be integer or double");
 	}
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
 	switch(TYPEOF(y))
@@ -436,6 +497,8 @@ SEXP do_peaks_sums(SEXP y, SEXP k)
 		case REALSXP:
 			count = peaks{r_vec<double>(y), Rf_asInteger(k)}.count();
 			break;
+		default:
+			Rf_error("'y' must be integer or double");
 	}
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
 	SEXP left_end = PROTECT(Rf_allocVector(INTSXP, count));
@@ -489,6 +552,8 @@ SEXP do_peaks_prominences(SEXP y, SEXP k, SEXP wlen)
 		case REALSXP:
 			count = peaks{r_vec<double>(y), Rf_asInteger(k)}.count();
 			break;
+		default:
+			Rf_error("'y' must be integer or double");
 	}
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
 	SEXP left_base = PROTECT(Rf_allocVector(INTSXP, count));
@@ -544,6 +609,8 @@ SEXP do_peaks_areas(SEXP y, SEXP x, SEXP k)
 		case REALSXP:
 			count = peaks{r_vec<double>(y), Rf_asInteger(k)}.count();
 			break;
+		default:
+			Rf_error("'y' must be integer or double");
 	}
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
 	SEXP left_end = PROTECT(Rf_allocVector(INTSXP, count));
@@ -599,6 +666,8 @@ SEXP do_peaks_widths(SEXP y, SEXP x, SEXP k, SEXP fmax)
 		case REALSXP:
 			count = peaks{r_vec<double>(y), Rf_asInteger(k)}.count();
 			break;
+		default:
+			Rf_error("'y' must be integer or double");
 	}
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
 	SEXP left_ips = PROTECT(Rf_allocVector(REALSXP, count));
@@ -656,6 +725,8 @@ SEXP do_peaks_centroids(SEXP y, SEXP x, SEXP k)
 		case REALSXP:
 			count = peaks{r_vec<double>(y), Rf_asInteger(k)}.count();
 			break;
+		default:
+			Rf_error("'y' must be integer or double");
 	}
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
 	SEXP left_end = PROTECT(Rf_allocVector(INTSXP, count));
@@ -726,6 +797,8 @@ SEXP do_col_sums(SEXP x, SEXP num_threads)
 				Rf_asInteger(num_threads));
 			break;
 		}
+		default:
+			Rf_error("'x' must be integer or double");
 	}
 	UNPROTECT(1);
 	return sums;
@@ -755,6 +828,8 @@ SEXP do_test_expression(SEXP x, SEXP index)
 				r_vec<int>(index));
 			break;
 		}
+		default:
+			Rf_error("'x' must be integer or double");
 	}
 	UNPROTECT(1);
 	return result;

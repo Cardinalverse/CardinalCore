@@ -44,6 +44,11 @@ SEXP do_kdtree_knn_search(
 	SEXP p,
 	SEXP num_threads);
 
+//// Signal processing
+//---------------------
+SEXP do_filt1_mean(SEXP y, SEXP k);
+SEXP do_filt1_conv(SEXP y, SEXP w);
+
 //// Peak processing
 //------------------
 SEXP do_peaks_find(SEXP y, SEXP k);
@@ -77,6 +82,9 @@ static const R_CallMethodDef callMethods[] = {
 	CALLDEF(do_kdtree_build, 1),
 	CALLDEF(do_kdtree_range_search, 6),
 	CALLDEF(do_kdtree_knn_search, 5),
+	// Signal processing
+	CALLDEF(do_filt1_mean, 2),
+	CALLDEF(do_filt1_conv, 2),
 	// Peak processing
 	CALLDEF(do_peaks_find, 2),
 	CALLDEF(do_peaks_sums, 2),

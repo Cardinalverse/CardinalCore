@@ -12,6 +12,12 @@ export(
 	"knnsearch")
 
 export(
+	"roll",
+	"roll_apply",
+	"filt1_mean",
+	"filt1_conv")
+
+export(
 	"peaks_find",
 	"peaks_sums",
 	"peaks_prominences",
