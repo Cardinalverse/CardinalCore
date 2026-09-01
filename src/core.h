@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cmath>
 #include <limits>
+#include <utility>
 #include <concepts>
 #include <type_traits>
 
@@ -1351,6 +1352,14 @@ struct mat
 //// R compatibility
 //-------------------
 
+// Index helpers
+#ifdef USING_R
+template<Num T>
+vec<T> add1(vec<T> x) noexcept { return x.assign(mask(x) + 1); }
+template<Num T>
+vec<T> sub1(vec<T> x) noexcept { return x.assign(mask(x) - 1); }
+#endif // USING_R
+
 // SEXP data pointers
 #ifdef USING_R
 template<class T>
@@ -1375,6 +1384,7 @@ struct num_traits<double> {
 };
 #endif // USING_R
 
+// R vectors
 #ifdef USING_R
 template<Num T>
 vec<T> r_vec(SEXP x) noexcept
@@ -1394,6 +1404,7 @@ vec<T> r_vec(SEXP x) noexcept
 }
 #endif // USING_R
 
+// R matrices
 #ifdef USING_R
 template<Num T>
 mat<T> r_mat(SEXP x) noexcept
@@ -1415,6 +1426,7 @@ mat<T> r_mat(SEXP x) noexcept
 }
 #endif // USING_R
 
+// R vectors (ragged)
 #ifdef USING_R
 template<Num T, Num Offset>
 vecs_pack<T,Offset> r_vecs_pack(SEXP data, SEXP offset) noexcept

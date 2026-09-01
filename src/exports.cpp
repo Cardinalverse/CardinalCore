@@ -3,21 +3,11 @@
 #include <R.h>
 #include <Rinternals.h>
 
+#include "core.h"
 #include "kernels.h"
 #include "order.h"
 #include "search.h"
 #include "peaks.h"
-
-//// Helpers
-//-----------
-
-// Vector += 1 (NA preserving)
-template<Num T>
-vec<T> add1(vec<T> x) noexcept { return x.assign(mask(x) + 1); }
-
-// Vector -= 1 (NA preserving)
-template<Num T>
-vec<T> sub1(vec<T> x) noexcept { return x.assign(mask(x) - 1); }
 
 //// Exports
 //-----------

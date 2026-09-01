@@ -11,10 +11,7 @@ extern "C" {
 SEXP do_qorder(SEXP x);
 SEXP do_qselect(SEXP x, SEXP k);
 SEXP do_qmedian(SEXP x);
-SEXP do_qmad(
-	SEXP x,
-	SEXP center,
-	SEXP constant);
+SEXP do_qmad(SEXP x, SEXP center, SEXP constant);
 
 //// Search and nearest neighbors
 //--------------------------------
