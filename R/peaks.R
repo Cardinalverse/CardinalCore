@@ -8,15 +8,6 @@ peaks_find <- function(y, k = 5L)
 	.Call(C_do_peaks_find, y, as.integer(k))
 }
 
-peaks_snrs <- function(y, k = 5L,
-	noise = c("Diff", "SmoothSD", "SmoothMAD"), wlen = 0L)
-{
-	k <- as.integer(min(max(3L, k), length(y)))
-	wlen <- as.integer(min(max(0L, wlen), length(y)))
-	noise <- c("Diff"=0L, "SmoothSD"=1L, "SmoothMAD"=2L)[match.arg(noise)]
-	.Call(C_do_peaks_snrs, y, k, noise, wlen)
-}
-
 peaks_prominences <- function(y, k = 5L, wlen = 0L)
 {
 	k <- as.integer(min(max(3L, k), length(y)))

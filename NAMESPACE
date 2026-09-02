@@ -19,7 +19,6 @@ export(
 
 export(
 	"peaks_find",
-	"peaks_snrs",
 	"peaks_prominences",
 	"peaks_widths",
 	"peaks_areas",
