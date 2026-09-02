@@ -172,7 +172,7 @@ struct peaks
 	T width(ptrdiff_t i, double fmax = 0.5) const noexcept
 	{
 		assert(is_peak(i));
-		return right_ips<T>(x, i, fmax) - left_ips<T>(x, i, fmax);
+		return right_ips<T>(i, fmax) - left_ips<T>(i, fmax);
 	}
 
 	// Find left endpoint of a peak at i (nearest local minimum)
@@ -359,7 +359,7 @@ struct peaks
 		const ptrdiff_t wlen = 0) const noexcept
 	{
 		ptrdiff_t n = 0;
-		T global_noise = wlen > 0 ? 0 : noise(method);
+		T global_noise = wlen > 0 ? na_value<T>() : noise(method);
 		for ( ptrdiff_t i = 0; i < ssize(); ++i )
 		{
 			if ( is_peak(i) ) {
@@ -368,29 +368,6 @@ struct peaks
 					snrs[n] = snr(i, method, wlen);
 				else
 					snrs[n] = coerce_cast<T>(y[i]) / global_noise;
-				++n;
-			}
-		}
-		return n;
-	}
-
-	// Get sums of peaks and copy into output vectors
-	template<Num Index, Num T = double>
-	ptrdiff_t sums_into(
-		vec<Index> index,
-		vec<Index> left_end,
-		vec<Index> right_end,
-		vec<T> sums) const noexcept
-	{
-		ptrdiff_t n = 0;
-		for ( ptrdiff_t i = 0; i < ssize(); ++i )
-		{
-			if ( is_peak(i) )
-			{
-				index[n] = i;
-				left_end[n] = this->left_end(i);
-				right_end[n] = this->right_end(i);
-				sums[n] = sum<T>(left_end[n], right_end[n]);
 				++n;
 			}
 		}
@@ -420,22 +397,23 @@ struct peaks
 		return n;
 	}
 
-	// Get centroids of peaks and copy into output vectors
+	// Get widths of peaks and copy into output vectors
 	template<Num Index, Num T = double>
-	ptrdiff_t centroids_into(
+	ptrdiff_t widths_into(
 		vec<Index> index,
-		vec<Index> left_end,
-		vec<Index> right_end,
-		vec<T> centroids) const noexcept
+		vec<T> left_ips,
+		vec<T> right_ips,
+		vec<T> widths,
+		const double fmax = 0.5) const noexcept
 	{
 		ptrdiff_t n = 0;
 		for ( ptrdiff_t i = 0; i < ssize(); ++i )
 		{
 			if ( is_peak(i) ) {
 				index[n] = i;
-				left_end[n] = this->left_end(i);
-				right_end[n] = this->right_end(i);
-				centroids[n] = centroid<T>(left_end[n], right_end[n]);
+				left_ips[n] = this->left_ips<T>(i, fmax);
+				right_ips[n] = this->right_ips<T>(i, fmax);
+				widths[n] = right_ips[n] - left_ips[n];
 				++n;
 			}
 		}
@@ -464,23 +442,38 @@ struct peaks
 		return n;
 	}
 
-	// Get widths of peaks and copy into output vectors
+	// Get peaks summary and copy into output vectors
 	template<Num Index, Num T = double>
-	ptrdiff_t widths_into(
+	ptrdiff_t summary_into(
 		vec<Index> index,
-		vec<T> left_ips,
-		vec<T> right_ips,
+		vec<T> centroids,
+		vec<T> snrs,
+		vec<T> maxs,
+		vec<T> sums,
+		vec<T> areas,
 		vec<T> widths,
+		const Noise method,
+		const ptrdiff_t wlen = 0,
 		const double fmax = 0.5) const noexcept
 	{
 		ptrdiff_t n = 0;
+		T global_noise = wlen > 0 ? na_value<T>() : noise(method);
 		for ( ptrdiff_t i = 0; i < ssize(); ++i )
 		{
 			if ( is_peak(i) ) {
 				index[n] = i;
-				left_ips[n] = this->left_ips<T>(i, fmax);
-				right_ips[n] = this->right_ips<T>(i, fmax);
-				widths[n] = right_ips[n] - left_ips[n];
+				T height = coerce_cast<T>(y[i]);
+				ptrdiff_t lo = this->left_end(i);
+				ptrdiff_t hi = this->right_end(i);
+				centroids[n] = centroid(lo, hi);
+				if ( wlen > 0 )
+					snrs[n] = snr(i, method, wlen);
+				else
+					snrs[n] = height / global_noise;
+				maxs[n] = height;
+				sums[n] = sum(lo, hi);
+				areas[n] = area(lo, hi);
+				widths[n] = width(i, fmax);
 				++n;
 			}
 		}

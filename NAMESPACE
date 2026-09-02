@@ -20,11 +20,10 @@ export(
 export(
 	"peaks_find",
 	"peaks_snrs",
-	"peaks_sums",
 	"peaks_prominences",
+	"peaks_widths",
 	"peaks_areas",
-	"peaks_centroids",
-	"peaks_widths")
+	"peaks_summary")
 
 export("col_sums")
 

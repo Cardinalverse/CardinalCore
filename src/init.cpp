@@ -53,11 +53,16 @@ SEXP do_filt1_conv(SEXP y, SEXP w);
 //------------------
 SEXP do_peaks_find(SEXP y, SEXP k);
 SEXP do_peaks_snrs(SEXP y, SEXP k, SEXP method, SEXP wlen);
-SEXP do_peaks_sums(SEXP y, SEXP k);
 SEXP do_peaks_prominences(SEXP y, SEXP k, SEXP wlen);
-SEXP do_peaks_centroids(SEXP y, SEXP x, SEXP k);
-SEXP do_peaks_areas(SEXP y, SEXP x, SEXP k);
 SEXP do_peaks_widths(SEXP y, SEXP x, SEXP k, SEXP fmax);
+SEXP do_peaks_areas(SEXP y, SEXP x, SEXP k);
+SEXP do_peaks_summary(
+	SEXP y, 
+	SEXP x, 
+	SEXP k, 
+	SEXP method, 
+	SEXP wlen, 
+	SEXP fmax);
 
 //// Matrix statistics
 //---------------------
@@ -89,11 +94,10 @@ static const R_CallMethodDef callMethods[] = {
 	// Peak processing
 	CALLDEF(do_peaks_find, 2),
 	CALLDEF(do_peaks_snrs, 4),
-	CALLDEF(do_peaks_sums, 2),
 	CALLDEF(do_peaks_prominences, 3),
-	CALLDEF(do_peaks_centroids, 4),
-	CALLDEF(do_peaks_areas, 3),
 	CALLDEF(do_peaks_widths, 4),
+	CALLDEF(do_peaks_areas, 3),
+	CALLDEF(do_peaks_summary, 6),
 	// Matrix statistics
 	CALLDEF(do_col_sums, 2),
 	// Test expressions
