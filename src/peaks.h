@@ -3,6 +3,7 @@
 
 #include "core.h"
 #include "search.h"
+#include "signal.h"
 
 //// Peaks vector
 //---------------
@@ -164,7 +165,7 @@ struct peaks
 	ptrdiff_t left_end(ptrdiff_t i) const noexcept
 	{
 		assert(is_peak(i));
-		ptrdiff_t end = i > 0 ? i - 1 : 0;
+		ptrdiff_t end = clamp(i - 1, 0, ssize() - 1);
 		while ( i > 0 && i >= end - (k / 2) )
 		{
 			if ( diff(y[i], y[end]) < 0 )
@@ -178,7 +179,7 @@ struct peaks
 	ptrdiff_t right_end(ptrdiff_t i) const noexcept
 	{
 		assert(is_peak(i));
-		ptrdiff_t end = i < ssize() - 1 ? i + 1 : ssize() - 1;
+		ptrdiff_t end = clamp(i + 1, 0, ssize() - 1);
 		while ( i < ssize() - 1 && i <= end + (k / 2) )
 		{
 			if ( diff(y[i], y[end]) < 0 )
@@ -191,11 +192,12 @@ struct peaks
 	// Find left base of a peak at i (minimum to next higher peak)
 	// - Window wlen gives number of points to search
 	// - Window is centered on the peak at i
+	// - If wlen = 0, entire signal is used
 	ptrdiff_t left_base(ptrdiff_t i, ptrdiff_t wlen = 0) const noexcept
 	{
 		assert(is_peak(i));
 		ptrdiff_t wlo = wlen > 0 ? i - (wlen / 2) : 0;
-		ptrdiff_t base = i > 0 ? i - 1 : 0;
+		ptrdiff_t base = clamp(i - 1, 0, ssize() - 1);
 		for ( ptrdiff_t j = base; j > 0 && j >= wlo; --j )
 		{
 			if ( y[j] < y[base] )
@@ -209,11 +211,12 @@ struct peaks
 	// Find right base of a peak at i (minimum to next higher peak)
 	// - Window wlen gives number of points to search
 	// - Window is centered on the peak at i
+	// - If wlen = 0, entire signal is used
 	ptrdiff_t right_base(ptrdiff_t i, ptrdiff_t wlen = 0) const noexcept
 	{
 		assert(is_peak(i));
 		ptrdiff_t whi = wlen > 0 ? i + (wlen / 2) : ssize() - 1;
-		ptrdiff_t base = i < ssize() - 1 ? i + 1 : ssize() - 1;
+		ptrdiff_t base = clamp(i + 1, 0, ssize() - 1);
 		for ( ptrdiff_t j = base; j < ssize() - 1 && j <= whi; ++j )
 		{
 			if ( y[j] < y[base] )
@@ -229,7 +232,7 @@ struct peaks
 	T left_ips(ptrdiff_t i, double fmax = 0.5) const noexcept
 	{
 		assert(is_peak(i));
-		ptrdiff_t j = i > 0 ? i - 1 : 0;
+		ptrdiff_t j = clamp(i - 1, 0, ssize() - 1);
 		while ( j >= 0 )
 		{
 			T fheight = fmax * y[i];
@@ -249,7 +252,7 @@ struct peaks
 	T right_ips(ptrdiff_t i, double fmax = 0.5) const noexcept
 	{
 		assert(is_peak(i));
-		ptrdiff_t j = i < ssize() - 1 ? i + 1 : ssize() - 1;
+		ptrdiff_t j = clamp(i + 1, 0, ssize() - 1);
 		while ( j < ssize() )
 		{
 			T fheight = fmax * y[i];
