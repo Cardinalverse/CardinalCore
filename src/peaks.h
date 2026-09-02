@@ -9,6 +9,12 @@
 //---------------
 // Summarize peaks in a signal
 
+enum Noise {
+	LagDiff,
+	SmoothSD,
+	SmoothMAD,
+};
+
 // A vector with peaks
 // - Signal y sampled at points x
 // - Peaks are local maxima among k points
@@ -59,6 +65,14 @@ struct peaks
 		for ( ptrdiff_t i = 0; i < ssize(); ++i )
 			n += is_peak(i);
 		return n;
+	}
+
+	// Get the signal-to-noise ratio of a peak
+	template<Num T = double>
+	T snr(ptrdiff_t i, Noise method, ptrdiff_t wlen = 0) const noexcept
+	{
+		assert(is_peak(i));
+		return coerce_cast<T>(y[i]) / noise<T>(i, method, wlen);
 	}
 
 	// Sum of peak at i
@@ -267,6 +281,62 @@ struct peaks
 		return x[j];
 	}
 
+	// Get global noise level
+	template<Num T = double>
+	T noise(Noise method) const noexcept
+	{
+		switch(method)
+		{
+			case LagDiff: return noise<LagDiff,T>(0, ssize() - 1);
+			case SmoothSD: return noise<SmoothSD,T>(0, ssize() - 1);
+			case SmoothMAD: return noise<SmoothMAD,T>(0, ssize() - 1);
+		}
+	}
+
+	// Get noise level at a peak
+	template<Num T = double>
+	T noise(ptrdiff_t i, Noise method, ptrdiff_t wlen = 0) const noexcept
+	{
+		if ( wlen == 0 )
+			return noise(method);
+		else
+		{
+			ptrdiff_t lo = clamp(i - wlen / 2, 0, ssize() - 1);
+			ptrdiff_t hi = clamp(i + wlen / 2, 0, ssize() - 1);
+			switch(method)
+			{
+				case LagDiff: return noise<LagDiff,T>(lo, hi);
+				case SmoothSD: return noise<SmoothSD,T>(lo, hi);
+				case SmoothMAD: return noise<SmoothMAD,T>(lo, hi);
+			}
+		}
+	}
+
+	// Get noise level in a region
+	template<Noise Method, Num T = double>
+	T noise(ptrdiff_t lo, ptrdiff_t hi) const noexcept
+	{
+		auto ys = coerce<T>(slice(y, {lo, hi + 1}));
+		if constexpr ( Method == LagDiff )
+		{
+			auto dy = shift(ys, 1) - ys;
+			auto mdy = mean(mask(dy));
+			return mean(mask(abs(ys - mdy)));
+		}
+		else if constexpr ( Method == SmoothSD )
+		{
+			auto noise = mask(convolve(ys, seq{1, k}) - ys);
+			return std::sqrt(var(noise));
+		}
+		else if constexpr ( Method == SmoothMAD )
+		{
+			auto noise = mask(convolve(ys, seq{1, k}) - ys);
+			return qmad(noise, qmedian(noise));
+		}
+		else
+			static_assert(dependent_false<T>, "unsupported noise method");
+	}
+
 	// Get indices of peaks and copy into index
 	template<Num Index>
 	ptrdiff_t index_into(vec<Index> index) const noexcept
@@ -276,6 +346,30 @@ struct peaks
 		{
 			if ( is_peak(i) )
 				index[n++] = i;
+		}
+		return n;
+	}
+
+	// Get signal-to-noise ratios of peaks and copy into output vectors
+	template<Num Index, Num T = double>
+	ptrdiff_t snrs_into(
+		vec<Index> index,
+		vec<T> snrs,
+		const Noise method,
+		const ptrdiff_t wlen = 0) const noexcept
+	{
+		ptrdiff_t n = 0;
+		T global_noise = wlen > 0 ? 0 : noise(method);
+		for ( ptrdiff_t i = 0; i < ssize(); ++i )
+		{
+			if ( is_peak(i) ) {
+				index[n] = i;
+				if ( wlen > 0 )
+					snrs[n] = snr(i, method, wlen);
+				else
+					snrs[n] = coerce_cast<T>(y[i]) / global_noise;
+				++n;
+			}
 		}
 		return n;
 	}
@@ -313,13 +407,12 @@ struct peaks
 		const ptrdiff_t wlen = 0) const noexcept
 	{
 		ptrdiff_t n = 0;
-		ptrdiff_t wl = wlen > 0 ? wlen : ssize();
 		for ( ptrdiff_t i = 0; i < ssize(); ++i )
 		{
 			if ( is_peak(i) ) {
 				index[n] = i;
-				left_base[n] = this->left_base(i, wl);
-				right_base[n] = this->right_base(i, wl);
+				left_base[n] = this->left_base(i, wlen);
+				right_base[n] = this->right_base(i, wlen);
 				prominences[n] = prominence<T>(i, left_base[n], right_base[n]);
 				++n;
 			}

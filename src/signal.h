@@ -21,6 +21,34 @@ T clamp(const T x, const L lo, const R hi) noexcept
 	return min2(max2(x, lo), hi);
 }
 
+//// Shifted signal
+//-----------------
+// Vector with lags or leads
+
+template<Vec U, Num T = double>
+struct vec_shifted
+{
+	U y;
+	int shift;
+
+	ptrdiff_t ssize() const noexcept { return y.ssize(); }
+
+	T operator[](ptrdiff_t i) const noexcept
+	{
+		ptrdiff_t j = i + shift;
+		if ( 0 <= j && j < ssize() )
+			return y[j];
+		else
+			return na_value<T>();
+	}
+};
+
+template<Num T = double, Vec U>
+auto shift(U y, int shift) noexcept
+{
+	return vec_shifted<U,T>{y, shift};
+}
+
 //// Convolved signal
 //--------------------
 // Vector convolved with a window

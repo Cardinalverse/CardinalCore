@@ -494,6 +494,43 @@ SEXP do_peaks_find(SEXP y, SEXP k)
 	return index;
 }
 
+SEXP do_peaks_snrs(SEXP y, SEXP k, SEXP method, SEXP wlen)
+{
+	int count = peaks_count(y, k);
+	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
+	SEXP snrs = PROTECT(Rf_allocVector(REALSXP, count));
+	auto x = seq<int>{0, XLENGTH(y)};
+	switch(TYPEOF(y))
+	{
+		case INTSXP:
+			peaks{r_vec<int>(y), x, Rf_asInteger(k)}
+				.snrs_into(
+					r_vec<int>(index),
+					r_vec<double>(snrs),
+					static_cast<Noise>(Rf_asInteger(method)),
+					Rf_asInteger(wlen));
+			break;
+		case REALSXP:
+			peaks{r_vec<double>(y), x, Rf_asInteger(k)}
+				.snrs_into(
+					r_vec<int>(index),
+					r_vec<double>(snrs),
+					static_cast<Noise>(Rf_asInteger(method)),
+					Rf_asInteger(wlen));
+			break;
+	}
+	add1(r_vec<int>(index));
+	SEXP out = PROTECT(Rf_allocVector(VECSXP, 2));
+	SEXP names = PROTECT(Rf_allocVector(STRSXP, 2));
+	SET_VECTOR_ELT(out, 0, index);
+	SET_VECTOR_ELT(out, 1, snrs);
+	SET_STRING_ELT(names, 0, Rf_mkChar("index"));
+	SET_STRING_ELT(names, 1, Rf_mkChar("snr"));
+	Rf_setAttrib(out, R_NamesSymbol, names);
+	UNPROTECT(4);
+	return out;
+}
+
 SEXP do_peaks_sums(SEXP y, SEXP k)
 {
 	int count = peaks_count(y, k);

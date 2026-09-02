@@ -19,6 +19,7 @@ export(
 
 export(
 	"peaks_find",
+	"peaks_snrs",
 	"peaks_sums",
 	"peaks_prominences",
 	"peaks_areas",

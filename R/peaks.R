@@ -7,12 +7,18 @@ peaks_find <- function(y, k = 5L)
 	.Call(C_do_peaks_find, y, as.integer(k))
 }
 
+peaks_snrs <- function(y, k = 5L, method = "Diff", wlen = 0)
+{
+	method <- c("Diff"=0L, "SmoothSD"=1L, "SmoothMAD"=2L)[[method]]
+	.Call(C_do_peaks_snrs, y, as.integer(k), method, as.integer(wlen))
+}
+
 peaks_sums <- function(y, k = 5L)
 {
 	.Call(C_do_peaks_sums, y, as.integer(k))
 }
 
-peaks_prominences <- function(y, k = 5L, wlen = length(y))
+peaks_prominences <- function(y, k = 5L, wlen = 0)
 {
 	.Call(C_do_peaks_prominences, y, as.integer(k), as.integer(wlen))
 }

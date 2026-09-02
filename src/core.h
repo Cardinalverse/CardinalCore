@@ -188,23 +188,6 @@ constexpr bool is_na(const T x) noexcept
 		return false;
 }
 
-// Count of invalid/missing/NA items in x
-template<Vec V>
-ptrdiff_t n_missing(V x) noexcept
-{
-	ptrdiff_t count = 0;
-	for ( ptrdiff_t i = 0; i < x.ssize(); ++i )
-		count += !is_valid(x, i) || is_na(x[i]);
-	return count;
-}
-
-// Count of valid/non-missing/non-NA items in x
-template<Vec V>
-ptrdiff_t n_present(V x) noexcept
-{
-	return x.ssize() - n_missing(x);
-}
-
 // Coerce while preserving NAs across types if possible
 template<Num Out, Num In>
 constexpr Out coerce_cast(In x) noexcept
@@ -834,6 +817,30 @@ constexpr Num auto min(V x) noexcept {
 template<Vec V>
 constexpr Num auto max(V x) noexcept {
 	return reduce<Max,typeof_vec<V>>(x);
+}
+
+// Count of valid observations
+template<Vec V>
+ptrdiff_t nobs(V x) noexcept
+{
+	ptrdiff_t count = 0;
+	for ( ptrdiff_t i = 0; i < x.ssize(); ++i )
+		count += is_valid(x, i);
+	return count;
+}
+
+// Stats
+template<Vec V>
+constexpr Num auto mean(V x) noexcept
+{
+	return sum(x) / nobs(x);
+}
+template<Vec V>
+constexpr Num auto var(V x) noexcept
+{
+	auto m = mean(x);
+	auto e = x - m;
+	return sum(e * e) / (x.ssize() - 1);
 }
 
 //// Vector binary ops

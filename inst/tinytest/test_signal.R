@@ -53,3 +53,6 @@ plot(snr ~ x, type="h")
 abline(h=6, col="blue")
 cbind(y,snr,noise)
 
+p <- peaks_snrs(y, method="Diff", wlen=101)
+data.frame(mz=x[p$index], intensity=y[p$index], snr=p$snr)
+
