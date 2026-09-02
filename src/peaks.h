@@ -8,11 +8,14 @@
 //---------------
 // Summarize peaks in a signal
 
-// A vector with peaks (local maxima of k points)
-template<Vec U>
+// A vector with peaks
+// - Signal y sampled at points x
+// - Peaks are local maxima among k points
+template<Vec U, Vec V>
 struct peaks
 {
 	U y;
+	V x;
 	int k = 5;
 
 	ptrdiff_t ssize() const noexcept { return y.ssize(); }
@@ -78,8 +81,8 @@ struct peaks
 	// Area of peak at i
 	// - Integrates signal y sampled at x
 	// - Computed using trapezoidal rule
-	template<Num T = double, Vec V>
-	T area(V x, ptrdiff_t i) const noexcept
+	template<Num T = double>
+	T area(ptrdiff_t i) const noexcept
 	{
 		assert(is_peak(i));
 		return area(left_end(i), right_end(i));
@@ -88,8 +91,8 @@ struct peaks
 	// Area of signal on closed interval [lo, hi]
 	// - Integrates signal y sampled at x
 	// - Computed using trapezoidal rule
-	template<Num T = double, Vec V>
-	T area(V x, ptrdiff_t lo, ptrdiff_t hi) const noexcept
+	template<Num T = double>
+	T area(ptrdiff_t lo, ptrdiff_t hi) const noexcept
 	{
 		assert(x.ssize() == y.ssize());
 		T area = 0;
@@ -128,16 +131,16 @@ struct peaks
 	}
 
 	// Centroid of peak at i
-	template<Num T = double, Vec V>
-	T centroid(V x, ptrdiff_t i) const noexcept
+	template<Num T = double>
+	T centroid(ptrdiff_t i) const noexcept
 	{
 		assert(is_peak(i));
 		return centroid(x, left_end(i), right_end(i));
 	}
 
 	// Centroid of peak at i
-	template<Num T = double, Vec V>
-	T centroid(V x, ptrdiff_t lo, ptrdiff_t hi) const noexcept
+	template<Num T = double>
+	T centroid(ptrdiff_t lo, ptrdiff_t hi) const noexcept
 	{
 		T sxy = 0;
 		T sy = 0;
@@ -150,8 +153,8 @@ struct peaks
 	}
 
 	// Width of peak at i (at a fraction of max)
-	template<Num T = double, Vec V>
-	T width(V x, ptrdiff_t i, double fmax = 0.5) const noexcept
+	template<Num T = double>
+	T width(ptrdiff_t i, double fmax = 0.5) const noexcept
 	{
 		assert(is_peak(i));
 		return right_ips<T>(x, i, fmax) - left_ips<T>(x, i, fmax);
@@ -222,8 +225,8 @@ struct peaks
 	}
 
 	// Find left intersection at a fraction of the max of peak i
-	template<Num T = double, Vec V>
-	T left_ips(V x, ptrdiff_t i, double fmax = 0.5) const noexcept
+	template<Num T = double>
+	T left_ips(ptrdiff_t i, double fmax = 0.5) const noexcept
 	{
 		assert(is_peak(i));
 		ptrdiff_t j = i > 0 ? i - 1 : 0;
@@ -242,8 +245,8 @@ struct peaks
 	}
 
 	// Find right intersection at a fraction of the max of peak i
-	template<Num T = double, Vec V>
-	T right_ips(V x, ptrdiff_t i, double fmax = 0.5) const noexcept
+	template<Num T = double>
+	T right_ips(ptrdiff_t i, double fmax = 0.5) const noexcept
 	{
 		assert(is_peak(i));
 		ptrdiff_t j = i < ssize() - 1 ? i + 1 : ssize() - 1;
@@ -321,14 +324,13 @@ struct peaks
 		return n;
 	}
 
-	// Get areas of peaks and copy into output vectors
-	template<Vec V, Num Index, Num T = double>
-	ptrdiff_t areas_into(
+	// Get centroids of peaks and copy into output vectors
+	template<Num Index, Num T = double>
+	ptrdiff_t centroids_into(
 		vec<Index> index,
 		vec<Index> left_end,
 		vec<Index> right_end,
-		vec<T> areas,
-		const V x) const noexcept
+		vec<T> centroids) const noexcept
 	{
 		ptrdiff_t n = 0;
 		for ( ptrdiff_t i = 0; i < ssize(); ++i )
@@ -337,21 +339,20 @@ struct peaks
 				index[n] = i;
 				left_end[n] = this->left_end(i);
 				right_end[n] = this->right_end(i);
-				areas[n] = area<T>(x, left_end[n], right_end[n]);
+				centroids[n] = centroid<T>(left_end[n], right_end[n]);
 				++n;
 			}
 		}
 		return n;
 	}
 
-	// Get centroids of peaks and copy into output vectors
-	template<Vec V, Num Index, Num T = double>
-	ptrdiff_t centroids_into(
+	// Get areas of peaks and copy into output vectors
+	template<Num Index, Num T = double>
+	ptrdiff_t areas_into(
 		vec<Index> index,
 		vec<Index> left_end,
 		vec<Index> right_end,
-		vec<T> centroids,
-		const V x) const noexcept
+		vec<T> areas) const noexcept
 	{
 		ptrdiff_t n = 0;
 		for ( ptrdiff_t i = 0; i < ssize(); ++i )
@@ -360,7 +361,7 @@ struct peaks
 				index[n] = i;
 				left_end[n] = this->left_end(i);
 				right_end[n] = this->right_end(i);
-				centroids[n] = centroid<T>(x, left_end[n], right_end[n]);
+				areas[n] = area<T>(left_end[n], right_end[n]);
 				++n;
 			}
 		}
@@ -368,13 +369,12 @@ struct peaks
 	}
 
 	// Get widths of peaks and copy into output vectors
-	template<Vec V, Num Index, Num T = double>
+	template<Num Index, Num T = double>
 	ptrdiff_t widths_into(
 		vec<Index> index,
 		vec<T> left_ips,
 		vec<T> right_ips,
 		vec<T> widths,
-		const V x,
 		const double fmax = 0.5) const noexcept
 	{
 		ptrdiff_t n = 0;
@@ -382,8 +382,8 @@ struct peaks
 		{
 			if ( is_peak(i) ) {
 				index[n] = i;
-				left_ips[n] = this->left_ips<T>(x, i, fmax);
-				right_ips[n] = this->right_ips<T>(x, i, fmax);
+				left_ips[n] = this->left_ips<T>(i, fmax);
+				right_ips[n] = this->right_ips<T>(i, fmax);
 				widths[n] = right_ips[n] - left_ips[n];
 				++n;
 			}

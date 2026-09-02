@@ -455,29 +455,37 @@ SEXP do_filt1_conv(SEXP y, SEXP w)
 //// Peak processing
 //------------------
 
-SEXP do_peaks_find(SEXP y, SEXP k)
+int peaks_count(SEXP y, SEXP k)
 {
 	int count = 0;
+	auto x = seq<int>{0, XLENGTH(y)};
 	switch(TYPEOF(y))
 	{
 		case INTSXP:
-			count = peaks{r_vec<int>(y), Rf_asInteger(k)}.count();
+			count = peaks{r_vec<int>(y), x, Rf_asInteger(k)}.count();
 			break;
 		case REALSXP:
-			count = peaks{r_vec<double>(y), Rf_asInteger(k)}.count();
+			count = peaks{r_vec<double>(y), x, Rf_asInteger(k)}.count();
 			break;
 		default:
 			Rf_error("'y' must be integer or double");
 	}
+	return count;
+}
+
+SEXP do_peaks_find(SEXP y, SEXP k)
+{
+	int count = peaks_count(y, k);
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
+	auto x = seq<int>{0, XLENGTH(y)};
 	switch(TYPEOF(y))
 	{
 		case INTSXP:
-			peaks{r_vec<int>(y), Rf_asInteger(k)}
+			peaks{r_vec<int>(y), x, Rf_asInteger(k)}
 				.index_into(r_vec<int>(index));
 			break;
 		case REALSXP:
-			peaks{r_vec<double>(y), Rf_asInteger(k)}
+			peaks{r_vec<double>(y), x, Rf_asInteger(k)}
 				.index_into(r_vec<int>(index));
 			break;
 	}
@@ -488,26 +496,16 @@ SEXP do_peaks_find(SEXP y, SEXP k)
 
 SEXP do_peaks_sums(SEXP y, SEXP k)
 {
-	int count = 0;
-	switch(TYPEOF(y))
-	{
-		case INTSXP:
-			count = peaks{r_vec<int>(y), Rf_asInteger(k)}.count();
-			break;
-		case REALSXP:
-			count = peaks{r_vec<double>(y), Rf_asInteger(k)}.count();
-			break;
-		default:
-			Rf_error("'y' must be integer or double");
-	}
+	int count = peaks_count(y, k);
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
 	SEXP left_end = PROTECT(Rf_allocVector(INTSXP, count));
 	SEXP right_end = PROTECT(Rf_allocVector(INTSXP, count));
 	SEXP sums = PROTECT(Rf_allocVector(REALSXP, count));
+	auto x = seq<int>{0, XLENGTH(y)};
 	switch(TYPEOF(y))
 	{
 		case INTSXP:
-			peaks{r_vec<int>(y), Rf_asInteger(k)}
+			peaks{r_vec<int>(y), x, Rf_asInteger(k)}
 				.sums_into(
 					r_vec<int>(index),
 					r_vec<int>(left_end),
@@ -515,7 +513,7 @@ SEXP do_peaks_sums(SEXP y, SEXP k)
 					r_vec<double>(sums));
 			break;
 		case REALSXP:
-			peaks{r_vec<double>(y), Rf_asInteger(k)}
+			peaks{r_vec<double>(y), x, Rf_asInteger(k)}
 				.sums_into(
 					r_vec<int>(index),
 					r_vec<int>(left_end),
@@ -543,26 +541,16 @@ SEXP do_peaks_sums(SEXP y, SEXP k)
 
 SEXP do_peaks_prominences(SEXP y, SEXP k, SEXP wlen)
 {
-	int count = 0;
-	switch(TYPEOF(y))
-	{
-		case INTSXP:
-			count = peaks{r_vec<int>(y), Rf_asInteger(k)}.count();
-			break;
-		case REALSXP:
-			count = peaks{r_vec<double>(y), Rf_asInteger(k)}.count();
-			break;
-		default:
-			Rf_error("'y' must be integer or double");
-	}
+	int count = peaks_count(y, k);
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
 	SEXP left_base = PROTECT(Rf_allocVector(INTSXP, count));
 	SEXP right_base = PROTECT(Rf_allocVector(INTSXP, count));
 	SEXP prominences = PROTECT(Rf_allocVector(REALSXP, count));
+	auto x = seq<int>{0, XLENGTH(y)};
 	switch(TYPEOF(y))
 	{
 		case INTSXP:
-			peaks{r_vec<int>(y), Rf_asInteger(k)}
+			peaks{r_vec<int>(y), x, Rf_asInteger(k)}
 				.prominences_into(
 					r_vec<int>(index),
 					r_vec<int>(left_base),
@@ -571,7 +559,7 @@ SEXP do_peaks_prominences(SEXP y, SEXP k, SEXP wlen)
 					Rf_asInteger(wlen));
 			break;
 		case REALSXP:
-			peaks{r_vec<double>(y), Rf_asInteger(k)}
+			peaks{r_vec<double>(y), x, Rf_asInteger(k)}
 				.prominences_into(
 					r_vec<int>(index),
 					r_vec<int>(left_base),
@@ -598,20 +586,85 @@ SEXP do_peaks_prominences(SEXP y, SEXP k, SEXP wlen)
 	return out;
 }
 
-SEXP do_peaks_areas(SEXP y, SEXP x, SEXP k)
+SEXP do_peaks_centroids(SEXP y, SEXP x, SEXP k)
 {
-	int count = 0;
+	int count = peaks_count(y, k);
+	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
+	SEXP left_end = PROTECT(Rf_allocVector(INTSXP, count));
+	SEXP right_end = PROTECT(Rf_allocVector(INTSXP, count));
+	SEXP centroids = PROTECT(Rf_allocVector(REALSXP, count));
 	switch(TYPEOF(y))
 	{
 		case INTSXP:
-			count = peaks{r_vec<int>(y), Rf_asInteger(k)}.count();
-			break;
+		{
+			switch(TYPEOF(x))
+			{
+				case INTSXP:
+					peaks{r_vec<int>(y), r_vec<int>(x), Rf_asInteger(k)}
+						.centroids_into(
+							r_vec<int>(index),
+							r_vec<int>(left_end),
+							r_vec<int>(right_end),
+							r_vec<double>(centroids));
+					break;
+				case REALSXP:
+					peaks{r_vec<int>(y), r_vec<double>(x), Rf_asInteger(k)}
+						.centroids_into(
+							r_vec<int>(index),
+							r_vec<int>(left_end),
+							r_vec<int>(right_end),
+							r_vec<double>(centroids));
+					break;
+				default:
+					Rf_error("'x' must be integer or double");
+			}
+		}
 		case REALSXP:
-			count = peaks{r_vec<double>(y), Rf_asInteger(k)}.count();
-			break;
-		default:
-			Rf_error("'y' must be integer or double");
+		{
+			switch(TYPEOF(x))
+			{
+				case INTSXP:
+					peaks{r_vec<double>(y), r_vec<int>(x), Rf_asInteger(k)}
+						.centroids_into(
+							r_vec<int>(index),
+							r_vec<int>(left_end),
+							r_vec<int>(right_end),
+							r_vec<double>(centroids));
+					break;
+				case REALSXP:
+					peaks{r_vec<double>(y), r_vec<double>(x), Rf_asInteger(k)}
+						.centroids_into(
+							r_vec<int>(index),
+							r_vec<int>(left_end),
+							r_vec<int>(right_end),
+							r_vec<double>(centroids));
+					break;
+				default:
+					Rf_error("'x' must be integer or double");
+			}
+		}
 	}
+	add1(r_vec<int>(index));
+	add1(r_vec<int>(left_end));
+	add1(r_vec<int>(right_end));
+	SEXP out = PROTECT(Rf_allocVector(VECSXP, 4));
+	SEXP names = PROTECT(Rf_allocVector(STRSXP, 4));
+	SET_VECTOR_ELT(out, 0, index);
+	SET_VECTOR_ELT(out, 1, left_end);
+	SET_VECTOR_ELT(out, 2, right_end);
+	SET_VECTOR_ELT(out, 3, centroids);
+	SET_STRING_ELT(names, 0, Rf_mkChar("index"));
+	SET_STRING_ELT(names, 1, Rf_mkChar("left_end"));
+	SET_STRING_ELT(names, 2, Rf_mkChar("right_end"));
+	SET_STRING_ELT(names, 3, Rf_mkChar("centroid"));
+	Rf_setAttrib(out, R_NamesSymbol, names);
+	UNPROTECT(6);
+	return out;
+}
+
+SEXP do_peaks_areas(SEXP y, SEXP x, SEXP k)
+{
+	int count = peaks_count(y, k);
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
 	SEXP left_end = PROTECT(Rf_allocVector(INTSXP, count));
 	SEXP right_end = PROTECT(Rf_allocVector(INTSXP, count));
@@ -619,23 +672,49 @@ SEXP do_peaks_areas(SEXP y, SEXP x, SEXP k)
 	switch(TYPEOF(y))
 	{
 		case INTSXP:
-			peaks{r_vec<int>(y), Rf_asInteger(k)}
-				.areas_into(
-					r_vec<int>(index),
-					r_vec<int>(left_end),
-					r_vec<int>(right_end),
-					r_vec<double>(areas),
-					r_vec<int>(x));
-			break;
+		{
+			switch(TYPEOF(x))
+			{
+				case INTSXP:
+					peaks{r_vec<int>(y), r_vec<int>(x), Rf_asInteger(k)}
+						.areas_into(
+							r_vec<int>(index),
+							r_vec<int>(left_end),
+							r_vec<int>(right_end),
+							r_vec<double>(areas));
+					break;
+				case REALSXP:
+					peaks{r_vec<int>(y), r_vec<double>(x), Rf_asInteger(k)}
+						.areas_into(
+							r_vec<int>(index),
+							r_vec<int>(left_end),
+							r_vec<int>(right_end),
+							r_vec<double>(areas));
+					break;
+			}
+		}
 		case REALSXP:
-			peaks{r_vec<double>(y), Rf_asInteger(k)}
-				.areas_into(
-					r_vec<int>(index),
-					r_vec<int>(left_end),
-					r_vec<int>(right_end),
-					r_vec<double>(areas),
-					r_vec<double>(x));
-			break;
+		{
+			switch(TYPEOF(x))
+			{
+				case INTSXP:
+					peaks{r_vec<double>(y), r_vec<int>(x), Rf_asInteger(k)}
+						.areas_into(
+							r_vec<int>(index),
+							r_vec<int>(left_end),
+							r_vec<int>(right_end),
+							r_vec<double>(areas));
+					break;
+				case REALSXP:
+					peaks{r_vec<double>(y), r_vec<double>(x), Rf_asInteger(k)}
+						.areas_into(
+							r_vec<int>(index),
+							r_vec<int>(left_end),
+							r_vec<int>(right_end),
+							r_vec<double>(areas));
+					break;
+			}
+		}
 	}
 	add1(r_vec<int>(index));
 	add1(r_vec<int>(left_end));
@@ -657,18 +736,7 @@ SEXP do_peaks_areas(SEXP y, SEXP x, SEXP k)
 
 SEXP do_peaks_widths(SEXP y, SEXP x, SEXP k, SEXP fmax)
 {
-	int count = 0;
-	switch(TYPEOF(y))
-	{
-		case INTSXP:
-			count = peaks{r_vec<int>(y), Rf_asInteger(k)}.count();
-			break;
-		case REALSXP:
-			count = peaks{r_vec<double>(y), Rf_asInteger(k)}.count();
-			break;
-		default:
-			Rf_error("'y' must be integer or double");
-	}
+	int count = peaks_count(y, k);
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
 	SEXP left_ips = PROTECT(Rf_allocVector(REALSXP, count));
 	SEXP right_ips = PROTECT(Rf_allocVector(REALSXP, count));
@@ -676,25 +744,53 @@ SEXP do_peaks_widths(SEXP y, SEXP x, SEXP k, SEXP fmax)
 	switch(TYPEOF(y))
 	{
 		case INTSXP:
-			peaks{r_vec<int>(y), Rf_asInteger(k)}
-				.widths_into(
-					r_vec<int>(index),
-					r_vec<double>(left_ips),
-					r_vec<double>(right_ips),
-					r_vec<double>(widths),
-					r_vec<int>(x),
-					Rf_asReal(fmax));
-			break;
+		{
+			switch(TYPEOF(x))
+			{
+				case INTSXP:
+					peaks{r_vec<int>(y), r_vec<int>(x), Rf_asInteger(k)}
+						.widths_into(
+							r_vec<int>(index),
+							r_vec<double>(left_ips),
+							r_vec<double>(right_ips),
+							r_vec<double>(widths),
+							Rf_asReal(fmax));
+					break;
+				case REALSXP:
+					peaks{r_vec<int>(y), r_vec<double>(x), Rf_asInteger(k)}
+						.widths_into(
+							r_vec<int>(index),
+							r_vec<double>(left_ips),
+							r_vec<double>(right_ips),
+							r_vec<double>(widths),
+							Rf_asReal(fmax));
+					break;
+			}
+		}
 		case REALSXP:
-			peaks{r_vec<double>(y), Rf_asInteger(k)}
-				.widths_into(
-					r_vec<int>(index),
-					r_vec<double>(left_ips),
-					r_vec<double>(right_ips),
-					r_vec<double>(widths),
-					r_vec<double>(x),
-					Rf_asReal(fmax));
-			break;
+		{
+			switch(TYPEOF(x))
+			{
+				case INTSXP:
+					peaks{r_vec<double>(y), r_vec<int>(x), Rf_asInteger(k)}
+						.widths_into(
+							r_vec<int>(index),
+							r_vec<double>(left_ips),
+							r_vec<double>(right_ips),
+							r_vec<double>(widths),
+							Rf_asReal(fmax));
+					break;
+				case REALSXP:
+					peaks{r_vec<double>(y), r_vec<double>(x), Rf_asInteger(k)}
+						.widths_into(
+							r_vec<int>(index),
+							r_vec<double>(left_ips),
+							r_vec<double>(right_ips),
+							r_vec<double>(widths),
+							Rf_asReal(fmax));
+					break;
+			}
+		}
 	}
 	add1(r_vec<int>(index));
 	add1(r_vec<double>(left_ips));
@@ -709,63 +805,6 @@ SEXP do_peaks_widths(SEXP y, SEXP x, SEXP k, SEXP fmax)
 	SET_STRING_ELT(names, 1, Rf_mkChar("left_ips"));
 	SET_STRING_ELT(names, 2, Rf_mkChar("right_ips"));
 	SET_STRING_ELT(names, 3, Rf_mkChar("width"));
-	Rf_setAttrib(out, R_NamesSymbol, names);
-	UNPROTECT(6);
-	return out;
-}
-
-SEXP do_peaks_centroids(SEXP y, SEXP x, SEXP k)
-{
-	int count = 0;
-	switch(TYPEOF(y))
-	{
-		case INTSXP:
-			count = peaks{r_vec<int>(y), Rf_asInteger(k)}.count();
-			break;
-		case REALSXP:
-			count = peaks{r_vec<double>(y), Rf_asInteger(k)}.count();
-			break;
-		default:
-			Rf_error("'y' must be integer or double");
-	}
-	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
-	SEXP left_end = PROTECT(Rf_allocVector(INTSXP, count));
-	SEXP right_end = PROTECT(Rf_allocVector(INTSXP, count));
-	SEXP centroids = PROTECT(Rf_allocVector(REALSXP, count));
-	switch(TYPEOF(y))
-	{
-		case INTSXP:
-			peaks{r_vec<int>(y), Rf_asInteger(k)}
-				.centroids_into(
-					r_vec<int>(index),
-					r_vec<int>(left_end),
-					r_vec<int>(right_end),
-					r_vec<double>(centroids),
-					r_vec<int>(x));
-			break;
-		case REALSXP:
-			peaks{r_vec<double>(y), Rf_asInteger(k)}
-				.centroids_into(
-					r_vec<int>(index),
-					r_vec<int>(left_end),
-					r_vec<int>(right_end),
-					r_vec<double>(centroids),
-					r_vec<double>(x));
-			break;
-	}
-	add1(r_vec<int>(index));
-	add1(r_vec<int>(left_end));
-	add1(r_vec<int>(right_end));
-	SEXP out = PROTECT(Rf_allocVector(VECSXP, 4));
-	SEXP names = PROTECT(Rf_allocVector(STRSXP, 4));
-	SET_VECTOR_ELT(out, 0, index);
-	SET_VECTOR_ELT(out, 1, left_end);
-	SET_VECTOR_ELT(out, 2, right_end);
-	SET_VECTOR_ELT(out, 3, centroids);
-	SET_STRING_ELT(names, 0, Rf_mkChar("index"));
-	SET_STRING_ELT(names, 1, Rf_mkChar("left_end"));
-	SET_STRING_ELT(names, 2, Rf_mkChar("right_end"));
-	SET_STRING_ELT(names, 3, Rf_mkChar("centroid"));
 	Rf_setAttrib(out, R_NamesSymbol, names);
 	UNPROTECT(6);
 	return out;
