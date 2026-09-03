@@ -10,7 +10,7 @@
 // Summarize peaks in a signal
 
 enum Noise {
-	LagDiff,
+	DiffMAD,
 	SmoothSD,
 	SmoothMAD,
 };
@@ -287,7 +287,7 @@ struct peaks
 	{
 		switch(method)
 		{
-			case LagDiff: return noise<LagDiff,T>(0, ssize() - 1);
+			case DiffMAD: return noise<DiffMAD,T>(0, ssize() - 1);
 			case SmoothSD: return noise<SmoothSD,T>(0, ssize() - 1);
 			case SmoothMAD: return noise<SmoothMAD,T>(0, ssize() - 1);
 		}
@@ -305,7 +305,7 @@ struct peaks
 			ptrdiff_t hi = clamp(i + wlen / 2, 0, ssize() - 1);
 			switch(method)
 			{
-				case LagDiff: return noise<LagDiff,T>(lo, hi);
+				case DiffMAD: return noise<DiffMAD,T>(lo, hi);
 				case SmoothSD: return noise<SmoothSD,T>(lo, hi);
 				case SmoothMAD: return noise<SmoothMAD,T>(lo, hi);
 			}
@@ -317,17 +317,20 @@ struct peaks
 	T noise(ptrdiff_t lo, ptrdiff_t hi) const noexcept
 	{
 		auto ys = coerce<T>(slice(y, {lo, hi + 1}));
-		if constexpr ( Method == LagDiff )
+		// Mean absolute deviation around mean lagged differences
+		if constexpr ( Method == DiffMAD )
 		{
 			auto dy = shift(ys, 1) - ys;
 			auto mdy = mean(mask(dy));
 			return mean(mask(abs(ys - mdy)));
 		}
+		// Standard deviation of smooth signal minus original signal
 		else if constexpr ( Method == SmoothSD )
 		{
 			auto noise = mask(convolve(ys, seq{1, k}) - ys);
 			return std::sqrt(var(noise));
 		}
+		// Median absolute deviation of smooth signal minus original signal
 		else if constexpr ( Method == SmoothMAD )
 		{
 			auto noise = mask(convolve(ys, seq{1, k}) - ys);

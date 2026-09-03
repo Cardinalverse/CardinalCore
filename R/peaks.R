@@ -29,12 +29,12 @@ peaks_areas <- function(y, x = seq_along(y), k = 5L)
 }
 
 peaks_summary <- function(y, x = seq_along(y), k = 5L, 
-	noise = c("Diff", "SmoothSD", "SmoothMAD"), wlen = 0L, fmax = 0.5)
+	noise = c("DiffMAD", "SmoothSD", "SmoothMAD"), wlen = 0L, fmax = 0.5)
 {
 	k <- as.integer(min(max(3L, k), length(y)))
 	fmax <- as.double(min(max(fmax, 0), 1))
 	wlen <- as.integer(min(max(0L, wlen), length(y)))
-	noise <- c("Diff"=0L, "SmoothSD"=1L, "SmoothMAD"=2L)[match.arg(noise)]
+	noise <- c("DiffMAD"=0L, "SmoothSD"=1L, "SmoothMAD"=2L)[match.arg(noise)]
 	.Call(C_do_peaks_summary, y, x, k, noise, wlen, fmax)
 }
 
