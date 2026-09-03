@@ -829,12 +829,14 @@ ptrdiff_t nobs(V x) noexcept
 	return count;
 }
 
-// Stats
+// Mean
 template<Vec V>
 constexpr Num auto mean(V x) noexcept
 {
 	return sum(x) / nobs(x);
 }
+
+// Variance
 template<Vec V>
 constexpr Num auto var(V x) noexcept
 {
