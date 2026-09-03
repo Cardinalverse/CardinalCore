@@ -310,7 +310,7 @@ struct peaks
 
 	// Get noise level in a region
 	template<Noise Method, Num T = double>
-	T noise(ptrdiff_t lo, ptrdiff_t hi) const noexcept
+	T noise(ptrdiff_t lo, ptrdiff_t hi) const
 	{
 		auto ys = coerce<T>(slice(y, {lo, hi + 1}));
 		if constexpr ( Method == DiffMAD )
@@ -426,7 +426,7 @@ struct peaks
 		vec<T> widths,
 		const Noise method,
 		const ptrdiff_t wlen = 0,
-		const double fmax = 0.5) const noexcept
+		const double fmax = 0.5) const
 	{
 		ptrdiff_t n = 0;
 		T global_noise = wlen > 0 ? na_value<T>() : noise(method);

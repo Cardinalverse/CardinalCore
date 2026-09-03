@@ -33,7 +33,7 @@ struct vec_shifted
 
 	ptrdiff_t ssize() const noexcept { return y.ssize(); }
 
-	T operator[](ptrdiff_t i) const noexcept
+	T operator[](const ptrdiff_t i) const noexcept
 	{
 		ptrdiff_t j = i + shift;
 		if ( 0 <= j && j < ssize() )
@@ -44,7 +44,7 @@ struct vec_shifted
 };
 
 template<Num T = double, Vec U>
-auto shift(U y, int shift) noexcept
+auto shift(const U y, int shift) noexcept
 {
 	return vec_shifted<U,T>{y, shift};
 }
@@ -61,7 +61,7 @@ struct vec_convolved
 
 	ptrdiff_t ssize() const noexcept { return y.ssize(); }
 
-	T operator[](ptrdiff_t i) const noexcept
+	T operator[](const ptrdiff_t i) const noexcept
 	{
 		T sw = 0;
 		T swy = 0;
@@ -83,7 +83,7 @@ struct vec_convolved
 };
 
 template<Num T = double, Vec U, Vec W>
-auto convolve(U y, W w) noexcept
+auto convolve(const U y, const W w) noexcept
 {
 	return vec_convolved<U,W,T>{y, w};
 }
@@ -113,7 +113,7 @@ struct gaussian
 
 // Mean filter
 template<Num T, Vec V>
-void filt1_mean(vec<T> dst, V src, int k = 5)
+void filt1_mean(vec<T> dst, V src, int k = 5) noexcept
 {
 	assert(dst.len == src.ssize());
 	int hk = k / 2;
