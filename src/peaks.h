@@ -10,8 +10,11 @@
 // Summarize peaks in a signal
 
 enum Noise {
+	// Mean absolute deviation around mean lagged differences
 	DiffMAD,
+	// Standard deviation of smooth signal minus original signal
 	SmoothSD,
+	// Median absolute deviation of smooth signal minus original signal
 	SmoothMAD,
 };
 
@@ -40,22 +43,15 @@ struct peaks
 		int hk = k / 2;
 		if ( i < hk || i >= ssize() - hk )
 			return false;
-		bool peak = true;
-		for ( ptrdiff_t j = i - 1; j >= i - hk; --j )
-		{
-			if ( diff(y[j], y[i]) >= 0 ) {
-				peak = false;
-				break;
-			}
+		for ( ptrdiff_t j = i - 1; j >= i - hk; --j ) {
+			if ( diff(y[j], y[i]) >= 0 )
+				return false;
 		}
-		for ( ptrdiff_t j = i + 1; j <= i + hk; ++j )
-		{
-			if ( diff(y[j], y[i]) > 0 ) {
-				peak = false;
-				break;
-			}
+		for ( ptrdiff_t j = i + 1; j <= i + hk; ++j ) {
+			if ( diff(y[j], y[i]) > 0 )
+				return false;
 		}
-		return peak;
+		return true;
 	}
 
 	// Get the count of peaks
@@ -317,20 +313,17 @@ struct peaks
 	T noise(ptrdiff_t lo, ptrdiff_t hi) const noexcept
 	{
 		auto ys = coerce<T>(slice(y, {lo, hi + 1}));
-		// Mean absolute deviation around mean lagged differences
 		if constexpr ( Method == DiffMAD )
 		{
 			auto dy = shift(ys, 1) - ys;
 			auto mdy = mean(mask(dy));
 			return mean(mask(abs(ys - mdy)));
 		}
-		// Standard deviation of smooth signal minus original signal
 		else if constexpr ( Method == SmoothSD )
 		{
 			auto noise = mask(convolve(ys, seq{1, k}) - ys);
 			return std::sqrt(var(noise));
 		}
-		// Median absolute deviation of smooth signal minus original signal
 		else if constexpr ( Method == SmoothMAD )
 		{
 			auto noise = mask(convolve(ys, seq{1, k}) - ys);
