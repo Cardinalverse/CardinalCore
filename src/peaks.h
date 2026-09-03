@@ -21,6 +21,7 @@ enum Noise {
 // A vector with peaks
 // - Signal y sampled at points x
 // - Peaks are local maxima among k points
+// - MUST have y.ssize() == x.ssize()
 template<Vec U, Vec V>
 struct peaks
 {

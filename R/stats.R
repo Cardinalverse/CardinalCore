@@ -1,5 +1,32 @@
 
-#### Compute differences
+#### Streaming means
+## ------------------
+
+stream_means <- function(means, nobs)
+{
+	structure(means, nobs=nobs, class="stream_means")
+}
+
+stream_vars <- function(vars, means, nobs)
+{
+	structure(vars, means=means, nobs=nobs, class="stream_vars")
+}
+
+merge_means <- function(x, y, ...)
+{
+	if ( !inherits(x, "stream_means") || !inherits(y, "stream_means") )
+		stop("x and y must be stream_means object")
+	.Call(C_do_stream_means, x, y)
+}
+
+merge_vars <- function(x, y, ...)
+{
+	if ( !inherits(x, "stream_vars") || !inherits(y, "stream_vars") )
+		stop("x and y must be stream_vars object")
+	.Call(C_do_stream_vars, x, y)
+}
+
+#### Compute column sums
 ## ---------------------
 
 col_sums <- function(

@@ -23,6 +23,12 @@ export(
 	"peaks_areas",
 	"peaks_summary")
 
+export(
+	"stream_means",
+	"stream_vars",
+	"merge_means",
+	"merge_vars")
+
 export("col_sums")
 
 useDynLib("CardinalCore", .registration=TRUE, .fixes="C_")
