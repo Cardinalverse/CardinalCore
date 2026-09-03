@@ -6,11 +6,8 @@ export(
 
 export(
 	"bsearch",
-	"rsearch",
 	"kdtree",
 	"kdsearch",
-	"kdsearch_first",
-	"kdsearch_last",
 	"knnsearch")
 
 export(

@@ -456,7 +456,8 @@ struct kdtree
 		const V query,
 		const Tol tolerance,
 		const Rel relative,
-		const Ref referent = Query) const
+		const Ref referent = Query,
+		const Index nomatch = na_value<Index>()) const
 	{
 		auto op = binop<Min,Index>{};
 		Index accum = op.identity();
@@ -466,7 +467,7 @@ struct kdtree
 			tolerance,
 			relative,
 			referent);
-		return count > 0 ? accum : na_value<Index>();
+		return count > 0 ? accum : nomatch;
 	}
 
 	// Find last row in table within tolerance of query
@@ -475,7 +476,8 @@ struct kdtree
 		const V query,
 		const Tol tolerance,
 		const Rel relative,
-		const Ref referent = Query) const
+		const Ref referent = Query,
+		const Index nomatch = na_value<Index>()) const
 	{
 		auto op = binop<Max,Index>{};
 		Index accum = op.identity();
@@ -485,7 +487,7 @@ struct kdtree
 			tolerance,
 			relative,
 			referent);
-		return count > 0 ? accum : na_value<Index>();
+		return count > 0 ? accum : nomatch;
 	}
 
 	// Find indices of the K-nearest neighbors of a query in table
@@ -644,6 +646,7 @@ struct range_find_firsts
 	Tol tolerance;        // in
 	Rel relative;         // in
 	Ref referent;         // in
+	Index nomatch;        // in
 
 	ptrdiff_t ssize() const { return query.nrows(); }
 
@@ -655,7 +658,8 @@ struct range_find_firsts
 				query.row(i),
 				tolerance,
 				relative,
-				referent);
+				referent,
+				nomatch);
 		}
 	}
 };
@@ -670,6 +674,7 @@ struct range_find_lasts
 	Tol tolerance;        // in
 	Rel relative;         // in
 	Ref referent;         // in
+	Index nomatch;        // in
 
 	ptrdiff_t ssize() const { return query.nrows(); }
 
@@ -681,7 +686,8 @@ struct range_find_lasts
 				query.row(i),
 				tolerance,
 				relative,
-				referent);
+				referent,
+				nomatch);
 		}
 	}
 };

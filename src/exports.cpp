@@ -341,6 +341,7 @@ SEXP do_kdtree_range_find_first(
 	SEXP tolerance,
 	SEXP relative,
 	SEXP referent,
+	SEXP nomatch,
 	SEXP num_threads)
 {
 	SEXP table = VECTOR_ELT(tree, 0);
@@ -364,6 +365,7 @@ SEXP do_kdtree_range_find_first(
 					r_vec<double>(tolerance),
 					r_vec<int>(relative),
 					static_cast<Ref>(Rf_asInteger(referent)),
+					Rf_asInteger(nomatch),
 				},
 				Rf_asInteger(num_threads));
 			break;
@@ -376,6 +378,7 @@ SEXP do_kdtree_range_find_first(
 					r_vec<double>(tolerance),
 					r_vec<int>(relative),
 					static_cast<Ref>(Rf_asInteger(referent)),
+					Rf_asInteger(nomatch),
 				},
 				Rf_asInteger(num_threads));
 			break;
@@ -393,6 +396,7 @@ SEXP do_kdtree_range_find_last(
 	SEXP tolerance,
 	SEXP relative,
 	SEXP referent,
+	SEXP nomatch,
 	SEXP num_threads)
 {
 	SEXP table = VECTOR_ELT(tree, 0);
@@ -416,6 +420,7 @@ SEXP do_kdtree_range_find_last(
 					r_vec<double>(tolerance),
 					r_vec<int>(relative),
 					static_cast<Ref>(Rf_asInteger(referent)),
+					Rf_asInteger(nomatch),
 				},
 				Rf_asInteger(num_threads));
 			break;
@@ -428,6 +433,7 @@ SEXP do_kdtree_range_find_last(
 					r_vec<double>(tolerance),
 					r_vec<int>(relative),
 					static_cast<Ref>(Rf_asInteger(referent)),
+					Rf_asInteger(nomatch),
 				},
 				Rf_asInteger(num_threads));
 			break;

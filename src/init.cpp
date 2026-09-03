@@ -43,6 +43,7 @@ SEXP do_kdtree_range_find_first(
 	SEXP tolerance,
 	SEXP relative,
 	SEXP referent,
+	SEXP nomatch,
 	SEXP num_threads);
 SEXP do_kdtree_range_find_last(
 	SEXP query,
@@ -50,6 +51,7 @@ SEXP do_kdtree_range_find_last(
 	SEXP tolerance,
 	SEXP relative,
 	SEXP referent,
+	SEXP nomatch,
 	SEXP num_threads);
 SEXP do_kdtree_knn_search(
 	SEXP query,
@@ -100,8 +102,8 @@ static const R_CallMethodDef callMethods[] = {
 	CALLDEF(do_rsearch, 6),
 	CALLDEF(do_kdtree_build, 1),
 	CALLDEF(do_kdtree_range_search, 6),
-	CALLDEF(do_kdtree_range_find_first, 6),
-	CALLDEF(do_kdtree_range_find_last, 6),
+	CALLDEF(do_kdtree_range_find_first, 7),
+	CALLDEF(do_kdtree_range_find_last, 7),
 	CALLDEF(do_kdtree_knn_search, 5),
 	// Signal processing
 	CALLDEF(do_filt1_mean, 2),

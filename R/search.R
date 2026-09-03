@@ -8,6 +8,7 @@ bsearch <- function(
 	tolerance = 0,
 	relative = !missing(relative_to),
 	relative_to = c("query", "table"),
+	which = c("nearest", "all"),
 	nomatch = NA_integer_)
 {
 	if ( is.double(query) && is.integer(table) )
@@ -18,28 +19,14 @@ bsearch <- function(
 		stop("'table' must be sorted")
 	relative <- isTRUE(relative)
 	referent <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
-	.Call(C_do_bsearch, query, table, as.double(tolerance),
-		relative, referent, as.integer(nomatch))
-}
-
-rsearch <- function(
-	query,
-	table,
-	tolerance = 0,
-	relative = !missing(relative_to),
-	relative_to = c("query", "table"),
-	nomatch = NA_integer_)
-{
-	if ( is.double(query) && is.integer(table) )
-		table <- as.double(table)
-	if ( is.integer(query) && is.double(table) )
-		query <- as.double(query)
-	if ( is.unsorted(table) )
-		stop("'table' must be sorted")
-	relative <- isTRUE(relative)
-	referent <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
-	.Call(C_do_rsearch, query, table, as.double(tolerance),
-		relative, referent, as.integer(nomatch))
+	which <- match.arg(which)
+	if ( which == "nearest" ) {
+		.Call(C_do_bsearch, query, table, as.double(tolerance),
+			relative, referent, as.integer(nomatch))
+	} else {
+		.Call(C_do_rsearch, query, table, as.double(tolerance),
+			relative, referent, as.integer(nomatch))
+	}
 }
 
 kdtree <- function(table)
@@ -61,6 +48,7 @@ kdsearch <- function(
 	relative = !missing(relative_to),
 	relative_to = c("query", "table"),
 	which = c("all", "first", "last"),
+	nomatch = NA_integer_,
 	num.threads = 1)
 {
 	if ( !inherits(table, "kdtree") )
@@ -89,27 +77,11 @@ kdsearch <- function(
 			relative, referent, as.integer(num.threads))
 	} else if ( which == "first" ) {
 		.Call(C_do_kdtree_range_find_first, query, table, tolerance,
-			relative, referent, as.integer(num.threads))
+			relative, referent, as.integer(nomatch), as.integer(num.threads))
 	} else if ( which == "last" ) {
 		.Call(C_do_kdtree_range_find_last, query, table, tolerance,
-			relative, referent, as.integer(num.threads))
+			relative, referent, as.integer(nomatch), as.integer(num.threads))
 	}
-}
-
-kdsearch_first <- function(query, table, ..., nomatch = NA_integer_)
-{
-	index <- kdsearch(query, table, ..., which="first")
-	if ( anyNA(index) )
-		index <- replace(index, is.na(index), nomatch)
-	index
-}
-
-kdsearch_last <- function(query, table, ..., nomatch = NA_integer_)
-{
-	index <- kdsearch(query, table, ..., which="last")
-	if ( anyNA(index) )
-		index <- replace(index, is.na(index), nomatch)
-	index
 }
 
 knnsearch <- function(
