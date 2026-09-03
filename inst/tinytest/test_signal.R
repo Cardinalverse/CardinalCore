@@ -37,23 +37,12 @@ expect_equal(
 path <- "/Volumes/Local/Data/public/pride/PXD001283/HR2MSI mouse urinary bladder S096.imzML"
 mzml <- CardinalIO::parseImzML(path, ibd=TRUE)
 
-i <- 100
+i <- 2000
 y <- mzml$ibd$intensity[[i]]
 x <- mzml$ibd$mz[[i]]
-k <- 5
-n <- 1001
-noise <- roll_apply(y - filt1_mean(y, k=k), k=n, FUN=mad)
-noise_list <- roll(y - filt1_mean(y, k=k), k=n)
-snr <- y/noise
-threshold <- 12
-par(mfrow=c(2,1))
-plot(y ~ x, type="l")
-points(y[snr > threshold] ~ x[snr > threshold], col="red")
-plot(snr ~ x, type="h")
-abline(h=6, col="blue")
-cbind(y,snr,noise)
-
-p <- peaks_summary(y, x)
+bench::mark(p <- peaks_summary(y, x))
 p <- as.data.frame(p)
-head(p)
+head(p, n=20)
+
+head(p$max / matter::estnoise_diff(y)[1L])
 

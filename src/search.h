@@ -282,8 +282,12 @@ struct kdtree
 		qsort_index(index.borrow(), column);
 		Index mid = table.nrows() / 2;
 		// handle duplicates and update root
-		while ( mid > 0 && column.compare(index[mid - 1], index[mid]) == 0 )
-			--mid;
+		while ( mid > 0 ) {
+			if ( column.compare(index[mid - 1], index[mid]) == 0 )
+				--mid;
+			else
+				break;
+		}
 		root = index[mid];
 		// initialize stack
 		Index top = -1;
@@ -318,8 +322,12 @@ struct kdtree
 			if ( table.ncols() > 1 )
 				qsort_index(index.borrow(), column, {cur.start, cur.stop});
 			mid = (cur.start + cur.stop) / 2;
-			while ( mid > 0 && column.compare(index[mid - 1], index[mid]) == 0 )
-				--mid;
+			while ( mid > cur.start ) {
+				if ( column.compare(index[mid - 1], index[mid]) == 0 )
+					--mid;
+				else
+					break;
+			}
 			// insert child under parent
 			vec<T> previous = table.col((cur.depth - 1) % table.ncols());
 			if ( previous.compare(index[mid], cur.parent) < 0 )
