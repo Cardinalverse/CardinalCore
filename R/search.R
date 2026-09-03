@@ -60,6 +60,7 @@ kdsearch <- function(
 	tolerance = 0,
 	relative = !missing(relative_to),
 	relative_to = c("query", "table"),
+	which = c("all", "first", "last"),
 	num.threads = 1)
 {
 	if ( !inherits(table, "kdtree") )
@@ -82,8 +83,33 @@ kdsearch <- function(
 	tolerance <- as.double(rep_len(tolerance, ncol(table$table)))
 	relative <- as.logical(rep_len(relative, ncol(table$table)))
 	referent <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
-	.Call(C_do_kdtree_range_search, query, table, tolerance,
-		relative, referent, as.integer(num.threads))
+	which <- match.arg(which)
+	if ( which == "all" ) {
+		.Call(C_do_kdtree_range_search, query, table, tolerance,
+			relative, referent, as.integer(num.threads))
+	} else if ( which == "first" ) {
+		.Call(C_do_kdtree_range_find_first, query, table, tolerance,
+			relative, referent, as.integer(num.threads))
+	} else if ( which == "last" ) {
+		.Call(C_do_kdtree_range_find_last, query, table, tolerance,
+			relative, referent, as.integer(num.threads))
+	}
+}
+
+kdsearch_first <- function(query, table, ..., nomatch = NA_integer_)
+{
+	index <- kdsearch(query, table, ..., which="first")
+	if ( anyNA(index) )
+		index <- replace(index, is.na(index), nomatch)
+	index
+}
+
+kdsearch_last <- function(query, table, ..., nomatch = NA_integer_)
+{
+	index <- kdsearch(query, table, ..., which="last")
+	if ( anyNA(index) )
+		index <- replace(index, is.na(index), nomatch)
+	index
 }
 
 knnsearch <- function(

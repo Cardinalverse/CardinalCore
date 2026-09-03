@@ -1211,6 +1211,19 @@ struct sink
 	}
 };
 
+// Reduce unary input to an output accumulator
+template<Num T, BinaryOp Op>
+struct reducer
+{
+	T * accum;
+	Op op;
+
+	void operator()(T x) noexcept
+	{
+		*accum = op(*accum, x);
+	}
+};
+
 //// Arrays of vectors
 //--------------------
 // Containers for vectors of different lengths

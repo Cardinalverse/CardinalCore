@@ -450,6 +450,44 @@ struct kdtree
 			referent);
 	}
 
+	// Find first row in table within tolerance of query
+	template<Vec V, Vec Tol, Vec Rel>
+	Index range_find_first(
+		const V query,
+		const Tol tolerance,
+		const Rel relative,
+		const Ref referent = Query) const
+	{
+		auto op = binop<Min,Index>{};
+		Index accum = op.identity();
+		Index count = range_apply(
+			reducer<Index,decltype(op)>{&accum, op},
+			query,
+			tolerance,
+			relative,
+			referent);
+		return count > 0 ? accum : na_value<Index>();
+	}
+
+	// Find last row in table within tolerance of query
+	template<Vec V, Vec Tol, Vec Rel>
+	Index range_find_last(
+		const V query,
+		const Tol tolerance,
+		const Rel relative,
+		const Ref referent = Query) const
+	{
+		auto op = binop<Max,Index>{};
+		Index accum = op.identity();
+		Index count = range_apply(
+			reducer<Index,decltype(op)>{&accum, op},
+			query,
+			tolerance,
+			relative,
+			referent);
+		return count > 0 ? accum : na_value<Index>();
+	}
+
 	// Find indices of the K-nearest neighbors of a query in table
 	// - Where K == index.len == dists.len
 	// - Fills index with hits
@@ -592,6 +630,58 @@ struct range_searches
 				relative,
 				referent);
 			qsort(index.get(i));
+		}
+	}
+};
+
+// Range search kernel (first hit only)
+template<Num Index, Num T, Vec Tol, Vec Rel>
+struct range_find_firsts
+{
+	vec<Index> index;     // out
+	kdtree<Index,T> tree; // in
+	mat<T> query;         // in
+	Tol tolerance;        // in
+	Rel relative;         // in
+	Ref referent;         // in
+
+	ptrdiff_t ssize() const { return query.nrows(); }
+
+	void operator()(bounds b, task ctx)
+	{
+		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
+		{
+			index[i] = tree.range_find_first(
+				query.row(i),
+				tolerance,
+				relative,
+				referent);
+		}
+	}
+};
+
+// Range search kernel (last hit only)
+template<Num Index, Num T, Vec Tol, Vec Rel>
+struct range_find_lasts
+{
+	vec<Index> index;     // out
+	kdtree<Index,T> tree; // in
+	mat<T> query;         // in
+	Tol tolerance;        // in
+	Rel relative;         // in
+	Ref referent;         // in
+
+	ptrdiff_t ssize() const { return query.nrows(); }
+
+	void operator()(bounds b, task ctx)
+	{
+		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
+		{
+			index[i] = tree.range_find_last(
+				query.row(i),
+				tolerance,
+				relative,
+				referent);
 		}
 	}
 };
