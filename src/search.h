@@ -487,26 +487,34 @@ struct kdtree
 			// is this a hit?
 			if ( D <= dists[k - 1] )
 			{
-				Index j = k - 1;
-				// process strictly better nodes and/or ties
-				if ( D <= dists[j] || cur.node < index[j] )
+				if ( k > 1 )
 				{
-					index[j] = cur.node;
-					dists[j] = D;
-					// sort neighbor into place
-					while ( j > 0 && dists.compare(j, j - 1) <= 0 )
+					Index j = k - 1;
+					// process strictly better nodes and/or ties
+					if ( D < dists[j] || cur.node < index[j] )
 					{
-						// break ties by index
-						if ( dists.compare(j, j - 1) < 0 
-							|| index.compare(j, j - 1) < 0 )
+						index[j] = cur.node;
+						dists[j] = D;
+						// sort neighbor into place
+						while ( j > 0 && dists.compare(j, j - 1) <= 0 )
 						{
-							dists.swap(j, j - 1);
-							index.swap(j, j - 1);
-							--j;
+							// break ties by index
+							if ( dists.compare(j, j - 1) < 0 
+								|| index.compare(j, j - 1) < 0 )
+							{
+								dists.swap(j, j - 1);
+								index.swap(j, j - 1);
+								--j;
+							}
+							else
+								break;
 						}
-						else
-							break;
 					}
+				}
+				else if ( D < dists[0] || cur.node < index[0] )
+				{
+					index[0] = cur.node;
+					dists[0] = D;
 				}
 			}
 			// search left subtree?
