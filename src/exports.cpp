@@ -914,7 +914,7 @@ SEXP do_peaks_summary(
 //// Streaming statistics
 //-----------------------
 
-SEXP do_stream_means(SEXP x, SEXP y)
+SEXP do_stream_means_merge(SEXP x, SEXP y)
 {
 	SEXP nx = Rf_getAttrib(x, Rf_install("nobs"));
 	SEXP ny = Rf_getAttrib(y, Rf_install("nobs"));
@@ -963,7 +963,7 @@ SEXP do_stream_means(SEXP x, SEXP y)
 	return means;
 }
 
-SEXP do_stream_vars(SEXP x, SEXP y)
+SEXP do_stream_vars_merge(SEXP x, SEXP y)
 {
 	SEXP mx = Rf_getAttrib(x, Rf_install("means"));
 	SEXP my = Rf_getAttrib(y, Rf_install("means"));

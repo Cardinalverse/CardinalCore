@@ -16,14 +16,14 @@ merge_means <- function(x, y, ...)
 {
 	if ( !inherits(x, "stream_means") || !inherits(y, "stream_means") )
 		stop("x and y must be stream_means object")
-	.Call(C_do_stream_means, x, y)
+	.Call(C_do_stream_means_merge, x, y)
 }
 
 merge_vars <- function(x, y, ...)
 {
 	if ( !inherits(x, "stream_vars") || !inherits(y, "stream_vars") )
 		stop("x and y must be stream_vars object")
-	.Call(C_do_stream_vars, x, y)
+	.Call(C_do_stream_vars_merge, x, y)
 }
 
 #### Compute column sums

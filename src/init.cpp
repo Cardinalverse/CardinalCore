@@ -81,8 +81,8 @@ SEXP do_peaks_summary(
 
 //// Streaming statistics
 //-----------------------
-SEXP do_stream_means(SEXP x, SEXP y);
-SEXP do_stream_vars(SEXP x, SEXP y);
+SEXP do_stream_means_merge(SEXP x, SEXP y);
+SEXP do_stream_vars_merge(SEXP x, SEXP y);
 
 //// Matrix statistics
 //---------------------
@@ -120,8 +120,8 @@ static const R_CallMethodDef callMethods[] = {
 	CALLDEF(do_peaks_areas, 3),
 	CALLDEF(do_peaks_summary, 6),
 	// Streaming statistics
-	CALLDEF(do_stream_means, 2),
-	CALLDEF(do_stream_vars, 2),
+	CALLDEF(do_stream_means_merge, 2),
+	CALLDEF(do_stream_vars_merge, 2),
 	// Matrix statistics
 	CALLDEF(do_col_sums, 2),
 	// Test expressions
