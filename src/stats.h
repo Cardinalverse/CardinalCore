@@ -47,7 +47,7 @@ template<Stats Dst, Vec Index, Stats Src>
 Dst scatter_stats(Dst dst, const Index index, const Src src) noexcept
 {
 	assert(dst.ssize() == src.ssize());
-	for ( ptrdiff_t i = 0; i < dst.ssize(); ++i )
+	for ( ptrdiff_t i = 0; i < src.ssize(); ++i )
 	{
 		if ( !is_valid(index, i) )
 			continue;
@@ -219,6 +219,13 @@ struct stream_means
 		n[i] = s.n;
 	}
 
+	stream_means<T,N>& fill(stream_mean<T,N> value = {}) noexcept
+	{
+		for ( ptrdiff_t i = 0; i < ssize(); ++i )
+			set(i, value);
+		return (*this);
+	}
+
 	template<Vec V>
 	stream_means<T,N> update(const V x) noexcept {
 		return update_stats(*this, x);
@@ -226,6 +233,14 @@ struct stream_means
 
 	stream_means<T,N> merge(const stream_means<T,N> s) noexcept {
 		return merge_stats(*this, s);
+	}
+
+	template<Vec Index>
+	stream_means<T,N> scatter(
+		const Index index, 
+		const stream_means<T,N> s) noexcept 
+	{
+		return scatter_stats(*this, index, s);
 	}
 
 	#ifdef USING_R
@@ -274,6 +289,13 @@ struct stream_vars
 		n[i] = s.n;
 	}
 
+	stream_vars<T,N>& fill(stream_var<T,N> value = {}) noexcept
+	{
+		for ( ptrdiff_t i = 0; i < ssize(); ++i )
+			set(i, value);
+		return (*this);
+	}
+
 	template<Vec V>
 	stream_vars<T,N> update(const V x) noexcept {
 		return update_stats(*this, x);
@@ -281,6 +303,14 @@ struct stream_vars
 
 	stream_vars<T,N> merge(const stream_vars<T,N> s) noexcept {
 		return merge_stats(*this, s);
+	}
+
+	template<Vec Index>
+	stream_vars<T,N> scatter(
+		const Index index, 
+		const stream_vars<T,N> s) noexcept 
+	{
+		return scatter_stats(*this, index, s);
 	}
 
 	#ifdef USING_R

@@ -914,7 +914,7 @@ SEXP do_peaks_summary(
 //// Streaming statistics
 //-----------------------
 
-SEXP do_stream_means_merge(SEXP x, SEXP y)
+SEXP do_merge_means(SEXP x, SEXP y)
 {
 	SEXP nx = Rf_getAttrib(x, Rf_install("nobs"));
 	SEXP ny = Rf_getAttrib(y, Rf_install("nobs"));
@@ -948,7 +948,7 @@ SEXP do_stream_means_merge(SEXP x, SEXP y)
 	return xout;
 }
 
-SEXP do_stream_vars_merge(SEXP x, SEXP y)
+SEXP do_merge_vars(SEXP x, SEXP y)
 {
 	SEXP mx = Rf_getAttrib(x, Rf_install("means"));
 	SEXP my = Rf_getAttrib(y, Rf_install("means"));
@@ -984,6 +984,77 @@ SEXP do_stream_vars_merge(SEXP x, SEXP y)
 	}
 	UNPROTECT(1);
 	return xout;
+}
+
+SEXP do_pool_means(SEXP x, SEXP group, SEXP ngroups)
+{
+	SEXP nx = Rf_getAttrib(x, Rf_install("nobs"));
+	if ( TYPEOF(x) != REALSXP )
+		Rf_error("'x' must be a double");
+	if ( TYPEOF(nx) == NILSXP )
+		Rf_error("nobs(x) must exist");
+	SEXP means = PROTECT(Rf_allocVector(REALSXP, Rf_asInteger(ngroups)));
+	SEXP nobs = PROTECT(Rf_allocVector(TYPEOF(nx), Rf_asInteger(ngroups)));
+	Rf_setAttrib(means, Rf_install("nobs"), nobs);
+	Rf_setAttrib(means, R_ClassSymbol, Rf_mkString("stream_means"));
+	switch(TYPEOF(nx))
+	{
+		case INTSXP:
+		{
+			auto dst = stream_means<double,int>::from(means).fill();
+			auto src = stream_means<double,int>::from(x);
+			dst.scatter(r_vec<int>(group), src);
+			break;
+		}
+		case REALSXP:
+		{
+			auto dst = stream_means<double,double>::from(means).fill();
+			auto src = stream_means<double,double>::from(x);
+			dst.scatter(r_vec<int>(group), src);
+			break;
+		}
+		default:
+			Rf_error("nobs(x) and nobs(y) must be integer or double");
+	}
+	UNPROTECT(2);
+	return means;
+}
+
+SEXP do_pool_vars(SEXP x, SEXP group, SEXP ngroups)
+{
+	SEXP mx = Rf_getAttrib(x, Rf_install("means"));
+	SEXP nx = Rf_getAttrib(x, Rf_install("nobs"));
+	if ( TYPEOF(x) != REALSXP || TYPEOF(mx) != REALSXP )
+		Rf_error("'x' must be a double");
+	if ( TYPEOF(nx) == NILSXP )
+		Rf_error("nobs(x) must exist");
+	SEXP vars = PROTECT(Rf_allocVector(REALSXP, Rf_asInteger(ngroups)));
+	SEXP means = PROTECT(Rf_allocVector(REALSXP, Rf_asInteger(ngroups)));
+	SEXP nobs = PROTECT(Rf_allocVector(TYPEOF(nx), Rf_asInteger(ngroups)));
+	Rf_setAttrib(vars, Rf_install("means"), means);
+	Rf_setAttrib(vars, Rf_install("nobs"), nobs);
+	Rf_setAttrib(vars, R_ClassSymbol, Rf_mkString("stream_vars"));
+	switch(TYPEOF(nx))
+	{
+		case INTSXP:
+		{
+			auto dst = stream_vars<double,int>::from(vars).fill();
+			auto src = stream_vars<double,int>::from(x);
+			dst.scatter(r_vec<int>(group), src);
+			break;
+		}
+		case REALSXP:
+		{
+			auto dst = stream_vars<double,double>::from(vars).fill();
+			auto src = stream_vars<double,double>::from(x);
+			dst.scatter(r_vec<int>(group), src);
+			break;
+		}
+		default:
+			Rf_error("nobs(x) and nobs(y) must be integer or double");
+	}
+	UNPROTECT(3);
+	return vars;
 }
 
 //// Matrix statistics

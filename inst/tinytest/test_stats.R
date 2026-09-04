@@ -25,6 +25,16 @@ merge_means(smx, smy)
 apply(rbind(x, y), 2L, var)
 merge_vars(ssx, ssy)
 
+print(smx)
+group <- rep(1:5, 2)
+group <- c(rep(1:3, 3), 4)
+pool_means(smx, group)
+
+print(ssx)
+group <- rep(1:5, 2)
+group <- c(rep(1:3, 3), 4)
+pool_vars(ssx, group)
+
 # Setup example matrix
 set.seed(1)
 nr <- 1e6
