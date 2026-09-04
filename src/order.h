@@ -44,15 +44,15 @@ struct vec_ordered : vec_indexed<V,Index,T>
 	}
 };
 
+//// Quicksort and Quickselect
+//----------------------------
+// Sorting and selection routines
+
 // A safe recusion depth limit for a balanced binary tree
 template<Num T>
 size_t max_depth(T n) {
 	return 1 + std::bit_width(static_cast<size_t>(n));
 }
-
-//// Quicksort and Quickselect
-//----------------------------
-// Sorting and selection routines
 
 // Select a pivot and partition range [x[lo]], x[hi]]
 // - All x[i] left of pivot are <= pivot

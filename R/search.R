@@ -33,11 +33,8 @@ kdtree <- function(table)
 {
 	if ( inherits(table, "kdtree") )
 		return(table)
-	if ( is.null(dim(table)) ) {
-		table <- t(table)
-	} else {
+	if ( is.null(dim(table)) )
 		table <- as.matrix(table)
-	}
 	.Call(C_do_kdtree_build, table)
 }
 

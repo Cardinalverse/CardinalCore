@@ -44,5 +44,12 @@ bench::mark(p <- peaks_summary(y, x))
 p <- as.data.frame(p)
 head(p, n=20)
 
+intensity <- function(i) mzml$ibd$intensity[[i]]
+mz <- function(i) mzml$ibd$intensity[[i]]
+process <- function(i) as.data.frame(peaks_summary(intensity(i), mz(i)))
+process(1)
+
+system.time(peaks <- lapply(seq_along(mzml$ibd$mz), process))
+
 head(p$max / matter::estnoise_diff(y)[1L])
 
