@@ -28,3 +28,45 @@ peaks_summary(y1)
 peaks_summary(y2)
 peaks_summary(y3)
 
+# test
+
+path <- "/Volumes/Local/Data/public/pride/PXD001283/HR2MSI mouse urinary bladder S096.imzML"
+mzml <- CardinalIO::parseImzML(path, ibd=TRUE)
+
+i <- 2000
+y <- mzml$ibd$intensity[[i]]
+x <- mzml$ibd$mz[[i]]
+bench::mark(p <- peaks_summary(y, x))
+p <- as.data.frame(p)
+head(p, n=20)
+
+intensity <- function(i) mzml$ibd$intensity[[i]]
+mz <- function(i) mzml$ibd$mz[[i]]
+process <- function(i)
+{
+	if ( i %% 1000L == 0L ) message(i, "/", length(mzml$ibd$mz))
+	as.data.frame(peaks_summary(intensity(i), mz(i)))
+}
+process(1)
+process(101)
+
+head(process(505), n=25)
+
+system.time(peaks <- lapply(seq_along(mzml$ibd$mz), process))
+
+head(p$max / matter::estnoise_diff(y)[1L])
+
+# test 2
+
+path <- "/Volumes/Local/Data/private/scratch/timsdata/output.d/input.imzML"
+mzml <- CardinalIO::parseImzML(path, ibd=TRUE, extraArrays=c(mobility="MS:1003006"))
+
+mzs <- readBin(memDecompress(mzml$ibd$mz[[1]]),
+	what="double", n=40309)
+mobs <- readBin(memDecompress(mzml$ibd$extra$mobility[[1]]),
+	what="double", n=40309)
+ints <- readBin(memDecompress(mzml$ibd$intensity[[1]]),
+	what="double", n=40309)
+df <- data.frame(mz=mzs, mobility=mobs, intensity=ints)
+plot(mobility ~ mz, data=df, cex=df$intensity / max(df$intensity))
+

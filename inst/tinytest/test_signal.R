@@ -32,24 +32,3 @@ expect_equal(
 	filt1_conv(y2, w=rep(1, 7)),
 	roll_apply(y2, k=7L, FUN=mean, na.rm=TRUE))
 
-# test
-
-path <- "/Volumes/Local/Data/public/pride/PXD001283/HR2MSI mouse urinary bladder S096.imzML"
-mzml <- CardinalIO::parseImzML(path, ibd=TRUE)
-
-i <- 2000
-y <- mzml$ibd$intensity[[i]]
-x <- mzml$ibd$mz[[i]]
-bench::mark(p <- peaks_summary(y, x))
-p <- as.data.frame(p)
-head(p, n=20)
-
-intensity <- function(i) mzml$ibd$intensity[[i]]
-mz <- function(i) mzml$ibd$intensity[[i]]
-process <- function(i) as.data.frame(peaks_summary(intensity(i), mz(i)))
-process(1)
-
-system.time(peaks <- lapply(seq_along(mzml$ibd$mz), process))
-
-head(p$max / matter::estnoise_diff(y)[1L])
-
