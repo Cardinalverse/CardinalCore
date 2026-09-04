@@ -7,15 +7,55 @@
 //---------
 // Traits supporting streaming statistics
 
-// A Stats Vec supports merging grouped statistics
+// A Stats Vec supports vector access to streaming statistics
 template<class S>
 concept Stats = Vec<S> &&
 	requires (std::remove_cvref_t<S>& s, ptrdiff_t i)
 	{
 		{ s.nobs(i) } -> Num;
-		{ s.get_nobs() } -> Vec;
-		{ s.get_stats() } -> Vec;
 	};
+
+//// Stats operations
+//-------------------
+// Merge and update streaming statistics
+
+// Used to implement dst.update(src)
+template<Stats Dst, Vec Src>
+Dst update_stats(Dst dst, const Src src) noexcept
+{
+	assert(dst.ssize() == src.ssize());
+	for ( ptrdiff_t i = 0; i < dst.ssize(); ++i )
+	{
+		if ( is_valid(src, i) )
+			dst.set(i, dst.get(i).update(src[i]));
+	}
+	return dst;
+}
+
+// Used to implement dst.merge(src)
+template<Stats Dst, Stats Src>
+Dst merge_stats(Dst dst, const Src src) noexcept
+{
+	assert(dst.ssize() == src.ssize());
+	for ( ptrdiff_t i = 0; i < dst.ssize(); ++i )
+		dst.set(i, dst.get(i).merge(src.get(i)));
+	return dst;
+}
+
+// Used to implement dst.scatter(index, src)
+template<Stats Dst, Vec Index, Stats Src>
+Dst scatter_stats(Dst dst, const Index index, const Src src) noexcept
+{
+	assert(dst.ssize() == src.ssize());
+	for ( ptrdiff_t i = 0; i < dst.ssize(); ++i )
+	{
+		if ( !is_valid(index, i) )
+			continue;
+		auto ii = index[i];
+		dst.set(ii, dst.get(ii).merge(src.get(i)));
+	}
+	return dst;
+}
 
 //// Scalar statistics
 //--------------------
@@ -148,7 +188,7 @@ struct stream_var
 // Streaming vector statistics
 
 // A vector with streaming means
-// - Pairs means with number of observations
+// - Pairs means and numbers of observations
 // - MUST have n.ssize() == means.ssize()
 template<Num T, Num N>
 struct stream_means
@@ -173,38 +213,34 @@ struct stream_means
 		};
 	}
 
+	void set(const ptrdiff_t i, stream_mean<T,N> s) noexcept
+	{
+		means[i] = s.mean;
+		n[i] = s.n;
+	}
+
 	template<Vec V>
-	stream_means<T,N>& update(const V x) noexcept
-	{
-		assert(x.ssize() == ssize());
-		for ( ptrdiff_t i = 0; i < ssize(); ++i )
-		{
-			if ( is_valid(x, i) )
-			{
-				auto u = get(i).update(x);
-				means[i] = u.mean;
-				n[i] = u.n;
-			}
-		}
-		return (*this);
+	stream_means<T,N> update(const V x) noexcept {
+		return update_stats(*this, x);
 	}
 
-	stream_means<T,N>& merge(const stream_means<T,N> s) noexcept
-	{
-		assert(s.ssize() == ssize());
-		for ( ptrdiff_t i = 0; i < ssize(); ++i )
-		{
-			auto u = get(i).merge(s.get(i));
-			means[i] = u.mean;
-			n[i] = u.n;
-		}
-		return (*this);
+	stream_means<T,N> merge(const stream_means<T,N> s) noexcept {
+		return merge_stats(*this, s);
 	}
 
+	#ifdef USING_R
+	static stream_means<T,N> from(SEXP obj) noexcept
+	{
+		return {
+			.means = r_vec<T>(obj),
+			.n = r_vec<N>(Rf_getAttrib(obj, Rf_install("nobs"))),
+		};
+	}
+	#endif // USING_R
 };
 
 // A vector with streaming variance
-// - Pairs variances with number of observations
+// - Pairs variances and numbers of observations
 // - MUST have n.ssize() == vars.ssize() == means.ssize()
 template<Num T, Num N>
 struct stream_vars
@@ -231,36 +267,32 @@ struct stream_vars
 		};
 	}
 
+	void set(const ptrdiff_t i, const stream_var<T,N> s) noexcept
+	{
+		vars[i] = s.var;
+		means[i] = s.mean;
+		n[i] = s.n;
+	}
+
 	template<Vec V>
-	stream_vars<T,N>& update(const V x) noexcept
-	{
-		assert(x.ssize() == ssize());
-		for ( ptrdiff_t i = 0; i < ssize(); ++i )
-		{
-			if ( is_valid(x, i) )
-			{
-				auto u = get(i).update(x);
-				vars[i] = u.var;
-				means[i] = u.mean;
-				n[i] = u.n;
-			}
-		}
-		return (*this);
+	stream_vars<T,N> update(const V x) noexcept {
+		return update_stats(*this, x);
 	}
 
-	stream_vars<T,N>& merge(const stream_vars<T,N> s) noexcept
-	{
-		assert(s.ssize() == ssize());
-		for ( ptrdiff_t i = 0; i < ssize(); ++i )
-		{
-			auto u = get(i).merge(s.get(i));
-			vars[i] = u.var;
-			means[i] = u.mean;
-			n[i] = u.n;
-		}
-		return (*this);
+	stream_vars<T,N> merge(const stream_vars<T,N> s) noexcept {
+		return merge_stats(*this, s);
 	}
 
+	#ifdef USING_R
+	static stream_vars<T,N> from(SEXP obj) noexcept
+	{
+		return {
+			.vars = r_vec<T>(obj),
+			.means = r_vec<T>(Rf_getAttrib(obj, Rf_install("means"))),
+			.n = r_vec<N>(Rf_getAttrib(obj, Rf_install("nobs"))),
+		};
+	}
+	#endif // USING_R
 };
 
 #endif // CARDINAL_CORE_STATS

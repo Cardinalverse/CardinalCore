@@ -26,6 +26,20 @@ merge_vars <- function(x, y, ...)
 	.Call(C_do_stream_vars_merge, x, y)
 }
 
+pool_means <- function(x, group, ...)
+{
+	if ( !inherits(x, "stream_means") || !inherits(y, "stream_means") )
+		stop("x and y must be stream_means object")
+	.Call(C_do_stream_means_pool, x, y)
+}
+
+pool_vars <- function(x, y, ...)
+{
+	if ( !inherits(x, "stream_vars") || !inherits(y, "stream_vars") )
+		stop("x and y must be stream_vars object")
+	.Call(C_do_stream_vars_pool, x, y)
+}
+
 #### Compute column sums
 ## ---------------------
 

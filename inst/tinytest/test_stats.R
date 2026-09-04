@@ -19,11 +19,11 @@ smy <- stream_means(my, ny)
 ssx <- stream_vars(sx, mx, nx)
 ssy <- stream_vars(sy, my, ny)
 
-merge_means(smx, smy)
 colMeans(rbind(x, y))
+merge_means(smx, smy)
 
-merge_vars(ssx, ssy)
 apply(rbind(x, y), 2L, var)
+merge_vars(ssx, ssy)
 
 # Setup example matrix
 set.seed(1)

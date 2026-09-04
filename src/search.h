@@ -567,7 +567,7 @@ struct kdtree
 	}
 
 	#ifdef USING_R
-	static kdtree<Index,T> from(SEXP obj)
+	static kdtree<Index,T> from(SEXP obj) noexcept
 	{
 		return {
 			.table = r_mat<T>(VECTOR_ELT(obj, 0)),

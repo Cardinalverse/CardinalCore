@@ -924,43 +924,28 @@ SEXP do_stream_means_merge(SEXP x, SEXP y)
 		Rf_error("nobs(x) and nobs(y) must both exist");
 	if ( TYPEOF(nx) != TYPEOF(ny) )
 		Rf_error("nobs(x) and nobs(y) must have the same data type");
-	SEXP means = PROTECT(Rf_duplicate(x));
-	SEXP nobs = PROTECT(Rf_duplicate(nx));
-	switch(TYPEOF(nobs))
+	SEXP xout = PROTECT(Rf_duplicate(x));
+	switch(TYPEOF(nx))
 	{
 		case INTSXP:
 		{
-			stream_means<double,int> lhs = {
-				r_vec<double>(means),
-				r_vec<int>(nobs),
-			};
-			stream_means<double,int> rhs = {
-				r_vec<double>(y),
-				r_vec<int>(ny),
-			};
-			lhs.merge(rhs);
+			auto dst = stream_means<double,int>::from(xout);
+			auto src = stream_means<double,int>::from(y);
+			dst.merge(src);
 			break;
 		}
 		case REALSXP:
 		{
-			stream_means<double,double> lhs = {
-				r_vec<double>(means),
-				r_vec<double>(nobs),
-			};
-			stream_means<double,double> rhs = {
-				r_vec<double>(y),
-				r_vec<double>(ny),
-			};
-			lhs.merge(rhs);
+			auto dst = stream_means<double,double>::from(xout);
+			auto src = stream_means<double,double>::from(y);
+			dst.merge(src);
 			break;
 		}
 		default:
 			Rf_error("nobs(x) and nobs(y) must be integer or double");
 	}
-	Rf_setAttrib(means, Rf_install("nobs"), nobs);
-	Rf_setAttrib(means, R_ClassSymbol, Rf_mkString("stream_means"));
-	UNPROTECT(2);
-	return means;
+	UNPROTECT(1);
+	return xout;
 }
 
 SEXP do_stream_vars_merge(SEXP x, SEXP y)
@@ -977,49 +962,28 @@ SEXP do_stream_vars_merge(SEXP x, SEXP y)
 		Rf_error("nobs(x) and nobs(y) must both exist");
 	if ( TYPEOF(nx) != TYPEOF(ny) )
 		Rf_error("nobs(x) and nobs(y) must have the same data type");
-	SEXP vars = PROTECT(Rf_duplicate(x));
-	SEXP means = PROTECT(Rf_duplicate(mx));
-	SEXP nobs = PROTECT(Rf_duplicate(nx));
-	switch(TYPEOF(nobs))
+	SEXP xout = PROTECT(Rf_duplicate(x));
+	switch(TYPEOF(nx))
 	{
 		case INTSXP:
 		{
-			stream_vars<double,int> lhs = {
-				r_vec<double>(vars),
-				r_vec<double>(means),
-				r_vec<int>(nobs),
-			};
-			stream_vars<double,int> rhs = {
-				r_vec<double>(y),
-				r_vec<double>(my),
-				r_vec<int>(ny),
-			};
-			lhs.merge(rhs);
+			auto dst = stream_vars<double,int>::from(xout);
+			auto src = stream_vars<double,int>::from(y);
+			dst.merge(src);
 			break;
 		}
 		case REALSXP:
 		{
-			stream_vars<double,double> lhs = {
-				r_vec<double>(vars),
-				r_vec<double>(means),
-				r_vec<double>(nobs),
-			};
-			stream_vars<double,double> rhs = {
-				r_vec<double>(y),
-				r_vec<double>(my),
-				r_vec<double>(ny),
-			};
-			lhs.merge(rhs);
+			auto dst = stream_vars<double,double>::from(xout);
+			auto src = stream_vars<double,double>::from(y);
+			dst.merge(src);
 			break;
 		}
 		default:
 			Rf_error("nobs(x) and nobs(y) must be integer or double");
 	}
-	Rf_setAttrib(vars, Rf_install("means"), means);
-	Rf_setAttrib(vars, Rf_install("nobs"), nobs);
-	Rf_setAttrib(vars, R_ClassSymbol, Rf_mkString("stream_means"));
-	UNPROTECT(2);
-	return vars;
+	UNPROTECT(1);
+	return xout;
 }
 
 //// Matrix statistics
