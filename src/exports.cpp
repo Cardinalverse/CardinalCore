@@ -914,6 +914,87 @@ SEXP do_peaks_summary(
 //// Streaming statistics
 //-----------------------
 
+SEXP do_merge_stats(SEXP x, SEXP y)
+{
+	SEXP nx = Rf_getAttrib(x, Rf_install("nobs"));
+	SEXP ny = Rf_getAttrib(y, Rf_install("nobs"));
+	if ( TYPEOF(x) != REALSXP || TYPEOF(y) != REALSXP )
+		Rf_error("'x' and 'y' must both be doubles");
+	if ( TYPEOF(nx) == NILSXP || TYPEOF(ny) == NILSXP )
+		Rf_error("nobs(x) and nobs(y) must both exist");
+	if ( TYPEOF(nx) != TYPEOF(ny) )
+		Rf_error("nobs(x) and nobs(y) must have the same data type");
+	SEXP stat = Rf_getAttrib(x, Rf_install("stat"));
+	SEXP xout = PROTECT(Rf_duplicate(x));
+	switch(TYPEOF(nx))
+	{
+		case INTSXP:
+		{
+			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
+			{
+				auto dst = stream_stats<Add,double,int>::from(xout);
+				auto src = stream_stats<Add,double,int>::from(y);
+				dst.merge(src);
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
+			{
+				auto dst = stream_stats<Mul,double,int>::from(xout);
+				auto src = stream_stats<Mul,double,int>::from(y);
+				dst.merge(src);
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
+			{
+				auto dst = stream_stats<Max,double,int>::from(xout);
+				auto src = stream_stats<Max,double,int>::from(y);
+				dst.merge(src);
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
+			{
+				auto dst = stream_stats<Min,double,int>::from(xout);
+				auto src = stream_stats<Min,double,int>::from(y);
+				dst.merge(src);
+			}
+			else
+				Rf_error("unsupported summary statistic");
+			break;
+		}
+		case REALSXP:
+		{
+			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
+			{
+				auto dst = stream_stats<Add,double,int>::from(xout);
+				auto src = stream_stats<Add,double,int>::from(y);
+				dst.merge(src);
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
+			{
+				auto dst = stream_stats<Mul,double,int>::from(xout);
+				auto src = stream_stats<Mul,double,int>::from(y);
+				dst.merge(src);
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
+			{
+				auto dst = stream_stats<Max,double,int>::from(xout);
+				auto src = stream_stats<Max,double,int>::from(y);
+				dst.merge(src);
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
+			{
+				auto dst = stream_stats<Min,double,int>::from(xout);
+				auto src = stream_stats<Min,double,int>::from(y);
+				dst.merge(src);
+			}
+			else
+				Rf_error("unsupported summary statistic");
+			break;
+		}
+		default:
+			Rf_error("nobs(x) and nobs(y) must be integer or double");
+	}
+	UNPROTECT(1);
+	return xout;
+}
+
 SEXP do_merge_means(SEXP x, SEXP y)
 {
 	SEXP nx = Rf_getAttrib(x, Rf_install("nobs"));
@@ -950,8 +1031,8 @@ SEXP do_merge_means(SEXP x, SEXP y)
 
 SEXP do_merge_vars(SEXP x, SEXP y)
 {
-	SEXP mx = Rf_getAttrib(x, Rf_install("means"));
-	SEXP my = Rf_getAttrib(y, Rf_install("means"));
+	SEXP mx = Rf_getAttrib(x, Rf_install("mean"));
+	SEXP my = Rf_getAttrib(y, Rf_install("mean"));
 	SEXP nx = Rf_getAttrib(x, Rf_install("nobs"));
 	SEXP ny = Rf_getAttrib(y, Rf_install("nobs"));
 	if ( TYPEOF(x) != REALSXP || TYPEOF(y) != REALSXP )
@@ -967,6 +1048,7 @@ SEXP do_merge_vars(SEXP x, SEXP y)
 	{
 		case INTSXP:
 		{
+			Rprintf("trying to merge stats with int nobs\n");
 			auto dst = stream_vars<double,int>::from(xout);
 			auto src = stream_vars<double,int>::from(y);
 			dst.merge(src);
@@ -974,6 +1056,7 @@ SEXP do_merge_vars(SEXP x, SEXP y)
 		}
 		case REALSXP:
 		{
+			Rprintf("trying to merge stats with dbl nobs\n");
 			auto dst = stream_vars<double,double>::from(xout);
 			auto src = stream_vars<double,double>::from(y);
 			dst.merge(src);
@@ -986,16 +1069,100 @@ SEXP do_merge_vars(SEXP x, SEXP y)
 	return xout;
 }
 
-SEXP do_pool_means(SEXP x, SEXP group, SEXP ngroups)
+SEXP do_group_stats(SEXP x, SEXP group, SEXP ngroups)
 {
 	SEXP nx = Rf_getAttrib(x, Rf_install("nobs"));
 	if ( TYPEOF(x) != REALSXP )
 		Rf_error("'x' must be a double");
 	if ( TYPEOF(nx) == NILSXP )
 		Rf_error("nobs(x) must exist");
+	SEXP stat = Rf_getAttrib(x, Rf_install("stat"));
+	SEXP stats = PROTECT(Rf_allocVector(REALSXP, Rf_asInteger(ngroups)));
+	SEXP nobs = PROTECT(Rf_allocVector(TYPEOF(nx), Rf_asInteger(ngroups)));
+	Rf_setAttrib(stats, Rf_install("nobs"), nobs);
+	Rf_setAttrib(stats, Rf_install("stat"), stat);
+	Rf_setAttrib(stats, R_ClassSymbol, Rf_mkString("stream_stats"));
+	switch(TYPEOF(nx))
+	{
+		case INTSXP:
+		{
+			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
+			{
+				auto dst = stream_stats<Add,double,int>::from(stats).fill();
+				auto src = stream_stats<Add,double,int>::from(x);
+				dst.scatter(r_vec<int>(group), src);
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
+			{
+				auto dst = stream_stats<Mul,double,int>::from(stats).fill();
+				auto src = stream_stats<Mul,double,int>::from(x);
+				dst.scatter(r_vec<int>(group), src);
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
+			{
+				auto dst = stream_stats<Max,double,int>::from(stats).fill();
+				auto src = stream_stats<Max,double,int>::from(x);
+				dst.scatter(r_vec<int>(group), src);
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
+			{
+				auto dst = stream_stats<Min,double,int>::from(stats).fill();
+				auto src = stream_stats<Min,double,int>::from(x);
+				dst.scatter(r_vec<int>(group), src);
+			}
+			else
+				Rf_error("unsupported summary statistic");
+			break;
+		}
+		case REALSXP:
+		{
+			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
+			{
+				auto dst = stream_stats<Add,double,int>::from(stats).fill();
+				auto src = stream_stats<Add,double,int>::from(x);
+				dst.scatter(r_vec<int>(group), src);
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
+			{
+				auto dst = stream_stats<Mul,double,int>::from(stats).fill();
+				auto src = stream_stats<Mul,double,int>::from(x);
+				dst.scatter(r_vec<int>(group), src);
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
+			{
+				auto dst = stream_stats<Max,double,int>::from(stats).fill();
+				auto src = stream_stats<Max,double,int>::from(x);
+				dst.scatter(r_vec<int>(group), src);
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
+			{
+				auto dst = stream_stats<Min,double,int>::from(stats).fill();
+				auto src = stream_stats<Min,double,int>::from(x);
+				dst.scatter(r_vec<int>(group), src);
+			}
+			else
+				Rf_error("unsupported summary statistic");
+			break;
+		}
+		default:
+			Rf_error("nobs(x) and nobs(y) must be integer or double");
+	}
+	UNPROTECT(1);
+	return stats;
+}
+
+SEXP do_group_means(SEXP x, SEXP group, SEXP ngroups)
+{
+	SEXP nx = Rf_getAttrib(x, Rf_install("nobs"));
+	if ( TYPEOF(x) != REALSXP )
+		Rf_error("'x' must be a double");
+	if ( TYPEOF(nx) == NILSXP )
+		Rf_error("nobs(x) must exist");
+	SEXP stat = Rf_getAttrib(x, Rf_install("stat"));
 	SEXP means = PROTECT(Rf_allocVector(REALSXP, Rf_asInteger(ngroups)));
 	SEXP nobs = PROTECT(Rf_allocVector(TYPEOF(nx), Rf_asInteger(ngroups)));
 	Rf_setAttrib(means, Rf_install("nobs"), nobs);
+	Rf_setAttrib(means, Rf_install("stat"), stat);
 	Rf_setAttrib(means, R_ClassSymbol, Rf_mkString("stream_means"));
 	switch(TYPEOF(nx))
 	{
@@ -1020,19 +1187,21 @@ SEXP do_pool_means(SEXP x, SEXP group, SEXP ngroups)
 	return means;
 }
 
-SEXP do_pool_vars(SEXP x, SEXP group, SEXP ngroups)
+SEXP do_group_vars(SEXP x, SEXP group, SEXP ngroups)
 {
-	SEXP mx = Rf_getAttrib(x, Rf_install("means"));
+	SEXP mx = Rf_getAttrib(x, Rf_install("mean"));
 	SEXP nx = Rf_getAttrib(x, Rf_install("nobs"));
 	if ( TYPEOF(x) != REALSXP || TYPEOF(mx) != REALSXP )
 		Rf_error("'x' must be a double");
 	if ( TYPEOF(nx) == NILSXP )
 		Rf_error("nobs(x) must exist");
+	SEXP stat = Rf_getAttrib(x, Rf_install("stat"));
 	SEXP vars = PROTECT(Rf_allocVector(REALSXP, Rf_asInteger(ngroups)));
 	SEXP means = PROTECT(Rf_allocVector(REALSXP, Rf_asInteger(ngroups)));
 	SEXP nobs = PROTECT(Rf_allocVector(TYPEOF(nx), Rf_asInteger(ngroups)));
-	Rf_setAttrib(vars, Rf_install("means"), means);
+	Rf_setAttrib(vars, Rf_install("mean"), means);
 	Rf_setAttrib(vars, Rf_install("nobs"), nobs);
+	Rf_setAttrib(vars, Rf_install("stat"), stat);
 	Rf_setAttrib(vars, R_ClassSymbol, Rf_mkString("stream_vars"));
 	switch(TYPEOF(nx))
 	{

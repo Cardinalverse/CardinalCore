@@ -47,10 +47,7 @@ process <- function(i)
 	if ( i %% 1000L == 0L ) message(i, "/", length(mzml$ibd$mz))
 	as.data.frame(peaks_summary(intensity(i), mz(i)))
 }
-process(1)
-process(101)
-
-head(process(505), n=25)
+head(process(505), n=20)
 
 system.time(peaks <- lapply(seq_along(mzml$ibd$mz), process))
 

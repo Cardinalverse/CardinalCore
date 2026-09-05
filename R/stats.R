@@ -2,34 +2,42 @@
 #### Streaming means
 ## ------------------
 
-stream_means <- function(means, nobs)
+stream_stats <- function(data = NA_real_, 
+	stat = c("sum", "prod", "max", "min", "mean", "var"),
+	nobs = rep_len(1L, length(data)), ...)
 {
-	structure(means, nobs=nobs, class="stream_means")
+	stat <- match.arg(stat)
+	if ( stat == "var" ) {
+		mean <- data
+		data <- rep(NA_real_, length(data))
+		structure(data, mean=mean, nobs=nobs, stat=stat, class="stream_stats")
+	} else {
+		structure(data, nobs=nobs, stat=stat, class="stream_stats")
+	}
 }
 
-stream_vars <- function(vars, means, nobs)
+merge_stats <- function(x, y)
 {
-	structure(vars, means=means, nobs=nobs, class="stream_vars")
+	if ( !inherits(x, "stream_stats") || !inherits(y, "stream_stats") )
+		stop("'x' and 'y' must be stream_stats object")
+	if ( length(x) != length(y) )
+		stop("length(x) [", length(x), "] and ",
+			"length(y) [", length(y), "] must be equal")
+	if ( attr(x, "stat") != attr(y, "stat") )
+		stop("attr(x, 'stat') must match attr(y, 'stat')")
+	if ( attr(x, "stat") == "mean" ) {
+		.Call(C_do_merge_means, x, y)
+	} else if ( attr(x, "stat") == "var" ) {
+		.Call(C_do_merge_vars, x, y)
+	} else {
+		.Call(C_do_merge_stats, x, y)
+	}
 }
 
-merge_means <- function(x, y)
+group_stats <- function(x, group, reorder = TRUE)
 {
-	if ( !inherits(x, "stream_means") || !inherits(y, "stream_means") )
-		stop("'x' and 'y' must be stream_means object")
-	.Call(C_do_merge_means, x, y)
-}
-
-merge_vars <- function(x, y)
-{
-	if ( !inherits(x, "stream_vars") || !inherits(y, "stream_vars") )
-		stop("'x' and 'y' must be stream_vars object")
-	.Call(C_do_merge_vars, x, y)
-}
-
-pool_means <- function(x, group, reorder = TRUE)
-{
-	if ( !inherits(x, "stream_means") )
-		stop("'x' must be stream_means object")
+	if ( !inherits(x, "stream_stats") )
+		stop("'x' must be stream_stats object")
 	if ( length(group) != length(x) )
 		stop("length(group) [", length(group), "] and ",
 			"length(x) [", length(x), "] must be equal")
@@ -41,25 +49,13 @@ pool_means <- function(x, group, reorder = TRUE)
 		ugroup <- unique(group)
 	}
 	group <- as.integer(match(group, ugroup) - 1L)
-	.Call(C_do_pool_means, x, group, length(ugroup))
-}
-
-pool_vars <- function(x, group, reorder = TRUE)
-{
-	if ( !inherits(x, "stream_vars") )
-		stop("'x' must be stream_vars object")
-	if ( length(group) != length(x) )
-		stop("length(group) [", length(group), "] and ",
-			"length(x) [", length(x), "] must be equal")
-	if ( anyNA(group) )
-		stop("missing values in 'group'")
-	if ( reorder ) {
-		ugroup <- sort(unique(group))
+	if ( attr(x, "stat") == "mean" ) {
+		.Call(C_do_group_means, x, group, length(ugroup))
+	} else if ( attr(x, "stat") == "var" ) {
+		.Call(C_do_group_vars, x, group, length(ugroup))
 	} else {
-		ugroup <- unique(group)
+		.Call(C_do_group_stats, x, group, length(ugroup))
 	}
-	group <- as.integer(match(group, ugroup) - 1L)
-	.Call(C_do_pool_vars, x, group, length(ugroup))
 }
 
 #### Compute column sums

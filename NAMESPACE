@@ -24,12 +24,9 @@ export(
 	"peaks_summary")
 
 export(
-	"stream_means",
-	"stream_vars",
-	"merge_means",
-	"merge_vars",
-	"pool_means",
-	"pool_vars")
+	"stream_stats",
+	"merge_stats",
+	"group_stats")
 
 export("col_sums")
 

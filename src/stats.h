@@ -61,6 +61,30 @@ Dst scatter_stats(Dst dst, const Index index, const Src src) noexcept
 //--------------------
 // Streaming scalar statistics
 
+// Summary (online updates)
+template<Binop Op, Num T, Num N>
+struct stream_stat
+{
+	T stat = binop<Op,T>::identity();
+	N n = 0;
+
+	stream_stat<Op,T,N> update(const T x) const noexcept
+	{
+		return {
+			.stat = ufunc<Op,T>(stat, x),
+			.n = n + 1,
+		};
+	}
+
+	stream_stat<Op,T,N> merge(const stream_stat<Op,T,N> s) const noexcept
+	{
+		return {
+			.stat = ufunc<Op,T>(stat, s.stat),
+			.n = n + s.n,
+		};
+	}
+};
+
 // Mean (online updates)
 template<Num T, Num N>
 struct stream_mean
@@ -186,6 +210,74 @@ struct stream_var
 //// Vector statistics
 //--------------------
 // Streaming vector statistics
+
+// A vector with streaming summary stats
+// - Pairs reductions and numbers of observations
+// - MUST have n.ssize() == stats.ssize()
+template<Binop Op, Num T, Num N>
+struct stream_stats
+{
+	vec<T> stats{};
+	vec<N> n{};
+
+	ptrdiff_t ssize() const noexcept { return n.ssize(); }
+
+	N nobs(ptrdiff_t i) const noexcept { return n[i]; }
+
+	T operator[](ptrdiff_t i) const noexcept
+	{
+		return n[i] > 0 ? stats[i] : binop<Op,T>::identity();
+	}
+
+	stream_stat<Op,T,N> get(const ptrdiff_t i) const noexcept
+	{
+		return {
+			.stat = stats[i],
+			.n = n[i],
+		};
+	}
+
+	void set(const ptrdiff_t i, stream_stat<Op,T,N> s) noexcept
+	{
+		stats[i] = s.stat;
+		n[i] = s.n;
+	}
+
+	stream_stats<Op,T,N>& fill(stream_stat<Op,T,N> value = {}) noexcept
+	{
+		for ( ptrdiff_t i = 0; i < ssize(); ++i )
+			set(i, value);
+		return (*this);
+	}
+
+	template<Vec V>
+	stream_stats<Op,T,N> update(const V x) noexcept {
+		return update_stats(*this, x);
+	}
+
+	stream_stats<Op,T,N> merge(const stream_stats<Op,T,N> s) noexcept {
+		return merge_stats(*this, s);
+	}
+
+	template<Vec Index>
+	stream_stats<Op,T,N> scatter(
+		const Index index, 
+		const stream_stats<Op,T,N> s) noexcept 
+	{
+		return scatter_stats(*this, index, s);
+	}
+
+	#ifdef USING_R
+	static stream_stats<Op,T,N> from(SEXP obj) noexcept
+	{
+		return {
+			.stats = r_vec<T>(obj),
+			.n = r_vec<N>(Rf_getAttrib(obj, Rf_install("nobs"))),
+		};
+	}
+	#endif // USING_R
+};
+
 
 // A vector with streaming means
 // - Pairs means and numbers of observations
@@ -318,7 +410,7 @@ struct stream_vars
 	{
 		return {
 			.vars = r_vec<T>(obj),
-			.means = r_vec<T>(Rf_getAttrib(obj, Rf_install("means"))),
+			.means = r_vec<T>(Rf_getAttrib(obj, Rf_install("mean"))),
 			.n = r_vec<N>(Rf_getAttrib(obj, Rf_install("nobs"))),
 		};
 	}
