@@ -1200,29 +1200,48 @@ struct local_vec : vec<T>
 };
 
 // Sink unary input to an output vector
-template<Num T>
+template<Num Out>
 struct sink
 {
-	vec<T> out{};
+	vec<Out> dst{};
 	ptrdiff_t count = 0;
 
-	void operator()(T x) noexcept
+	void operator()(Out x) noexcept
 	{
-		if ( count < out.len )
-			out[count++] = x;
+		if ( count < dst.len )
+			dst[count++] = x;
 	}
 };
 
 // Reduce unary input to an output accumulator
-template<Num T, BinaryOp Op>
+template<Binop Op, Num Out>
 struct reducer
 {
-	T * accum;
-	Op op;
+	Out * accum;
+	binop<Op,Out> op{};
 
-	void operator()(T x) noexcept
+	void operator()(Out x) noexcept
 	{
 		*accum = op(*accum, x);
+	}
+};
+
+// Reduce indices into an input to an output accumulator
+template<Binop Op, Num Index, Num Out, Num In>
+struct argreducer
+{
+	Out * accum;
+	Index * count;
+	vec<In> src{};
+	binop<Op,Index> op{};
+
+	void operator()(Index i) noexcept
+	{
+		if ( is_valid(src, i) )
+		{
+			*accum = op(*accum, src[i]);
+			*count++;
+		}
 	}
 };
 

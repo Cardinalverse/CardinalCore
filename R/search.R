@@ -33,9 +33,7 @@ kdtree <- function(table)
 {
 	if ( inherits(table, "kdtree") )
 		return(table)
-	if ( is.null(dim(table)) )
-		table <- as.matrix(table)
-	.Call(C_do_kdtree_build, table)
+	.Call(C_do_kdtree_build, as.matrix(table))
 }
 
 kdsearch <- function(

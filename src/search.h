@@ -459,10 +459,9 @@ struct kdtree
 		const Ref referent = Query,
 		const Index nomatch = na_value<Index>()) const
 	{
-		auto op = binop<Min,Index>{};
-		Index accum = op.identity();
+		Index accum = binop<Min,Index>::identity();
 		Index count = range_apply(
-			reducer<Index,decltype(op)>{&accum, op},
+			reducer<Min,Index>{&accum},
 			query,
 			tolerance,
 			relative,
@@ -479,10 +478,9 @@ struct kdtree
 		const Ref referent = Query,
 		const Index nomatch = na_value<Index>()) const
 	{
-		auto op = binop<Max,Index>{};
-		Index accum = op.identity();
+		Index accum = binop<Max,Index>::identity();
 		Index count = range_apply(
-			reducer<Index,decltype(op)>{&accum, op},
+			reducer<Max,Index>{&accum},
 			query,
 			tolerance,
 			relative,
