@@ -260,8 +260,8 @@ SEXP do_kdtree_range_search(
 			compute(
 				range_counts{
 					r_vec<int>(counts),
-					kdtree<int,int>::from(tree),
 					r_mat<int>(query),
+					kdtree<int,int>::from(tree),
 					r_vec<double>(tolerance),
 					r_vec<int>(relative),
 					static_cast<Ref>(Rf_asInteger(referent)),
@@ -272,8 +272,8 @@ SEXP do_kdtree_range_search(
 			compute(
 				range_counts{
 					r_vec<int>(counts),
-					kdtree<int,double>::from(tree),
 					r_mat<double>(query),
+					kdtree<int,double>::from(tree),
 					r_vec<double>(tolerance),
 					r_vec<int>(relative),
 					static_cast<Ref>(Rf_asInteger(referent)),
@@ -299,8 +299,8 @@ SEXP do_kdtree_range_search(
 			compute(
 				range_searches{
 					r_vecs_pack<int,int>(index, offset),
-					kdtree<int,int>::from(tree),
 					r_mat<int>(query),
+					kdtree<int,int>::from(tree),
 					r_vec<double>(tolerance),
 					r_vec<int>(relative),
 					static_cast<Ref>(Rf_asInteger(referent)),
@@ -311,8 +311,8 @@ SEXP do_kdtree_range_search(
 			compute(
 				range_searches{
 					r_vecs_pack<int,int>(index, offset),
-					kdtree<int,double>::from(tree),
 					r_mat<double>(query),
+					kdtree<int,double>::from(tree),
 					r_vec<double>(tolerance),
 					r_vec<int>(relative),
 					static_cast<Ref>(Rf_asInteger(referent)),
@@ -361,8 +361,8 @@ SEXP do_kdtree_range_find_first(
 			compute(
 				range_find_firsts{
 					r_vec<int>(index),
-					kdtree<int,int>::from(tree),
 					r_mat<int>(query),
+					kdtree<int,int>::from(tree),
 					r_vec<double>(tolerance),
 					r_vec<int>(relative),
 					static_cast<Ref>(Rf_asInteger(referent)),
@@ -374,8 +374,8 @@ SEXP do_kdtree_range_find_first(
 			compute(
 				range_find_firsts{
 					r_vec<int>(index),
-					kdtree<int,double>::from(tree),
 					r_mat<double>(query),
+					kdtree<int,double>::from(tree),
 					r_vec<double>(tolerance),
 					r_vec<int>(relative),
 					static_cast<Ref>(Rf_asInteger(referent)),
@@ -416,8 +416,8 @@ SEXP do_kdtree_range_find_last(
 			compute(
 				range_find_lasts{
 					r_vec<int>(index),
-					kdtree<int,int>::from(tree),
 					r_mat<int>(query),
+					kdtree<int,int>::from(tree),
 					r_vec<double>(tolerance),
 					r_vec<int>(relative),
 					static_cast<Ref>(Rf_asInteger(referent)),
@@ -429,8 +429,8 @@ SEXP do_kdtree_range_find_last(
 			compute(
 				range_find_lasts{
 					r_vec<int>(index),
-					kdtree<int,double>::from(tree),
 					r_mat<double>(query),
+					kdtree<int,double>::from(tree),
 					r_vec<double>(tolerance),
 					r_vec<int>(relative),
 					static_cast<Ref>(Rf_asInteger(referent)),
@@ -444,6 +444,161 @@ SEXP do_kdtree_range_find_last(
 	add1(r_vec<int>(index));
 	UNPROTECT(1);
 	return index;
+}
+
+SEXP do_kdtree_range_reduce(
+	SEXP query,
+	SEXP tree,
+	SEXP values,
+	SEXP reduce,
+	SEXP tolerance,
+	SEXP relative,
+	SEXP referent,
+	SEXP num_threads)
+{
+	SEXP table = VECTOR_ELT(tree, 0);
+	if ( TYPEOF(query) != TYPEOF(table) )
+		Rf_error("'query' and 'table' must have the same data type");
+	if ( Rf_ncols(query) != Rf_ncols(table) )
+		Rf_error("'query' and 'table' must have the same number of cols");
+	if ( LENGTH(values) != Rf_nrows(table) )
+		Rf_error("length of 'values' must match nrow(table)");
+	if ( LENGTH(tolerance) != Rf_ncols(table) )
+		Rf_error("length of 'tolerance' must match ncol(table)");
+	if ( LENGTH(relative) != Rf_ncols(table) )
+		Rf_error("length of 'relative' must match ncol(table)");
+	SEXP out = PROTECT(Rf_allocVector(REALSXP, Rf_nrows(query)));
+	switch(TYPEOF(query))
+	{
+		case INTSXP:
+			if ( strcmp(CHAR(STRING_ELT(reduce, 0)), "sum") == 0 )
+			{
+				compute(
+					range_reducers{
+						r_vec<double>(out),
+						r_vec<double>(values),
+						r_mat<int>(query),
+						kdtree<int,int>::from(tree),
+						binop<Add,double>{},
+						r_vec<double>(tolerance),
+						r_vec<int>(relative),
+						static_cast<Ref>(Rf_asInteger(referent)),
+					},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(reduce, 0)), "prod") == 0 )
+			{
+				compute(
+					range_reducers{
+						r_vec<double>(out),
+						r_vec<double>(values),
+						r_mat<int>(query),
+						kdtree<int,int>::from(tree),
+						binop<Mul,double>{},
+						r_vec<double>(tolerance),
+						r_vec<int>(relative),
+						static_cast<Ref>(Rf_asInteger(referent)),
+					},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(reduce, 0)), "max") == 0 )
+			{
+				compute(
+					range_reducers{
+						r_vec<double>(out),
+						r_vec<double>(values),
+						r_mat<int>(query),
+						kdtree<int,int>::from(tree),
+						binop<Max,double>{},
+						r_vec<double>(tolerance),
+						r_vec<int>(relative),
+						static_cast<Ref>(Rf_asInteger(referent)),
+					},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(reduce, 0)), "min") == 0 )
+			{
+				compute(
+					range_reducers{
+						r_vec<double>(out),
+						r_vec<double>(values),
+						r_mat<int>(query),
+						kdtree<int,int>::from(tree),
+						binop<Min,double>{},
+						r_vec<double>(tolerance),
+						r_vec<int>(relative),
+						static_cast<Ref>(Rf_asInteger(referent)),
+					},
+					Rf_asInteger(num_threads));
+			}
+			break;
+		case REALSXP:
+			if ( strcmp(CHAR(STRING_ELT(reduce, 0)), "sum") == 0 )
+			{
+				compute(
+					range_reducers{
+						r_vec<double>(out),
+						r_vec<double>(values),
+						r_mat<double>(query),
+						kdtree<int,double>::from(tree),
+						binop<Add,double>{},
+						r_vec<double>(tolerance),
+						r_vec<int>(relative),
+						static_cast<Ref>(Rf_asInteger(referent)),
+					},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(reduce, 0)), "prod") == 0 )
+			{
+				compute(
+					range_reducers{
+						r_vec<double>(out),
+						r_vec<double>(values),
+						r_mat<double>(query),
+						kdtree<int,double>::from(tree),
+						binop<Mul,double>{},
+						r_vec<double>(tolerance),
+						r_vec<int>(relative),
+						static_cast<Ref>(Rf_asInteger(referent)),
+					},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(reduce, 0)), "max") == 0 )
+			{
+				compute(
+					range_reducers{
+						r_vec<double>(out),
+						r_vec<double>(values),
+						r_mat<double>(query),
+						kdtree<int,double>::from(tree),
+						binop<Max,double>{},
+						r_vec<double>(tolerance),
+						r_vec<int>(relative),
+						static_cast<Ref>(Rf_asInteger(referent)),
+					},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(reduce, 0)), "min") == 0 )
+			{
+				compute(
+					range_reducers{
+						r_vec<double>(out),
+						r_vec<double>(values),
+						r_mat<double>(query),
+						kdtree<int,double>::from(tree),
+						binop<Min,double>{},
+						r_vec<double>(tolerance),
+						r_vec<int>(relative),
+						static_cast<Ref>(Rf_asInteger(referent)),
+					},
+					Rf_asInteger(num_threads));
+			}
+			break;
+		default:
+			Rf_error("'query' and 'table' must be integer or double");
+	}
+	UNPROTECT(1);
+	return out;
 }
 
 SEXP do_kdtree_knn_search(
@@ -476,8 +631,8 @@ SEXP do_kdtree_knn_search(
 				knn_searches{
 					r_vecs_pack<int,int>(index, offset),
 					r_vecs_pack<double,int>(dists, offset),
-					kdtree<int,int>::from(tree),
 					r_mat<int>(query),
+					kdtree<int,int>::from(tree),
 					static_cast<Norm>(Rf_asInteger(p)),
 				},
 				Rf_asInteger(num_threads));
@@ -487,8 +642,8 @@ SEXP do_kdtree_knn_search(
 				knn_searches{
 					r_vecs_pack<int,int>(index, offset),
 					r_vecs_pack<double,int>(dists, offset),
-					kdtree<int,double>::from(tree),
 					r_mat<double>(query),
+					kdtree<int,double>::from(tree),
 					static_cast<Norm>(Rf_asInteger(p)),
 				},
 				Rf_asInteger(num_threads));

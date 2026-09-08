@@ -544,8 +544,8 @@ template<Num Index, Num T, Vec Tol, Vec Rel>
 struct range_counts
 {
 	vec<Index> counts;    // out
-	kdtree<Index,T> tree; // in
 	mat<T> query;         // in
+	kdtree<Index,T> tree; // in
 	Tol tolerance;        // in
 	Rel relative;         // in
 	Ref referent;         // in
@@ -573,8 +573,8 @@ template<Num Index, Num T, Vec Tol, Vec Rel>
 struct range_searches
 {
 	vecs_pack<Index,Index> index; // out
-	kdtree<Index,T> tree;         // in
 	mat<T> query;                 // in
+	kdtree<Index,T> tree;         // in
 	Tol tolerance;                // in
 	Rel relative;                 // in
 	Ref referent;                 // in
@@ -601,8 +601,8 @@ template<Num Index, Num T, Vec Tol, Vec Rel>
 struct range_find_firsts
 {
 	vec<Index> index;     // out
-	kdtree<Index,T> tree; // in
 	mat<T> query;         // in
+	kdtree<Index,T> tree; // in
 	Tol tolerance;        // in
 	Rel relative;         // in
 	Ref referent;         // in
@@ -616,7 +616,7 @@ struct range_find_firsts
 		{
 			Index accum = binop<Min,Index>::identity();
 			Index count = tree.range_apply(
-				reducer<Min,Index>{&accum},
+				reducer<Max,Index>{&accum},
 				query.row(i),
 				tolerance,
 				relative,
@@ -631,8 +631,8 @@ template<Num Index, Num T, Vec Tol, Vec Rel>
 struct range_find_lasts
 {
 	vec<Index> index;     // out
-	kdtree<Index,T> tree; // in
 	mat<T> query;         // in
+	kdtree<Index,T> tree; // in
 	Tol tolerance;        // in
 	Rel relative;         // in
 	Ref referent;         // in
@@ -656,14 +656,45 @@ struct range_find_lasts
 	}
 };
 
+// Range search kernel (last hit only)
+template<Binop Op, Num Out, Num In, Num Index, Num T, Vec Tol, Vec Rel>
+struct range_reducers
+{
+	vec<Out> dst;         // out
+	vec<In> src;          // in
+	mat<T> query;         // in
+	kdtree<Index,T> tree; // in
+	binop<Op,Out> op;     // in
+	Tol tolerance;        // in
+	Rel relative;         // in
+	Ref referent;         // in
+
+	ptrdiff_t ssize() const { return query.nrows(); }
+
+	void operator()(bounds b, task ctx)
+	{
+		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
+		{
+			Out accum = binop<Op,Out>::identity();
+			tree.range_apply(
+				argreducer<Op,Index,Out,In>{&accum, src},
+				query.row(i),
+				tolerance,
+				relative,
+				referent);
+			dst[i] = accum;
+		}
+	}
+};
+
 // KNN search kernel
 template<Num Index, Num T>
 struct knn_searches
 {
 	vecs_pack<Index,Index> index;  // out
 	vecs_pack<double,Index> dists; // out
-	kdtree<Index,T> tree;          // in
 	mat<T> query;                  // in
+	kdtree<Index,T> tree;          // in
 	Norm p;                        // in
 
 	ptrdiff_t ssize() const { return query.nrows(); }

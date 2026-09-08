@@ -1218,32 +1218,30 @@ struct sink
 };
 
 // Reduce unary input to an output accumulator
-template<Binop Op, Num Out>
+template<Binop Op, Num Out, Num In = Out>
 struct reducer
 {
 	Out * accum;
+	binop<Op,Out> op{};
 
-	void operator()(Out x) noexcept
+	void operator()(In x) noexcept
 	{
-		*accum = ufunc<Op,Out>(*accum, x);
+		*accum = op(*accum, coerce_cast<Out>(x));
 	}
 };
 
 // Reduce indices into an input to an output accumulator
-template<Binop Op, Num Index, Num Out, Num In>
+template<Binop Op, Num Index, Num Out, Num In = Out>
 struct argreducer
 {
 	Out * accum;
-	Index * count;
 	vec<In> src{};
+	binop<Op,Out> op{};
 
 	void operator()(Index i) noexcept
 	{
 		if ( is_valid(src, i) )
-		{
-			*accum = ufunc<Op,Out>(*accum, src[i]);
-			*count++;
-		}
+			*accum = op(*accum, coerce_cast<Out>(src[i]));
 	}
 };
 
