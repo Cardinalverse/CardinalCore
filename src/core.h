@@ -1199,6 +1199,10 @@ struct local_vec : vec<T>
 	}
 };
 
+//// Collectors
+//--------------
+// Collect output from iteration
+
 // Sink unary input to an output vector
 template<Num Out>
 struct sink
@@ -1218,11 +1222,10 @@ template<Binop Op, Num Out>
 struct reducer
 {
 	Out * accum;
-	binop<Op,Out> op{};
 
 	void operator()(Out x) noexcept
 	{
-		*accum = op(*accum, x);
+		*accum = ufunc<Op,Out>(*accum, x);
 	}
 };
 
@@ -1233,13 +1236,12 @@ struct argreducer
 	Out * accum;
 	Index * count;
 	vec<In> src{};
-	binop<Op,Index> op{};
 
 	void operator()(Index i) noexcept
 	{
 		if ( is_valid(src, i) )
 		{
-			*accum = op(*accum, src[i]);
+			*accum = ufunc<Op,Out>(*accum, src[i]);
 			*count++;
 		}
 	}
