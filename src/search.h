@@ -450,44 +450,6 @@ struct kdtree
 			referent);
 	}
 
-	// Find first row in table within tolerance of query
-	template<Vec V, Vec Tol, Vec Rel>
-	Index range_find_first(
-		const V query,
-		const Tol tolerance,
-		const Rel relative,
-		const Ref referent = Query,
-		const Index nomatch = na_value<Index>()) const
-	{
-		Index accum = binop<Min,Index>::identity();
-		Index count = range_apply(
-			reducer<Min,Index>{&accum},
-			query,
-			tolerance,
-			relative,
-			referent);
-		return count > 0 ? accum : nomatch;
-	}
-
-	// Find last row in table within tolerance of query
-	template<Vec V, Vec Tol, Vec Rel>
-	Index range_find_last(
-		const V query,
-		const Tol tolerance,
-		const Rel relative,
-		const Ref referent = Query,
-		const Index nomatch = na_value<Index>()) const
-	{
-		Index accum = binop<Max,Index>::identity();
-		Index count = range_apply(
-			reducer<Max,Index>{&accum},
-			query,
-			tolerance,
-			relative,
-			referent);
-		return count > 0 ? accum : nomatch;
-	}
-
 	// Find indices of the K-nearest neighbors of a query in table
 	// - Where K == index.len == dists.len
 	// - Fills index with hits
@@ -652,12 +614,14 @@ struct range_find_firsts
 	{
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 		{
-			index[i] = tree.range_find_first(
+			Index accum = binop<Min,Index>::identity();
+			Index count = tree.range_apply(
+				reducer<Min,Index>{&accum},
 				query.row(i),
 				tolerance,
 				relative,
-				referent,
-				nomatch);
+				referent);
+			index[i] = count > 0 ? accum : nomatch;
 		}
 	}
 };
@@ -680,12 +644,14 @@ struct range_find_lasts
 	{
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 		{
-			index[i] = tree.range_find_last(
+			Index accum = binop<Max,Index>::identity();
+			Index count = tree.range_apply(
+				reducer<Max,Index>{&accum},
 				query.row(i),
 				tolerance,
 				relative,
-				referent,
-				nomatch);
+				referent);
+			index[i] = count > 0 ? accum : nomatch;
 		}
 	}
 };
