@@ -31,11 +31,26 @@ constexpr Binop summary_op() noexcept
 		static_assert(dependent_false_v<S>, "unsupported summary op");
 }
 
+// A Stat supports a streaming statistic with online updates
+// - SHOULD also support s.update(Num x) -> Stat
+// - SHOULD also support s.merge(Stat s) -> Stat
+template<class S>
+concept Stat = 
+	requires (std::remove_cvref_t<S>& s)
+	{
+		{ s.get() } -> Num;
+		{ s.nobs() } -> Num;
+	};
+
 // A Stats Vec supports vector access to streaming statistics
+// - SHOULD also support s.get(ptrdiff_t i) -> Stat
+// - SHOULD also support s.set(ptrdiff_t i, Stat s)
 template<class S>
 concept Stats = Vec<S> &&
 	requires (std::remove_cvref_t<S>& s, ptrdiff_t i)
 	{
+		{ s.get_stats() } -> Vec;
+		{ s.get_nobs() } -> Vec;
 		{ s.nobs(i) } -> Num;
 	};
 
@@ -202,6 +217,15 @@ struct stream_stat<Var,T,N>
 //-----------------------
 // Merge and update streaming statistics
 
+// Used to implement dst.merge(src)
+template<Stats Dst, Stat Val>
+Dst fill_stats(Dst dst, const Val value) noexcept
+{
+	for ( ptrdiff_t i = 0; i < dst.ssize(); ++i )
+		dst.set(i, value);
+	return dst;
+}
+
 // Used to implement dst.update(src)
 template<Stats Dst, Vec Src>
 Dst update_stats(Dst dst, const Src src) noexcept
@@ -278,11 +302,8 @@ struct stream_stats
 		n[i] = s.n;
 	}
 
-	stream_stats<S,T,N>& fill(stream_stat<S,T,N> value = {}) noexcept
-	{
-		for ( ptrdiff_t i = 0; i < ssize(); ++i )
-			set(i, value);
-		return (*this);
+	stream_stats<S,T,N> fill(stream_stat<S,T,N> value = {}) noexcept {
+		return fill_stats(*this, value);
 	}
 
 	template<Vec V>
@@ -348,11 +369,8 @@ struct stream_stats<Mean,T,N>
 		n[i] = s.n;
 	}
 
-	stream_stats<Mean,T,N>& fill(stream_stat<Mean,T,N> value = {}) noexcept
-	{
-		for ( ptrdiff_t i = 0; i < ssize(); ++i )
-			set(i, value);
-		return (*this);
+	stream_stats<Mean,T,N> fill(stream_stat<Mean,T,N> value = {}) noexcept {
+		return fill_stats(*this, value);
 	}
 
 	template<Vec V>
@@ -420,11 +438,8 @@ struct stream_stats<Var,T,N>
 		n[i] = s.n;
 	}
 
-	stream_stats<Var,T,N>& fill(stream_stat<Var,T,N> value = {}) noexcept
-	{
-		for ( ptrdiff_t i = 0; i < ssize(); ++i )
-			set(i, value);
-		return (*this);
+	stream_stats<Var,T,N> fill(stream_stat<Var,T,N> value = {}) noexcept {
+		return fill_stats(*this, value);
 	}
 
 	template<Vec V>

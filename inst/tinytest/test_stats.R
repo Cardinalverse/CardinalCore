@@ -14,11 +14,6 @@ sy <- apply(y, 2L, var)
 my <- colMeans(y)
 ny <- rep(nr, nc)
 
-smx <- stream_means(mx, nx)
-smy <- stream_means(my, ny)
-ssx <- stream_vars(sx, mx, nx)
-ssy <- stream_vars(sy, my, ny)
-
 colMeans(rbind(x, y))
 merge_means(smx, smy)
 
