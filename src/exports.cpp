@@ -1087,26 +1087,26 @@ SEXP do_merge_stats(SEXP x, SEXP y)
 		{
 			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
 			{
-				auto dst = stream_stats<Add,double,int>::from(xout);
-				auto src = stream_stats<Add,double,int>::from(y);
+				auto dst = stream_stats<Sum,double,int>::from(xout);
+				auto src = stream_stats<Sum,double,int>::from(y);
 				dst.merge(src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
 			{
-				auto dst = stream_stats<Mul,double,int>::from(xout);
-				auto src = stream_stats<Mul,double,int>::from(y);
+				auto dst = stream_stats<Prod,double,int>::from(xout);
+				auto src = stream_stats<Prod,double,int>::from(y);
 				dst.merge(src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
 			{
-				auto dst = stream_stats<Max,double,int>::from(xout);
-				auto src = stream_stats<Max,double,int>::from(y);
+				auto dst = stream_stats<Maximum,double,int>::from(xout);
+				auto src = stream_stats<Maximum,double,int>::from(y);
 				dst.merge(src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
 			{
-				auto dst = stream_stats<Min,double,int>::from(xout);
-				auto src = stream_stats<Min,double,int>::from(y);
+				auto dst = stream_stats<Minimum,double,int>::from(xout);
+				auto src = stream_stats<Minimum,double,int>::from(y);
 				dst.merge(src);
 			}
 			else
@@ -1117,26 +1117,26 @@ SEXP do_merge_stats(SEXP x, SEXP y)
 		{
 			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
 			{
-				auto dst = stream_stats<Add,double,int>::from(xout);
-				auto src = stream_stats<Add,double,int>::from(y);
+				auto dst = stream_stats<Sum,double,int>::from(xout);
+				auto src = stream_stats<Sum,double,int>::from(y);
 				dst.merge(src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
 			{
-				auto dst = stream_stats<Mul,double,int>::from(xout);
-				auto src = stream_stats<Mul,double,int>::from(y);
+				auto dst = stream_stats<Prod,double,int>::from(xout);
+				auto src = stream_stats<Prod,double,int>::from(y);
 				dst.merge(src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
 			{
-				auto dst = stream_stats<Max,double,int>::from(xout);
-				auto src = stream_stats<Max,double,int>::from(y);
+				auto dst = stream_stats<Maximum,double,int>::from(xout);
+				auto src = stream_stats<Maximum,double,int>::from(y);
 				dst.merge(src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
 			{
-				auto dst = stream_stats<Min,double,int>::from(xout);
-				auto src = stream_stats<Min,double,int>::from(y);
+				auto dst = stream_stats<Minimum,double,int>::from(xout);
+				auto src = stream_stats<Minimum,double,int>::from(y);
 				dst.merge(src);
 			}
 			else
@@ -1165,15 +1165,15 @@ SEXP do_merge_means(SEXP x, SEXP y)
 	{
 		case INTSXP:
 		{
-			auto dst = stream_means<double,int>::from(xout);
-			auto src = stream_means<double,int>::from(y);
+			auto dst = stream_stats<Mean,double,int>::from(xout);
+			auto src = stream_stats<Mean,double,int>::from(y);
 			dst.merge(src);
 			break;
 		}
 		case REALSXP:
 		{
-			auto dst = stream_means<double,double>::from(xout);
-			auto src = stream_means<double,double>::from(y);
+			auto dst = stream_stats<Mean,double,double>::from(xout);
+			auto src = stream_stats<Mean,double,double>::from(y);
 			dst.merge(src);
 			break;
 		}
@@ -1204,16 +1204,16 @@ SEXP do_merge_vars(SEXP x, SEXP y)
 		case INTSXP:
 		{
 			Rprintf("trying to merge stats with int nobs\n");
-			auto dst = stream_vars<double,int>::from(xout);
-			auto src = stream_vars<double,int>::from(y);
+			auto dst = stream_stats<Var,double,int>::from(xout);
+			auto src = stream_stats<Var,double,int>::from(y);
 			dst.merge(src);
 			break;
 		}
 		case REALSXP:
 		{
 			Rprintf("trying to merge stats with dbl nobs\n");
-			auto dst = stream_vars<double,double>::from(xout);
-			auto src = stream_vars<double,double>::from(y);
+			auto dst = stream_stats<Var,double,double>::from(xout);
+			auto src = stream_stats<Var,double,double>::from(y);
 			dst.merge(src);
 			break;
 		}
@@ -1243,26 +1243,26 @@ SEXP do_group_stats(SEXP x, SEXP group, SEXP ngroups)
 		{
 			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
 			{
-				auto dst = stream_stats<Add,double,int>::from(stats).fill();
-				auto src = stream_stats<Add,double,int>::from(x);
+				auto dst = stream_stats<Sum,double,int>::from(stats).fill();
+				auto src = stream_stats<Sum,double,int>::from(x);
 				dst.scatter(r_vec<int>(group), src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
 			{
-				auto dst = stream_stats<Mul,double,int>::from(stats).fill();
-				auto src = stream_stats<Mul,double,int>::from(x);
+				auto dst = stream_stats<Prod,double,int>::from(stats).fill();
+				auto src = stream_stats<Prod,double,int>::from(x);
 				dst.scatter(r_vec<int>(group), src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
 			{
-				auto dst = stream_stats<Max,double,int>::from(stats).fill();
-				auto src = stream_stats<Max,double,int>::from(x);
+				auto dst = stream_stats<Maximum,double,int>::from(stats).fill();
+				auto src = stream_stats<Maximum,double,int>::from(x);
 				dst.scatter(r_vec<int>(group), src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
 			{
-				auto dst = stream_stats<Min,double,int>::from(stats).fill();
-				auto src = stream_stats<Min,double,int>::from(x);
+				auto dst = stream_stats<Minimum,double,int>::from(stats).fill();
+				auto src = stream_stats<Minimum,double,int>::from(x);
 				dst.scatter(r_vec<int>(group), src);
 			}
 			else
@@ -1273,26 +1273,26 @@ SEXP do_group_stats(SEXP x, SEXP group, SEXP ngroups)
 		{
 			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
 			{
-				auto dst = stream_stats<Add,double,int>::from(stats).fill();
-				auto src = stream_stats<Add,double,int>::from(x);
+				auto dst = stream_stats<Sum,double,int>::from(stats).fill();
+				auto src = stream_stats<Sum,double,int>::from(x);
 				dst.scatter(r_vec<int>(group), src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
 			{
-				auto dst = stream_stats<Mul,double,int>::from(stats).fill();
-				auto src = stream_stats<Mul,double,int>::from(x);
+				auto dst = stream_stats<Prod,double,int>::from(stats).fill();
+				auto src = stream_stats<Prod,double,int>::from(x);
 				dst.scatter(r_vec<int>(group), src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
 			{
-				auto dst = stream_stats<Max,double,int>::from(stats).fill();
-				auto src = stream_stats<Max,double,int>::from(x);
+				auto dst = stream_stats<Maximum,double,int>::from(stats).fill();
+				auto src = stream_stats<Maximum,double,int>::from(x);
 				dst.scatter(r_vec<int>(group), src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
 			{
-				auto dst = stream_stats<Min,double,int>::from(stats).fill();
-				auto src = stream_stats<Min,double,int>::from(x);
+				auto dst = stream_stats<Minimum,double,int>::from(stats).fill();
+				auto src = stream_stats<Minimum,double,int>::from(x);
 				dst.scatter(r_vec<int>(group), src);
 			}
 			else
@@ -1302,7 +1302,7 @@ SEXP do_group_stats(SEXP x, SEXP group, SEXP ngroups)
 		default:
 			Rf_error("nobs(x) and nobs(y) must be integer or double");
 	}
-	UNPROTECT(1);
+	UNPROTECT(2);
 	return stats;
 }
 
@@ -1323,15 +1323,15 @@ SEXP do_group_means(SEXP x, SEXP group, SEXP ngroups)
 	{
 		case INTSXP:
 		{
-			auto dst = stream_means<double,int>::from(means).fill();
-			auto src = stream_means<double,int>::from(x);
+			auto dst = stream_stats<Mean,double,int>::from(means).fill();
+			auto src = stream_stats<Mean,double,int>::from(x);
 			dst.scatter(r_vec<int>(group), src);
 			break;
 		}
 		case REALSXP:
 		{
-			auto dst = stream_means<double,double>::from(means).fill();
-			auto src = stream_means<double,double>::from(x);
+			auto dst = stream_stats<Mean,double,double>::from(means).fill();
+			auto src = stream_stats<Mean,double,double>::from(x);
 			dst.scatter(r_vec<int>(group), src);
 			break;
 		}
@@ -1362,15 +1362,15 @@ SEXP do_group_vars(SEXP x, SEXP group, SEXP ngroups)
 	{
 		case INTSXP:
 		{
-			auto dst = stream_vars<double,int>::from(vars).fill();
-			auto src = stream_vars<double,int>::from(x);
+			auto dst = stream_stats<Var,double,int>::from(vars).fill();
+			auto src = stream_stats<Var,double,int>::from(x);
 			dst.scatter(r_vec<int>(group), src);
 			break;
 		}
 		case REALSXP:
 		{
-			auto dst = stream_vars<double,double>::from(vars).fill();
-			auto src = stream_vars<double,double>::from(x);
+			auto dst = stream_stats<Var,double,double>::from(vars).fill();
+			auto src = stream_stats<Var,double,double>::from(x);
 			dst.scatter(r_vec<int>(group), src);
 			break;
 		}

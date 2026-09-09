@@ -106,9 +106,13 @@ concept UnaryOp = std::invocable<F, num_arg>;
 template<class F>
 concept BinaryOp = std::invocable<F, num_arg, num_arg>;
 
-// Static assert false workaround
+// Static assert false workaround (type)
 template<class T>
-constexpr bool dependent_false = false;
+inline constexpr bool dependent_false = false;
+
+// Static assert false workaround (value)
+template<auto>
+inline constexpr bool dependent_false_v = false;
 
 // Most positive value for a type
 template<Num T>
