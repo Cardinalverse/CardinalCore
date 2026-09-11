@@ -1174,24 +1174,26 @@ SEXP do_merge_stats(SEXP x, SEXP y)
 	return xout;
 }
 
-SEXP do_group_stats(SEXP x, SEXP group, SEXP ngroups)
+SEXP do_group_stats(SEXP x, SEXP group, SEXP ugroup)
 {
 	SEXP nx = Rf_getAttrib(x, Rf_install("nobs"));
 	if ( TYPEOF(x) != REALSXP )
 		Rf_error("'x' must be a double");
 	if ( TYPEOF(nx) == NILSXP )
 		Rf_error("nobs(x) must exist");
+	int ngroups = LENGTH(ugroup);
 	SEXP stat = Rf_getAttrib(x, Rf_install("stat"));
-	SEXP xout = PROTECT(Rf_allocVector(REALSXP, Rf_asInteger(ngroups)));
-	SEXP nobs = PROTECT(Rf_allocVector(TYPEOF(nx), Rf_asInteger(ngroups)));
+	SEXP xout = PROTECT(Rf_allocVector(REALSXP, ngroups));
+	SEXP nobs = PROTECT(Rf_allocVector(TYPEOF(nx), ngroups));
 	if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
 	{
-		SEXP means = PROTECT(Rf_allocVector(REALSXP, Rf_asInteger(ngroups)));
+		SEXP means = PROTECT(Rf_allocVector(REALSXP, ngroups));
 		Rf_setAttrib(xout, Rf_install("mean"), means);
 		UNPROTECT(1);
 	}
 	Rf_setAttrib(xout, Rf_install("nobs"), nobs);
 	Rf_setAttrib(xout, Rf_install("stat"), stat);
+	Rf_setAttrib(xout, R_NamesSymbol, ugroup);
 	Rf_setAttrib(xout, R_ClassSymbol, Rf_mkString("stream_stats"));
 	switch(TYPEOF(nx))
 	{

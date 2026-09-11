@@ -2,17 +2,17 @@
 #### Streaming means
 ## ------------------
 
-stream_stats <- function(data = NA_real_, 
-	stat = c("sum", "prod", "max", "min", "mean", "var"),
-	nobs = rep_len(1L, length(data)), ...)
+stream_stats <- function(x = numeric(), 
+	stat = c("sum", "prod", "max", "min", "mean", "var"))
 {
 	stat <- match.arg(stat)
+	nobs = rep_len(1L, length(x))
 	if ( stat == "var" ) {
-		mean <- data
-		data <- rep(NA_real_, length(data))
-		structure(data, mean=mean, nobs=nobs, stat=stat, class="stream_stats")
+		mean <- x
+		x <- rep(NA_real_, length(x))
+		structure(x, mean=mean, nobs=nobs, stat=stat, class="stream_stats")
 	} else {
-		structure(data, nobs=nobs, stat=stat, class="stream_stats")
+		structure(x, nobs=nobs, stat=stat, class="stream_stats")
 	}
 }
 
@@ -24,14 +24,14 @@ merge_stats <- function(x, y)
 		stop("length(x) [", length(x), "] and ",
 			"length(y) [", length(y), "] must be equal")
 	if ( attr(x, "stat") != attr(y, "stat") )
-		stop("attr(x, 'stat') must match attr(y, 'stat')")
+		stop("'x' is a ", attr(x, "stat"), " but 'y' is a ", attr(y, "stat"))
 	.Call(C_do_merge_stats, x, y)
 }
 
 group_stats <- function(x, group, reorder = TRUE)
 {
 	if ( !inherits(x, "stream_stats") )
-		stop("'x' must be stream_stats object")
+		stop("'x' must be a stream_stats object")
 	if ( length(group) != length(x) )
 		stop("length(group) [", length(group), "] and ",
 			"length(x) [", length(x), "] must be equal")
@@ -43,7 +43,7 @@ group_stats <- function(x, group, reorder = TRUE)
 		ugroup <- unique(group)
 	}
 	group <- as.integer(match(group, ugroup) - 1L)
-	.Call(C_do_group_stats, x, group, length(ugroup))
+	.Call(C_do_group_stats, x, group, as.character(ugroup))
 }
 
 #### Compute column sums

@@ -91,7 +91,7 @@ SEXP do_peaks_summary(
 //// Streaming statistics
 //-----------------------
 SEXP do_merge_stats(SEXP x, SEXP y);
-SEXP do_group_stats(SEXP x, SEXP group, SEXP ngroups);
+SEXP do_group_stats(SEXP x, SEXP group, SEXP ugroup);
 
 //// Matrix statistics
 //---------------------
