@@ -1,6 +1,14 @@
 require(CardinalCore, quietly=TRUE)
 require(tinytest, quietly=TRUE)
 
+# stream_stats
+x <- stream_stats(runif(10), stat="mean")
+y <- stream_stats(runif(10), stat="mean")
+z <- merge_stats(x, y)
+group_stats(x, rep(1:2, 5))
+group_stats(x, rep(1:5, 2))
+merge_stats(x, z)
+
 # Setup example matrix
 set.seed(1)
 nr <- 1e6

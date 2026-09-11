@@ -331,7 +331,7 @@ struct peaks
 			return qmad(noise, qmedian(noise));
 		}
 		else
-			static_assert(dependent_false<T>, "unsupported noise method");
+			static_assert(dependent_false_t<T>, "unsupported noise method");
 	}
 
 	// Get indices of peaks and copy into index

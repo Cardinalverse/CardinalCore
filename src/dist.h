@@ -27,7 +27,7 @@ auto norm(V x) noexcept
 	else if constexpr ( P == LInf )
 		return max(abs(x));
 	else
-		static_assert(dependent_false<V>, "unsupported norm");
+		static_assert(dependent_false_t<V>, "unsupported norm");
 }
 
 // Get a Minkowski distance between two vectors

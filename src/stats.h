@@ -16,6 +16,7 @@ enum Summary {
 	Var,
 };
 
+// Binary operation for simple reduction summaries
 template<Summary S>
 constexpr Binop summary_op() noexcept
 {

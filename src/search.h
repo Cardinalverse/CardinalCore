@@ -37,7 +37,7 @@ double diff(const L lhs, const R rhs) noexcept
 	else if constexpr ( Method == RefRhs )
 		return (lhs_ - rhs_) / rhs_;
 	else
-		static_assert(dependent_false<L>, "unsupported difference method");
+		static_assert(dependent_false_t<L>, "unsupported difference method");
 }
 
 // Compute signed absolute or relative difference

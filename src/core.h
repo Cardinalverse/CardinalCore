@@ -108,7 +108,7 @@ concept BinaryOp = std::invocable<F, num_arg, num_arg>;
 
 // Static assert false workaround (type)
 template<class T>
-inline constexpr bool dependent_false = false;
+inline constexpr bool dependent_false_t = false;
 
 // Static assert false workaround (value)
 template<auto>
@@ -252,7 +252,7 @@ constexpr T ufunc(T x) noexcept
 		return std::expm1(x);
 	// Not implemented
 	else
-		static_assert(dependent_false<T>, "unsupported unary op");
+		static_assert(dependent_false_t<T>, "unsupported unary op");
 }
 
 template<Unop Op, Num T = double>
@@ -322,7 +322,7 @@ constexpr T ufunc(T lhs, T rhs) noexcept
 		return lhs < rhs ? lhs : rhs;
 	// Not implemented
 	else
-		static_assert(dependent_false<T>, "unsupported binary op");
+		static_assert(dependent_false_t<T>, "unsupported binary op");
 }
 
 template<Binop Op, Num T = double>
@@ -346,7 +346,7 @@ struct binop
 			return huge_positive_value<T>();
 		// Not implemented
 		else
-			static_assert(dependent_false<T>, "unsupported reduction");
+			static_assert(dependent_false_t<T>, "unsupported reduction");
 	}
 
 	T operator()(T lhs, T rhs) const noexcept
@@ -498,7 +498,7 @@ constexpr Vec auto join_masks_of(const L lhs, const R rhs) noexcept
 	else if constexpr ( Masked<R> )
 		return rhs.get_mask();
 	else
-		static_assert(dependent_false<L>, "neither operand is masked");
+		static_assert(dependent_false_t<L>, "neither operand is masked");
 }
 
 // Combine masks from Masked Vecs with ternary logic
@@ -515,7 +515,7 @@ constexpr Vec auto join_masks_of(const L lhs, const R rhs) noexcept
 			return join_masks_of(lhs, rhs);
 	}
 	else
-		static_assert(dependent_false<L>, "neither operand is masked");
+		static_assert(dependent_false_t<L>, "neither operand is masked");
 }
 
 // Mask a Vec
@@ -1335,7 +1335,7 @@ struct mat
 				return (*this)[{i % nr, i / nr}];
 		}
 		else
-			static_assert(dependent_false<T>, "invalid matrix order");
+			static_assert(dependent_false_t<T>, "invalid matrix order");
 	}
 
 	T& operator[](const ptrdiff_t i) noexcept {
