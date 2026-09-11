@@ -25,13 +25,7 @@ merge_stats <- function(x, y)
 			"length(y) [", length(y), "] must be equal")
 	if ( attr(x, "stat") != attr(y, "stat") )
 		stop("attr(x, 'stat') must match attr(y, 'stat')")
-	if ( attr(x, "stat") == "mean" ) {
-		.Call(C_do_merge_means, x, y)
-	} else if ( attr(x, "stat") == "var" ) {
-		.Call(C_do_merge_vars, x, y)
-	} else {
-		.Call(C_do_merge_stats, x, y)
-	}
+	.Call(C_do_merge_stats, x, y)
 }
 
 group_stats <- function(x, group, reorder = TRUE)
@@ -49,13 +43,7 @@ group_stats <- function(x, group, reorder = TRUE)
 		ugroup <- unique(group)
 	}
 	group <- as.integer(match(group, ugroup) - 1L)
-	if ( attr(x, "stat") == "mean" ) {
-		.Call(C_do_group_means, x, group, length(ugroup))
-	} else if ( attr(x, "stat") == "var" ) {
-		.Call(C_do_group_vars, x, group, length(ugroup))
-	} else {
-		.Call(C_do_group_stats, x, group, length(ugroup))
-	}
+	.Call(C_do_group_stats, x, group, length(ugroup))
 }
 
 #### Compute column sums
