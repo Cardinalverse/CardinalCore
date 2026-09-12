@@ -600,34 +600,34 @@ struct range_searches
 };
 
 // Range aggregation kernel
-template<Summary S, Num Out, Num In, Num Index, Num T, Vec Tol, Vec Rel>
+template<Summary S, Num U, Num V, Num Index, Num T, Vec Tol, Vec Rel>
 struct range_aggregate
 {
-	vec<Out> dst;                  // out
-	vec<In> src;                   // in
-	mat<T> query;                  // in
-	kdtree<Index,T> tree;          // in
-	stream_stat<S,Out,Index> stat; // in
-	Tol tolerance;                 // in
-	Rel relative;                  // in
-	Ref referent;                  // in
+	vec<U> agg;                  // out
+	mat<T> query;                // in
+	kdtree<Index,T> tree;        // in
+	vec<V> values;               // in
+	stream_stat<S,U,Index> stat; // in
+	Tol tolerance;               // in
+	Rel relative;                // in
+	Ref referent;                // in
 
 	ptrdiff_t ssize() const { return query.nrows(); }
 
 	void operator()(bounds b, task ctx)
 	{
-		assert(dst.ssize() == query.nrow());
-		assert(src.ssize() == tree.ssize());
+		assert(agg.ssize() == query.nrow());
+		assert(values.ssize() == tree.ssize());
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 		{
 			stat = {};
 			tree.range_apply(
-				aggregate{&stat, mask(src)},
+				aggregate{&stat, mask(values)},
 				query.row(i),
 				tolerance,
 				relative,
 				referent);
-			dst[i] = stat.get();
+			agg[i] = stat.get();
 		}
 	}
 };

@@ -357,7 +357,7 @@ SEXP do_kdtree_range_aggregate(
 		Rf_error("length of 'tolerance' must match ncol(table)");
 	if ( LENGTH(relative) != Rf_ncols(table) )
 		Rf_error("length of 'relative' must match ncol(table)");
-	SEXP out = PROTECT(Rf_allocVector(REALSXP, Rf_nrows(query)));
+	SEXP agg = PROTECT(Rf_allocVector(REALSXP, Rf_nrows(query)));
 	switch(TYPEOF(query))
 	{
 		case INTSXP:
@@ -365,10 +365,10 @@ SEXP do_kdtree_range_aggregate(
 			{
 				compute(
 					range_aggregate{
-						r_vec<double>(out),
-						r_vec<double>(values),
+						r_vec<double>(agg),
 						r_mat<int>(query),
 						kdtree<int,int>::from(tree),
+						r_vec<double>(values),
 						stream_stat<Sum,double,int>{},
 						r_vec<double>(tolerance),
 						r_vec<int>(relative),
@@ -380,10 +380,10 @@ SEXP do_kdtree_range_aggregate(
 			{
 				compute(
 					range_aggregate{
-						r_vec<double>(out),
-						r_vec<double>(values),
+						r_vec<double>(agg),
 						r_mat<int>(query),
 						kdtree<int,int>::from(tree),
+						r_vec<double>(values),
 						stream_stat<Prod,double,int>{},
 						r_vec<double>(tolerance),
 						r_vec<int>(relative),
@@ -395,10 +395,10 @@ SEXP do_kdtree_range_aggregate(
 			{
 				compute(
 					range_aggregate{
-						r_vec<double>(out),
-						r_vec<double>(values),
+						r_vec<double>(agg),
 						r_mat<int>(query),
 						kdtree<int,int>::from(tree),
+						r_vec<double>(values),
 						stream_stat<Maximum,double,int>{},
 						r_vec<double>(tolerance),
 						r_vec<int>(relative),
@@ -410,10 +410,10 @@ SEXP do_kdtree_range_aggregate(
 			{
 				compute(
 					range_aggregate{
-						r_vec<double>(out),
-						r_vec<double>(values),
+						r_vec<double>(agg),
 						r_mat<int>(query),
 						kdtree<int,int>::from(tree),
+						r_vec<double>(values),
 						stream_stat<Minimum,double,int>{},
 						r_vec<double>(tolerance),
 						r_vec<int>(relative),
@@ -425,10 +425,10 @@ SEXP do_kdtree_range_aggregate(
 			{
 				compute(
 					range_aggregate{
-						r_vec<double>(out),
-						r_vec<double>(values),
+						r_vec<double>(agg),
 						r_mat<int>(query),
 						kdtree<int,int>::from(tree),
+						r_vec<double>(values),
 						stream_stat<Mean,double,int>{},
 						r_vec<double>(tolerance),
 						r_vec<int>(relative),
@@ -440,10 +440,10 @@ SEXP do_kdtree_range_aggregate(
 			{
 				compute(
 					range_aggregate{
-						r_vec<double>(out),
-						r_vec<double>(values),
+						r_vec<double>(agg),
 						r_mat<int>(query),
 						kdtree<int,int>::from(tree),
+						r_vec<double>(values),
 						stream_stat<Var,double,int>{},
 						r_vec<double>(tolerance),
 						r_vec<int>(relative),
@@ -457,10 +457,10 @@ SEXP do_kdtree_range_aggregate(
 			{
 				compute(
 					range_aggregate{
-						r_vec<double>(out),
-						r_vec<double>(values),
+						r_vec<double>(agg),
 						r_mat<double>(query),
 						kdtree<int,double>::from(tree),
+						r_vec<double>(values),
 						stream_stat<Sum,double,int>{},
 						r_vec<double>(tolerance),
 						r_vec<int>(relative),
@@ -472,10 +472,10 @@ SEXP do_kdtree_range_aggregate(
 			{
 				compute(
 					range_aggregate{
-						r_vec<double>(out),
-						r_vec<double>(values),
+						r_vec<double>(agg),
 						r_mat<double>(query),
 						kdtree<int,double>::from(tree),
+						r_vec<double>(values),
 						stream_stat<Prod,double,int>{},
 						r_vec<double>(tolerance),
 						r_vec<int>(relative),
@@ -487,10 +487,10 @@ SEXP do_kdtree_range_aggregate(
 			{
 				compute(
 					range_aggregate{
-						r_vec<double>(out),
-						r_vec<double>(values),
+						r_vec<double>(agg),
 						r_mat<double>(query),
 						kdtree<int,double>::from(tree),
+						r_vec<double>(values),
 						stream_stat<Maximum,double,int>{},
 						r_vec<double>(tolerance),
 						r_vec<int>(relative),
@@ -502,10 +502,10 @@ SEXP do_kdtree_range_aggregate(
 			{
 				compute(
 					range_aggregate{
-						r_vec<double>(out),
-						r_vec<double>(values),
+						r_vec<double>(agg),
 						r_mat<double>(query),
 						kdtree<int,double>::from(tree),
+						r_vec<double>(values),
 						stream_stat<Minimum,double,int>{},
 						r_vec<double>(tolerance),
 						r_vec<int>(relative),
@@ -517,10 +517,10 @@ SEXP do_kdtree_range_aggregate(
 			{
 				compute(
 					range_aggregate{
-						r_vec<double>(out),
-						r_vec<double>(values),
+						r_vec<double>(agg),
 						r_mat<double>(query),
 						kdtree<int,double>::from(tree),
+						r_vec<double>(values),
 						stream_stat<Mean,double,int>{},
 						r_vec<double>(tolerance),
 						r_vec<int>(relative),
@@ -532,10 +532,10 @@ SEXP do_kdtree_range_aggregate(
 			{
 				compute(
 					range_aggregate{
-						r_vec<double>(out),
-						r_vec<double>(values),
+						r_vec<double>(agg),
 						r_mat<double>(query),
 						kdtree<int,double>::from(tree),
+						r_vec<double>(values),
 						stream_stat<Var,double,int>{},
 						r_vec<double>(tolerance),
 						r_vec<int>(relative),
@@ -548,7 +548,7 @@ SEXP do_kdtree_range_aggregate(
 			Rf_error("'query' and 'table' must be integer or double");
 	}
 	UNPROTECT(1);
-	return out;
+	return agg;
 }
 
 SEXP do_kdtree_knn_search(
