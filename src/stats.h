@@ -2,6 +2,7 @@
 #define CARDINAL_CORE_STATS
 
 #include "core.h"
+#include "kernels.h"
 
 //// Stats
 //---------
@@ -470,6 +471,24 @@ struct stream_stats<Var,T,N>
 		};
 	}
 	#endif // USING_R
+};
+
+//// Aggregate
+//------------
+// Summarize a vector
+
+// Aggregate a summary statistic at indices
+template<Summary S, Num T, Num N, Vec V>
+struct aggregate
+{
+	stream_stat<S,T,N> * stat;
+	V x;
+
+	void operator()(ptrdiff_t i) noexcept
+	{
+		if ( is_valid(x, i) )
+			*stat = stat->update(coerce_cast<T>(x[i]));
+	}
 };
 
 #endif // CARDINAL_CORE_STATS

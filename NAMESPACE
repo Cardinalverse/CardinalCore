@@ -8,7 +8,7 @@ export(
 	"bsearch",
 	"kdtree",
 	"kdsearch",
-	"kdsearch_reduce",
+	"kdsearch_agg",
 	"knnsearch")
 
 export(

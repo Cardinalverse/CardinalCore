@@ -4,8 +4,9 @@
 #include <memory>
 #include "core.h"
 #include "kernels.h"
-#include "order.h"
 #include "dist.h"
+#include "order.h"
+#include "stats.h"
 
 //// Utility
 //-----------
@@ -557,6 +558,7 @@ struct range_counts
 
 	void operator()(bounds b, task ctx)
 	{
+		assert(counts.ssize() == query.nrow());
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 		{
 			counts[i] = tree.range_count(
@@ -583,6 +585,7 @@ struct range_searches
 
 	void operator()(bounds b, task ctx)
 	{
+		assert(index.ssize() == query.nrow());
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 		{
 			tree.range_search(
@@ -596,93 +599,35 @@ struct range_searches
 	}
 };
 
-// Range search kernel (first hit only)
-template<Num Index, Num T, Vec Tol, Vec Rel>
-struct range_find_firsts
+// Range aggregation kernel
+template<Summary S, Num Out, Num In, Num Index, Num T, Vec Tol, Vec Rel>
+struct range_aggregate
 {
-	vec<Index> index;     // out
-	mat<T> query;         // in
-	kdtree<Index,T> tree; // in
-	Tol tolerance;        // in
-	Rel relative;         // in
-	Ref referent;         // in
-	Index nomatch;        // in
+	vec<Out> dst;                  // out
+	vec<In> src;                   // in
+	mat<T> query;                  // in
+	kdtree<Index,T> tree;          // in
+	stream_stat<S,Out,Index> stat; // in
+	Tol tolerance;                 // in
+	Rel relative;                  // in
+	Ref referent;                  // in
 
 	ptrdiff_t ssize() const { return query.nrows(); }
 
 	void operator()(bounds b, task ctx)
 	{
+		assert(dst.ssize() == query.nrow());
+		assert(src.ssize() == tree.ssize());
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 		{
-			Index accum = binop<Min,Index>::identity();
-			Index count = tree.range_apply(
-				reducer<Max,Index>{&accum},
-				query.row(i),
-				tolerance,
-				relative,
-				referent);
-			index[i] = count > 0 ? accum : nomatch;
-		}
-	}
-};
-
-// Range search kernel (last hit only)
-template<Num Index, Num T, Vec Tol, Vec Rel>
-struct range_find_lasts
-{
-	vec<Index> index;     // out
-	mat<T> query;         // in
-	kdtree<Index,T> tree; // in
-	Tol tolerance;        // in
-	Rel relative;         // in
-	Ref referent;         // in
-	Index nomatch;        // in
-
-	ptrdiff_t ssize() const { return query.nrows(); }
-
-	void operator()(bounds b, task ctx)
-	{
-		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
-		{
-			Index accum = binop<Max,Index>::identity();
-			Index count = tree.range_apply(
-				reducer<Max,Index>{&accum},
-				query.row(i),
-				tolerance,
-				relative,
-				referent);
-			index[i] = count > 0 ? accum : nomatch;
-		}
-	}
-};
-
-// Range search kernel (last hit only)
-template<Binop Op, Num Out, Num In, Num Index, Num T, Vec Tol, Vec Rel>
-struct range_reducers
-{
-	vec<Out> dst;         // out
-	vec<In> src;          // in
-	mat<T> query;         // in
-	kdtree<Index,T> tree; // in
-	binop<Op,Out> op;     // in
-	Tol tolerance;        // in
-	Rel relative;         // in
-	Ref referent;         // in
-
-	ptrdiff_t ssize() const { return query.nrows(); }
-
-	void operator()(bounds b, task ctx)
-	{
-		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
-		{
-			Out accum = binop<Op,Out>::identity();
+			stat = {};
 			tree.range_apply(
-				argreducer<Op,Index,Out,In>{&accum, src},
+				aggregate{&stat, mask(src)},
 				query.row(i),
 				tolerance,
 				relative,
 				referent);
-			dst[i] = accum;
+			dst[i] = stat.get();
 		}
 	}
 };
@@ -701,6 +646,8 @@ struct knn_searches
 
 	void operator()(bounds b, task ctx)
 	{
+		assert(index.ssize() == dists.ssize());
+		assert(index.ssize() == query.nrow());
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 		{
 			tree.knn_search(

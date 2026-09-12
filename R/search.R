@@ -42,7 +42,6 @@ kdsearch <- function(
 	tolerance = 0,
 	relative = !missing(relative_to),
 	relative_to = c("query", "table"),
-	which = c("all", "first", "last"),
 	nomatch = NA_integer_,
 	num.threads = 1)
 {
@@ -63,32 +62,24 @@ kdsearch <- function(
 		storage.mode(query) <- "double"
 	if ( is.double(query) && is.integer(table$table) )
 		storage.mode(table$table) <- "double"
-	which <- match.arg(which)
 	tolerance <- as.double(rep_len(tolerance, ncol(table$table)))
 	relative <- as.logical(rep_len(relative, ncol(table$table)))
 	referent <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
-	if ( which == "all" ) {
-		.Call(C_do_kdtree_range_search, query, table, tolerance,
-			relative, referent, as.integer(num.threads))
-	} else if ( which == "first" ) {
-		.Call(C_do_kdtree_range_find_first, query, table, tolerance,
-			relative, referent, as.integer(nomatch), as.integer(num.threads))
-	} else if ( which == "last" ) {
-		.Call(C_do_kdtree_range_find_last, query, table, tolerance,
-			relative, referent, as.integer(nomatch), as.integer(num.threads))
-	}
+	.Call(C_do_kdtree_range_search, query, table, tolerance,
+		relative, referent, as.integer(num.threads))
 }
 
-kdsearch_reduce <- function(
+kdsearch_agg <- function(
 	query,
 	table,
 	values,
-	reduce = c("sum", "prod", "max", "min"),
+	stat = c("sum", "prod", "max", "min", "mean", "var"),
 	tolerance = 0,
 	relative = !missing(relative_to),
 	relative_to = c("query", "table"),
 	num.threads = 1)
 {
+	stat <- match.arg(stat)
 	if ( !inherits(table, "kdtree") )
 		table <- kdtree(table)
 	if ( is.null(dim(query)) ) {
@@ -109,11 +100,10 @@ kdsearch_reduce <- function(
 	if ( is.double(query) && is.integer(table$table) )
 		storage.mode(table$table) <- "double"
 	values <- as.double(values)
-	reduce <- match.arg(reduce)
 	tolerance <- as.double(rep_len(tolerance, ncol(table$table)))
 	relative <- as.logical(rep_len(relative, ncol(table$table)))
 	referent <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
-	.Call(C_do_kdtree_range_reduce, query, table, values, reduce, tolerance,
+	.Call(C_do_kdtree_range_aggregate, query, table, values, stat, tolerance,
 		relative, referent, as.integer(num.threads))
 }
 
