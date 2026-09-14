@@ -6,6 +6,7 @@ export(
 
 export(
 	"bsearch",
+	"bsearch_agg",
 	"kdtree",
 	"kdsearch",
 	"kdsearch_agg",

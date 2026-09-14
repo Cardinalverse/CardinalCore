@@ -153,6 +153,179 @@ SEXP do_bsearch(
 	return index;
 }
 
+SEXP do_bsearch_aggregate(
+	SEXP query,
+	SEXP table,
+	SEXP values,
+	SEXP stat,
+	SEXP tolerance,
+	SEXP relative,
+	SEXP referent)
+{
+	if ( TYPEOF(query) != TYPEOF(table) )
+		Rf_error("'query' and 'table' must have the same data type");
+	SEXP agg = PROTECT(Rf_allocVector(REALSXP, LENGTH(query)));
+	switch(TYPEOF(table))
+	{
+		case INTSXP:
+		{
+			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
+			{
+				bsearch_aggregate(
+					r_vec<double>(agg),
+					r_vec<int>(query),
+					r_vec<int>(table),
+					r_vec<double>(values),
+					stream_stat<Sum,double,int>{},
+					Rf_asReal(tolerance),
+					Rf_asLogical(relative),
+					static_cast<Ref>(Rf_asInteger(referent)));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
+			{
+				bsearch_aggregate(
+					r_vec<double>(agg),
+					r_vec<int>(query),
+					r_vec<int>(table),
+					r_vec<double>(values),
+					stream_stat<Prod,double,int>{},
+					Rf_asReal(tolerance),
+					Rf_asLogical(relative),
+					static_cast<Ref>(Rf_asInteger(referent)));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
+			{
+				bsearch_aggregate(
+					r_vec<double>(agg),
+					r_vec<int>(query),
+					r_vec<int>(table),
+					r_vec<double>(values),
+					stream_stat<Minimum,double,int>{},
+					Rf_asReal(tolerance),
+					Rf_asLogical(relative),
+					static_cast<Ref>(Rf_asInteger(referent)));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
+			{
+				bsearch_aggregate(
+					r_vec<double>(agg),
+					r_vec<int>(query),
+					r_vec<int>(table),
+					r_vec<double>(values),
+					stream_stat<Maximum,double,int>{},
+					Rf_asReal(tolerance),
+					Rf_asLogical(relative),
+					static_cast<Ref>(Rf_asInteger(referent)));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "mean") == 0 )
+			{
+				bsearch_aggregate(
+					r_vec<double>(agg),
+					r_vec<int>(query),
+					r_vec<int>(table),
+					r_vec<double>(values),
+					stream_stat<Mean,double,int>{},
+					Rf_asReal(tolerance),
+					Rf_asLogical(relative),
+					static_cast<Ref>(Rf_asInteger(referent)));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
+			{
+				bsearch_aggregate(
+					r_vec<double>(agg),
+					r_vec<int>(query),
+					r_vec<int>(table),
+					r_vec<double>(values),
+					stream_stat<Var,double,int>{},
+					Rf_asReal(tolerance),
+					Rf_asLogical(relative),
+					static_cast<Ref>(Rf_asInteger(referent)));
+			}
+			break;
+		}
+		case REALSXP:
+		{
+			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
+			{
+				bsearch_aggregate(
+					r_vec<double>(agg),
+					r_vec<double>(query),
+					r_vec<double>(table),
+					r_vec<double>(values),
+					stream_stat<Sum,double,int>{},
+					Rf_asReal(tolerance),
+					Rf_asLogical(relative),
+					static_cast<Ref>(Rf_asInteger(referent)));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
+			{
+				bsearch_aggregate(
+					r_vec<double>(agg),
+					r_vec<double>(query),
+					r_vec<double>(table),
+					r_vec<double>(values),
+					stream_stat<Prod,double,int>{},
+					Rf_asReal(tolerance),
+					Rf_asLogical(relative),
+					static_cast<Ref>(Rf_asInteger(referent)));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
+			{
+				bsearch_aggregate(
+					r_vec<double>(agg),
+					r_vec<double>(query),
+					r_vec<double>(table),
+					r_vec<double>(values),
+					stream_stat<Minimum,double,int>{},
+					Rf_asReal(tolerance),
+					Rf_asLogical(relative),
+					static_cast<Ref>(Rf_asInteger(referent)));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
+			{
+				bsearch_aggregate(
+					r_vec<double>(agg),
+					r_vec<double>(query),
+					r_vec<double>(table),
+					r_vec<double>(values),
+					stream_stat<Maximum,double,int>{},
+					Rf_asReal(tolerance),
+					Rf_asLogical(relative),
+					static_cast<Ref>(Rf_asInteger(referent)));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "mean") == 0 )
+			{
+				bsearch_aggregate(
+					r_vec<double>(agg),
+					r_vec<double>(query),
+					r_vec<double>(table),
+					r_vec<double>(values),
+					stream_stat<Mean,double,int>{},
+					Rf_asReal(tolerance),
+					Rf_asLogical(relative),
+					static_cast<Ref>(Rf_asInteger(referent)));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
+			{
+				bsearch_aggregate(
+					r_vec<double>(agg),
+					r_vec<double>(query),
+					r_vec<double>(table),
+					r_vec<double>(values),
+					stream_stat<Var,double,int>{},
+					Rf_asReal(tolerance),
+					Rf_asLogical(relative),
+					static_cast<Ref>(Rf_asInteger(referent)));
+			}
+			break;
+		}
+		default:
+			Rf_error("'query' and 'table' must be integer or double");
+	}
+	UNPROTECT(1);
+	return agg;
+}
+
 SEXP do_rsearch(
 	SEXP query,
 	SEXP table,
@@ -361,6 +534,7 @@ SEXP do_kdtree_range_aggregate(
 	switch(TYPEOF(query))
 	{
 		case INTSXP:
+		{
 			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
 			{
 				compute(
@@ -452,7 +626,9 @@ SEXP do_kdtree_range_aggregate(
 					Rf_asInteger(num_threads));
 			}
 			break;
+		}
 		case REALSXP:
+		{
 			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
 			{
 				compute(
@@ -544,6 +720,7 @@ SEXP do_kdtree_range_aggregate(
 					Rf_asInteger(num_threads));
 			}
 			break;
+		}
 		default:
 			Rf_error("'query' and 'table' must be integer or double");
 	}

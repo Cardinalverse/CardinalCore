@@ -21,12 +21,37 @@ bsearch <- function(
 	referent <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
 	which <- match.arg(which)
 	if ( which == "nearest" ) {
-		.Call(C_do_bsearch, query, table, as.double(tolerance),
-			relative, referent, as.integer(nomatch))
+		.Call(C_do_bsearch, query, table,
+			as.double(tolerance), relative, referent, as.integer(nomatch))
 	} else {
-		.Call(C_do_rsearch, query, table, as.double(tolerance),
-			relative, referent, as.integer(nomatch))
+		.Call(C_do_rsearch, query, table,
+			as.double(tolerance), relative, referent, as.integer(nomatch))
 	}
+}
+
+bsearch_agg <- function(
+	query,
+	table,
+	values,
+	stat = c("sum", "prod", "max", "min", "mean", "var"),
+	tolerance = 0,
+	relative = !missing(relative_to),
+	relative_to = c("query", "table"),
+	which = c("nearest", "all"),
+	nomatch = NA_integer_)
+{
+	stat <- match.arg(stat)
+	if ( is.unsorted(table) )
+		stop("'table' must be sorted")
+	if ( is.double(query) && is.integer(table) )
+		table <- as.double(table)
+	if ( is.integer(query) && is.double(table) )
+		query <- as.double(query)
+	values <- as.double(values)
+	relative <- isTRUE(relative)
+	referent <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
+	.Call(C_do_bsearch_aggregate, query, table, values, stat,
+		as.double(tolerance), relative, referent, as.integer(nomatch))
 }
 
 kdtree <- function(table)
@@ -65,8 +90,8 @@ kdsearch <- function(
 	tolerance <- as.double(rep_len(tolerance, ncol(table$table)))
 	relative <- as.logical(rep_len(relative, ncol(table$table)))
 	referent <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
-	.Call(C_do_kdtree_range_search, query, table, tolerance,
-		relative, referent, as.integer(num.threads))
+	.Call(C_do_kdtree_range_search, query, table,
+		tolerance, relative, referent, as.integer(num.threads))
 }
 
 kdsearch_agg <- function(
@@ -103,8 +128,8 @@ kdsearch_agg <- function(
 	tolerance <- as.double(rep_len(tolerance, ncol(table$table)))
 	relative <- as.logical(rep_len(relative, ncol(table$table)))
 	referent <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
-	.Call(C_do_kdtree_range_aggregate, query, table, values, stat, tolerance,
-		relative, referent, as.integer(num.threads))
+	.Call(C_do_kdtree_range_aggregate, query, table, values, stat,
+		tolerance, relative, referent, as.integer(num.threads))
 }
 
 knnsearch <- function(

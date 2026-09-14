@@ -96,10 +96,10 @@ bool near(
 // - Differences <= tolerance are considered matches
 // - If relative == true, then referent determines the reference
 // - Default nomatch chosen so nomatch << 0 for signed types
-template<Num Index = ptrdiff_t, Num T, Vec V>
+template<Num Index = ptrdiff_t, Num L, Vec R>
 Index bsearch(
-	const T query,
-	const V table,
+	const L query,
+	const R table,
 	const double tolerance = 0,
 	const bool relative = false,
 	const Ref referent = Query,
@@ -165,10 +165,10 @@ void bsearch(
 // - Differences <= tolerance are considered matches
 // - If relative == true, then referent determines the reference
 // - Returns bounds [start, stop) range of matches
-template<Num Index = ptrdiff_t, Num T, Vec V>
+template<Num Index = ptrdiff_t, Num L, Vec R>
 bounds rsearch(
-	const T query,
-	const V table,
+	const L query,
+	const R table,
 	const double tolerance = 0,
 	const bool relative = false,
 	const Ref referent = Query,
@@ -234,6 +234,34 @@ void rsearch(
 	}
 }
 
+// Aggregate values matching a ranged binary search
+// - Values of table MUST be sorted (duplicated are accepted)
+// - Differences <= tolerance are considered matches
+template<Summary S, Num Out, Num In, Num Index, Vec L, Vec R>
+void bsearch_aggregate(
+	vec<Out> agg,
+	const L query,
+	const R table,
+	const vec<In> values,
+	stream_stat<S,Out,Index> stat,
+	const double tolerance = 0,
+	const bool relative = false,
+	const Ref referent = Query)
+{
+	for ( ptrdiff_t i = 0; i < query.len; ++i )
+	{
+		stat = {};
+		bounds b = rsearch(
+			query[i],
+			table,
+			tolerance,
+			relative,
+			referent);
+		aggregate{&stat, values}(b);
+		agg[i] = stat.get();
+	}
+}
+	
 //// K-D search
 //--------------
 
@@ -600,17 +628,17 @@ struct range_searches
 };
 
 // Range aggregation kernel
-template<Summary S, Num U, Num V, Num Index, Num T, Vec Tol, Vec Rel>
+template<Summary S, Num Out, Num In, Num Index, Num T, Vec Tol, Vec Rel>
 struct range_aggregate
 {
-	vec<U> agg;                  // out
-	mat<T> query;                // in
-	kdtree<Index,T> tree;        // in
-	vec<V> values;               // in
-	stream_stat<S,U,Index> stat; // in
-	Tol tolerance;               // in
-	Rel relative;                // in
-	Ref referent;                // in
+	vec<Out> agg;                  // out
+	mat<T> query;                  // in
+	kdtree<Index,T> tree;          // in
+	vec<In> values;                // in
+	stream_stat<S,Out,Index> stat; // in
+	Tol tolerance;                 // in
+	Rel relative;                  // in
+	Ref referent;                  // in
 
 	ptrdiff_t ssize() const { return query.nrows(); }
 

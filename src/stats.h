@@ -489,6 +489,12 @@ struct aggregate
 		if ( is_valid(x, i) )
 			*stat = stat->update(coerce_cast<T>(x[i]));
 	}
+
+	void operator()(bounds b) noexcept
+	{
+		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
+			(*this)(i);
+	}
 };
 
 #endif // CARDINAL_CORE_STATS
