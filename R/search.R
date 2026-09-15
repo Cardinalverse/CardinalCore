@@ -8,7 +8,6 @@ bsearch <- function(
 	tolerance = 0,
 	relative = !missing(relative_to),
 	relative_to = c("query", "table"),
-	which = c("nearest", "all"),
 	nomatch = NA_integer_)
 {
 	if ( is.unsorted(table) )
@@ -19,14 +18,8 @@ bsearch <- function(
 		query <- as.double(query)
 	relative <- isTRUE(relative)
 	referent <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
-	which <- match.arg(which)
-	if ( which == "nearest" ) {
-		.Call(C_do_bsearch, query, table,
-			as.double(tolerance), relative, referent, as.integer(nomatch))
-	} else {
-		.Call(C_do_rsearch, query, table,
-			as.double(tolerance), relative, referent, as.integer(nomatch))
-	}
+	.Call(C_do_bsearch, query, table,
+		as.double(tolerance), relative, referent, as.integer(nomatch))
 }
 
 bsearch_agg <- function(
@@ -37,7 +30,6 @@ bsearch_agg <- function(
 	tolerance = 0,
 	relative = !missing(relative_to),
 	relative_to = c("query", "table"),
-	which = c("nearest", "all"),
 	nomatch = NA_integer_)
 {
 	stat <- match.arg(stat)

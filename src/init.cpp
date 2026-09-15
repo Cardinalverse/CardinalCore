@@ -22,13 +22,6 @@ SEXP do_bsearch(
 	SEXP relative,
 	SEXP referent,
 	SEXP nomatch);
-SEXP do_rsearch(
-	SEXP query,
-	SEXP table,
-	SEXP tolerance,
-	SEXP relative,
-	SEXP referent,
-	SEXP nomatch);
 SEXP do_bsearch_aggregate(
 	SEXP query,
 	SEXP table,
@@ -105,7 +98,6 @@ static const R_CallMethodDef callMethods[] = {
 	CALLDEF(do_qmad, 3),
 	// Search and nearest neighbors
 	CALLDEF(do_bsearch, 6),
-	CALLDEF(do_rsearch, 6),
 	CALLDEF(do_bsearch_aggregate, 7),
 	CALLDEF(do_kdtree_build, 1),
 	CALLDEF(do_kdtree_range_search, 6),
