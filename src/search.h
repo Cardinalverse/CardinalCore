@@ -197,43 +197,6 @@ bounds rsearch(
 		return {nomatch, nomatch};
 }
 
-// Ranged binary search for multiple queries in ref
-// - Values of table MUST be sorted (duplicated are accepted)
-// - Differences <= tolerance are considered matches
-// - Default nomatch chosen so nomatch << 0 for signed types
-template<Num Index = ptrdiff_t, Vec L, Vec R>
-void rsearch(
-	vec<Index> start,
-	vec<Index> stop,
-	const L query,
-	const R table,
-	const double tolerance = 0,
-	const bool relative = false,
-	const Ref referent = Query,
-	const Index nomatch = na_value<Index>())
-{
-	for ( ptrdiff_t i = 0; i < query.len; ++i )
-	{
-		if ( is_na(query[i]) )
-		{
-			start[i] = nomatch;
-			stop[i] = nomatch;
-		}
-		else
-		{
-			bounds b = rsearch(
-				query[i], 
-				table, 
-				tolerance, 
-				relative, 
-				referent,
-				nomatch);
-			start[i] = b.start;
-			stop[i] = b.stop;
-		}
-	}
-}
-
 // Aggregate values matching a ranged binary search
 // - Values of table MUST be sorted (duplicated are accepted)
 // - Differences <= tolerance are considered matches
