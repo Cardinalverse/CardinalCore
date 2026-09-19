@@ -67,7 +67,7 @@ msearch <- function(
 		stop("number of columns in 'query' must match length of 'tables'")
 	tolerance <- rep_len(tolerance, ncol(query))
 	relative <- rep_len(relative, ncol(query))
-	hits <- matrix(nomatch, nrow=nrow(query), ncol=ncol(query))
+	hits <- matrix(NA_integer_, nrow=nrow(query), ncol=ncol(query))
 	dimnames(hits) <- dimnames(query)
 	for ( i in seq_along(tables) )
 		hits[,i] <- bsearch(
@@ -100,11 +100,11 @@ msearch_agg <- function(
 		stop("lengths of 'values' must equal lengths of 'tables'")
 	tolerance <- rep_len(tolerance, ncol(query))
 	relative <- rep_len(relative, ncol(query))
-	aggs <- matrix(nomatch, nrow=nrow(query), ncol=ncol(query))
+	aggs <- matrix(NA_real_, nrow=nrow(query), ncol=ncol(query))
 	dimnames(aggs) <- dimnames(query)
 	for ( i in seq_along(tables) )
 		aggs[,i] <- bsearch_agg(
-			query,
+			query[,i],
 			tables[[i]],
 			values[[i]],
 			stat=stat,
