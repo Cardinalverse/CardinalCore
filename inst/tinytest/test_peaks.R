@@ -28,7 +28,7 @@ peaks_summary(y1)
 peaks_summary(y2)
 peaks_summary(y3)
 
-# test
+# test case 1
 
 path <- "/Volumes/Local/Data/public/pride/PXD001283/HR2MSI mouse urinary bladder S096.imzML"
 mzml <- CardinalIO::parseImzML(path, ibd=TRUE)
@@ -53,17 +53,53 @@ system.time(peaks <- lapply(seq_along(mzml$ibd$mz), process))
 
 head(p$max / matter::estnoise_diff(y)[1L])
 
-# test 2
+# test case 2
 
-path <- "/Volumes/Local/Data/private/scratch/timsdata/output.d/input.imzML"
+path <- "/Volumes/Local/Data/private/scratch/timsdata/input.imzML"
 mzml <- CardinalIO::parseImzML(path, ibd=TRUE, extraArrays=c(mobility="MS:1003006"))
+meta <- as(mzml, "ImzMeta")
 
-mzs <- readBin(memDecompress(mzml$ibd$mz[[1]]),
-	what="double", n=40309)
-mobs <- readBin(memDecompress(mzml$ibd$extra$mobility[[1]]),
-	what="double", n=40309)
-ints <- readBin(memDecompress(mzml$ibd$intensity[[1]]),
-	what="double", n=40309)
-df <- data.frame(mz=mzs, mobility=mobs, intensity=ints)
-plot(mobility ~ mz, data=df, cex=df$intensity / max(df$intensity))
+spec <- function(i) {
+	data.frame(
+		mz=mzml$ibd$mz[[i]],
+		mobility=mzml$ibd$extra$mobility[[i]],
+		intensity=mzml$ibd$intensity[[i]])
+}
+spec(1)
+
+s <- spec(1)
+mzr <- range(s$mz)
+mobr <- range(s$mobility)
+
+mzs <- seq(from=floor(mzr[1]), to=ceiling(mzr[2]), by=0.01)
+mobs <- seq(from=floor(mobr[1]), to=ceiling(mobr[2]), length.out=100)
+dmz <- max(diff(mzs)) / 2
+dmobs <- max(diff(mobs)) / 2
+
+hits <- msearch(s[c("mz", "mobility")], list(mzs, mobs), tolerance=c(dmz, dmobs))
+
+xmzs <- peaks_agg(s$intensity, s$mz, mzs, stat="sum", tolerance=dmz)
+xmobs <- peaks_agg(s$intensity, s$mobility, mobs, stat="sum", tolerance=dmobs)
+
+require(tinyplot)
+tinytheme("dark")
+xlim <- c(800, 810)
+xlim <- c(806.55, 806.59)
+plt(s$mz, s$mobility, cex=0.1)
+plt(s$mz, s$mobility, cex=s$intensity, xlim=xlim)
+plt(s$mz, s$mobility, cex=0.1, alpha=0.5, by=log1p(s$intensity), fill="by", pch=21, palette=hcl.colors(100, palette="viridis", rev=TRUE))
+plt(s$mz, s$mobility, cex=0.5, by=log1p(s$intensity), fill="by", pch=21, xlim=xlim, ylim=c(1.35, 1.5), palette=hcl.colors(100, palette="viridis", rev=TRUE))
+plt(s$mz, s$intensity, by=s$mobility, cex=0.5, xlim=xlim)
+plt(mzs, xmzs, type='l', xlim=xlim)
+plt(mobs, xmobs, type='l')
+s[23400:23459,]
+
+gmz <- bsearch(s$mz, mzs, tolerance=dmz)
+gmob <- bsearch(s$mobility, mobs, tolerance=dmobs)
+g <- cbind(gmz, gmob)
+m <- kdsearch_agg(g, g, seq_len(nrow(g)), stat="min")
+xg <- group_stats(stream_stats(s$intensity, stat="mean"), m)
+mzg <- group_stats(stream_stats(s$mz, stat="mean"), m)
+mobg <- group_stats(stream_stats(s$mobility, stat="mean"), m)
+sp <- data.frame(mz=mzg, mobility=mobg, intensity=xg, n=attr(xg, "nobs"))
 
