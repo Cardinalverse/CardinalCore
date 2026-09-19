@@ -49,7 +49,17 @@ process <- function(i)
 }
 head(process(505), n=20)
 
+intensities <- as.list(mzml$ibd$intensity)
+mzs <- as.list(mzml$ibd$mz)
+process <- function(i)
+{
+	if ( i %% 1000L == 0L ) message(i, "/", length(mzs))
+	as.data.frame(peaks_summary(intensities[[i]], mzs[[i]]))
+}
+head(process(505), n=20)
+
 system.time(peaks <- lapply(seq_along(mzml$ibd$mz), process))
+
 
 head(p$max / matter::estnoise_diff(y)[1L])
 

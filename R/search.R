@@ -47,16 +47,6 @@ bsearch_agg <- function(
 		as.double(tolerance), relative, referent)
 }
 
-bsearch_first <- function(query, table, ...)
-{
-	bsearch_agg(query, table, values=seq_along(table), stat="min", ...)
-}
-
-bsearch_last <- function(query, table, ...)
-{
-	bsearch_agg(query, table, values=seq_along(table), stat="max", ...)
-}
-
 #### Binary multisearch
 ## ---------------------
 
@@ -122,16 +112,6 @@ msearch_agg <- function(
 			relative=relative[i],
 			relative_to=relative_to)
 	aggs
-}
-
-msearch_first <- function(query, tables, ...)
-{
-	msearch_agg(query, tables, values=lapply(tables, seq_along), stat="min", ...)
-}
-
-msearch_last <- function(query, tables, ...)
-{
-	msearch_agg(query, tables, values=lapply(tables, seq_along), stat="max", ...)
 }
 
 #### Kd-tree search
