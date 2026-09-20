@@ -1,6 +1,6 @@
 
-#### Streaming means
-## ------------------
+#### Streaming statistics
+## ----------------------
 
 stream_stats <- function(x = numeric(), 
 	stat = c("sum", "prod", "max", "min", "mean", "var"))
@@ -37,12 +37,13 @@ group_stats <- function(x, group, reorder = TRUE)
 			"length(x) [", length(x), "] must be equal")
 	if ( anyNA(group) )
 		stop("missing values in 'group'")
-	if ( reorder ) {
-		ugroup <- sort(unique(group))
+	if ( is.factor(group) ) {
+		ugroup <- levels(group)
+		group <- as.integer(group) - 1L
 	} else {
-		ugroup <- unique(group)
+		ugroup <- if (reorder) sort(unique(group)) else unique(group)
+		group <- as.integer(match(group, ugroup) - 1L)
 	}
-	group <- as.integer(match(group, ugroup) - 1L)
 	.Call(C_do_group_stats, x, group, as.character(ugroup))
 }
 
