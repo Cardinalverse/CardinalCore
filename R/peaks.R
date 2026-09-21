@@ -17,6 +17,8 @@ peaks_prominences <- function(y, k = 5L, wlen = 0L)
 
 peaks_widths <- function(y, x = seq_along(y), k = 5L, fmax = 0.5)
 {
+	if ( is.unsorted(x) )
+		stop("'x' must be sorted")
 	k <- as.integer(min(max(3L, k), length(y)))
 	fmax <- as.double(min(max(fmax, 0), 1))
 	.Call(C_do_peaks_widths, y, x, k, fmax)
@@ -24,6 +26,8 @@ peaks_widths <- function(y, x = seq_along(y), k = 5L, fmax = 0.5)
 
 peaks_areas <- function(y, x = seq_along(y), k = 5L)
 {
+	if ( is.unsorted(x) )
+		stop("'x' must be sorted")
 	k <- as.integer(min(max(3L, k), length(y)))
 	.Call(C_do_peaks_areas, y, x, k)
 }
@@ -31,6 +35,8 @@ peaks_areas <- function(y, x = seq_along(y), k = 5L)
 peaks_summary <- function(y, x = seq_along(y), k = 5L, 
 	noise = c("DiffMAD", "SmoothSD", "SmoothMAD"), wlen = 0L, fmax = 0.5)
 {
+	if ( is.unsorted(x) )
+		stop("'x' must be sorted")
 	k <- as.integer(min(max(3L, k), length(y)))
 	fmax <- as.double(min(max(fmax, 0), 1))
 	wlen <- as.integer(min(max(0L, wlen), length(y)))
@@ -38,24 +44,39 @@ peaks_summary <- function(y, x = seq_along(y), k = 5L,
 	.Call(C_do_peaks_summary, y, x, k, noise, wlen, fmax)
 }
 
-peaks_agg <- function(y, x = seq_along(y), xout,
-	stat = c("sum", "prod", "max", "min", "mean", "var"),
-	tolerance = 0, ppm = numeric())
+#### Peak methods
+## ---------------
+
+setMethod("peakPick", "matrix",
+	function(object, x = "mz", y = "intensity", ...)
 {
-	if ( is.unsorted(x) )
-	{
-		i <- order(x)
-		y <- y[i]
-		x <- x[i]
-	}
-	relative <- !is.na(ppm)
-	if ( !is.na(ppm) )
-		tolerance <- 1e-6 * ppm
-	bsearch_agg(xout, x, y, stat=stat, tolerance=tolerance, relative=relative)
+	peaks <- peaks_summary(object[,y], object[,x], ...)
+	as.matrix(.peakPicked(object, peaks))
+})
+
+setMethod("peakPick", "data.frame",
+	function(object, x = "mz", y = "intensity", ...)
+{
+	peaks <- peaks_summary(object[[y]], object[[x]], ...)
+	as.data.frame(.peakPicked(object, peaks))
+})
+
+setMethod("peakPick", "DataFrame",
+	function(object, x = "mz", y = "intensity", ...)
+{
+	peaks <- peaks_summary(object[[y]], object[[x]], ...)
+	DataFrame(.peakPicked(object, peaks))
+})
+
+.peakPicked <- function(object, peaks,
+	withCols = c("snr", "sum", "area", "width", "centroid"))
+{
+	object <- object[peaks$index,,drop=FALSE]
+	do.call(cbind, c(list(object), peaks[withCols]))
 }
 
-#### Peak alignment
-## --------------------
+#### Peak helpers
+## ---------------
 
 resolve_dx <- function(abs, ppm, names)
 {
@@ -80,10 +101,4 @@ resolve_dx <- function(abs, ppm, names)
 	list(dx=dx, relative=relative)
 }
 
-peakslist_match <- function(peakslist, ref, stat = "mean",
-	tolerance = 0, ppm = numeric())
-{
-	nrs <- vapply(peakslist, NROW, numeric(1L))
-	
-}
 

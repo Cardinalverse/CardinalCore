@@ -40,6 +40,21 @@ bench::mark(p <- peaks_summary(y, x))
 p <- as.data.frame(p)
 head(p, n=20)
 
+library(S4Vectors)
+spec <- function(i) {
+	cbind(mz=mzml$ibd$mz[[i]], intensity=mzml$ibd$intensity[[i]])
+}
+s <- spec(1)
+sdf <- as.data.frame(s)
+sDF <- DataFrame(s)
+peakPick(s)
+peakPick(sdf)
+peakPick(sDF)
+
+bench::mark(peakPick(s))
+bench::mark(peakPick(sdf))
+bench::mark(peakPick(sDF))
+
 intensity <- function(i) mzml$ibd$intensity[[i]]
 mz <- function(i) mzml$ibd$mz[[i]]
 process <- function(i)

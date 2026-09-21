@@ -886,6 +886,8 @@ SEXP do_peaks_prominences(SEXP y, SEXP k, SEXP wlen)
 
 SEXP do_peaks_widths(SEXP y, SEXP x, SEXP k, SEXP fmax)
 {
+	if ( LENGTH(y) != LENGTH(x) )
+		Rf_error("'y' and 'x' must have the same length");
 	int count = peaks_count(y, k);
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
 	SEXP left_ips = PROTECT(Rf_allocVector(REALSXP, count));
@@ -960,6 +962,8 @@ SEXP do_peaks_widths(SEXP y, SEXP x, SEXP k, SEXP fmax)
 
 SEXP do_peaks_areas(SEXP y, SEXP x, SEXP k)
 {
+	if ( LENGTH(y) != LENGTH(x) )
+		Rf_error("'y' and 'x' must have the same length");
 	int count = peaks_count(y, k);
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
 	SEXP left_end = PROTECT(Rf_allocVector(INTSXP, count));
@@ -1038,6 +1042,8 @@ SEXP do_peaks_summary(
 	SEXP wlen, 
 	SEXP fmax)
 {
+	if ( LENGTH(y) != LENGTH(x) )
+		Rf_error("'y' and 'x' must have the same length");
 	int count = peaks_count(y, k);
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
 	SEXP centroids = PROTECT(Rf_allocVector(REALSXP, count));
