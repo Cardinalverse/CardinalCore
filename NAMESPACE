@@ -40,7 +40,9 @@ export(
 	"resolve_dx",
 	"group_by_ref")
 
-exportMethods("peakPick")
+exportMethods(
+	"peakPick",
+	"peakAlign")
 
 export("col_sums")
 

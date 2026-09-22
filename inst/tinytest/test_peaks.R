@@ -33,13 +33,6 @@ peaks_summary(y3)
 path <- "/Volumes/Local/Data/public/pride/PXD001283/HR2MSI mouse urinary bladder S096.imzML"
 mzml <- CardinalIO::parseImzML(path, ibd=TRUE)
 
-i <- 2000
-y <- mzml$ibd$intensity[[i]]
-x <- mzml$ibd$mz[[i]]
-bench::mark(p <- peaks_summary(y, x))
-p <- as.data.frame(p)
-head(p, n=20)
-
 library(S4Vectors)
 library(IRanges)
 library(tinyplot)
@@ -53,15 +46,26 @@ sDF <- DataFrame(s)
 peakPick(s)
 peakPick(sdf)
 peakPick(sDF)
+mzr <- range(sdf$mz)
+mzs <- seq(from=mzr[1], to=mzr[2], by=0.1)
 
 bench::mark(peakPick(s))
 bench::mark(peakPick(sdf))
 bench::mark(peakPick(sDF))
 
-mzr <- range(sdf$mz)
-mzs <- seq(from=mzr[1], to=mzr[2], by=0.1)
 group_by_ref(sdf$mz, ref=mzs, tolerance=0.05)
 group_by_ref(sdf, ref=list(mz=mzs), tolerance=0.05)
+
+s |> peakPick() |> peakAlign(ref=list(mz=mzs), tolerance=0.05)
+sdf |> peakPick() |> peakAlign(ref=list(mz=mzs), tolerance=0.05)
+sDF |> peakPick() |> peakAlign(ref=list(mz=mzs), tolerance=0.05)
+
+bench::mark(s |> peakPick() |> peakAlign(ref=list(centroid=mzs), ppm=80))
+bench::mark(sdf |> peakPick() |> peakAlign(ref=list(centroid=mzs), ppm=80))
+bench::mark(sDF |> peakPick() |> peakAlign(ref=list(centroid=mzs), ppm=80))
+
+s |> peakPick() |> peakAlign(ref=list(mz=mzs), tolerance=0.045)
+s |> peakPick() |> peakAlign(ref=list(centroid=mzs), tolerance=0.045)
 
 intensity <- function(i) mzml$ibd$intensity[[i]]
 mz <- function(i) mzml$ibd$mz[[i]]
@@ -90,7 +94,6 @@ head(p$max / matter::estnoise_diff(y)[1L])
 
 path <- "/Volumes/Local/Data/private/scratch/timsdata/input.imzML"
 mzml <- CardinalIO::parseImzML(path, ibd=TRUE, extraArrays=c(mobility="MS:1003006"))
-meta <- as(mzml, "ImzMeta")
 
 spec <- function(i) {
 	data.frame(
@@ -98,16 +101,21 @@ spec <- function(i) {
 		mobility=mzml$ibd$extra$mobility[[i]],
 		intensity=mzml$ibd$intensity[[i]])
 }
-spec(1)
+str(mzml$run$spectrumList)
 
-s <- spec(1)
-mzr <- range(s$mz)
-mobr <- range(s$mobility)
-
-mzs <- seq(from=floor(mzr[1]), to=ceiling(mzr[2]), by=0.01)
-mobs <- seq(from=floor(mobr[1]), to=ceiling(mobr[2]), length.out=100)
+i <- 9000
+sdf <- spec(i)
+sDF <- DataFrame(sdf)
+mzr <- range(sdf$mz)
+mobr <- range(sdf$mobility)
+mzs <- seq(from=floor(mzr[1]), to=ceiling(mzr[2]), by=0.05)
+mobs <- seq(from=floor(mobr[1]), to=ceiling(mobr[2]), length.out=10)
 dmz <- max(diff(mzs)) / 2
 dmobs <- max(diff(mobs)) / 2
+sDF2 <- peakAlign(sDF,
+	ref=list(mobility=mobs, mz=mzs),
+	tolerance=c(mobility=dmobs, mz=dmz))
+print(sDF2)
 
 hits <- msearch(s[c("mz", "mobility")], list(mzs, mobs), tolerance=c(dmz, dmobs))
 

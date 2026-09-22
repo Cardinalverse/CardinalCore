@@ -22,7 +22,10 @@ Authors@R: c(
 		role = "fnd"))
 Description: Low-level processing and visualization utilities for mass spectrometry imaging analysis in Cardinal.
 License: Artistic-2.0 | file LICENSE
-Depends: R (>= 4.6)
+Depends: 
+	R (>= 4.6),
+	BiocGenerics,
+	S4Vectors
 Imports: methods
 Suggests: 
     BiocStyle,
