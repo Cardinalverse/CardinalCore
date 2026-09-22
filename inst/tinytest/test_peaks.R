@@ -44,7 +44,6 @@ library(S4Vectors)
 library(IRanges)
 library(tinyplot)
 tinytheme("dark")
-
 spec <- function(i) {
 	cbind(mz=mzml$ibd$mz[[i]], intensity=mzml$ibd$intensity[[i]])
 }
@@ -62,6 +61,7 @@ bench::mark(peakPick(sDF))
 mzr <- range(sdf$mz)
 mzs <- seq(from=mzr[1], to=mzr[2], by=0.1)
 group_by_ref(sdf$mz, ref=mzs, tolerance=0.05)
+group_by_ref(sdf, ref=list(mz=mzs), tolerance=0.05)
 
 intensity <- function(i) mzml$ibd$intensity[[i]]
 mz <- function(i) mzml$ibd$mz[[i]]

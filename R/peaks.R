@@ -49,8 +49,9 @@ peaks_summary <- function(y, x = seq_along(y), k = 5L,
 
 resolve_dx <- function(abs, ppm, names)
 {
-	dx <- rep(abs, length.out=length(names))
-	relative <- logical(length(names))
+	k <- max(length(abs), length(ppm), length(names))
+	dx <- rep(abs, length.out=k)
+	relative <- logical(k)
 	if ( is.null(names(dx)) ) {
 		names(dx) <- names
 		names(relative) <- names
@@ -73,9 +74,16 @@ resolve_dx <- function(abs, ppm, names)
 group_by_ref <- function(x, ref, tolerance = 0, ppm = numeric())
 {
 	x <- as.matrix(x)
-	if ( is.vector(ref) )
-		ref <- list(ref=ref)
+	if ( is.numeric(ref) && !is.array(ref) )
+		ref <- list(ref)
 	if ( is.list(ref) ) {
+		if ( !identical(colnames(x), names(ref)) ) {
+			if ( is.null(colnames(x)) || is.null(names(ref)) ) {
+				x <- x[,seq_along(ref),drop=FALSE]
+			} else {
+				x <- x[,names(ref),drop=FALSE]
+			}
+		}
 		dims <- lengths(ref)
 		tol <- resolve_dx(tolerance, ppm, names(ref))
 		grp <- msearch(x, ref, tolerance=tol$dx,
@@ -86,11 +94,18 @@ group_by_ref <- function(x, ref, tolerance = 0, ppm = numeric())
 		}
 		grp <- as.vector(grp)
 	} else if ( is.matrix(ref) ) {
+		if ( !identical(colnames(x), colnames(ref)) ) {
+			if ( is.null(colnames(x)) || is.null(colnames(ref)) ) {
+				x <- x[,seq_len(ncol(ref)),drop=FALSE]
+			} else {
+				x <- x[,colnames(ref),drop=FALSE]
+			}
+		}
 		tol <- resolve_dx(tolerance, ppm, colnames(ref))
 		grp <- kdsearch_first(x, ref, tolerance=tol$dx,
 			relative=tol$relative, relative_to="table")
 	} else {
-		stop("'ref' must be a numeric vector, list, or matrix")
+		stop("'ref' must be a numeric vector, list or matrix")
 	}
 	grp
 }
