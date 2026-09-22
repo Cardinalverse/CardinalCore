@@ -7,11 +7,17 @@ export(
 export(
 	"bsearch",
 	"bsearch_agg",
+	"bsearch_first",
+	"bsearch_last",
 	"msearch",
 	"msearch_agg",
+	"msearch_first",
+	"msearch_last",
 	"kdtree",
 	"kdsearch",
 	"kdsearch_agg",
+	"kdsearch_first",
+	"kdsearch_last",
 	"knnsearch")
 
 export(
@@ -30,7 +36,9 @@ export(
 	"peaks_prominences",
 	"peaks_widths",
 	"peaks_areas",
-	"peaks_summary")
+	"peaks_summary",
+	"resolve_dx",
+	"group_by_ref")
 
 exportMethods("peakPick")
 

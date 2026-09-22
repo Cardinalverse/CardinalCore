@@ -1,7 +1,6 @@
 
 #### Binary search
 ## ----------------
-
 bsearch <- function(
 	query,
 	table,
@@ -47,6 +46,16 @@ bsearch_agg <- function(
 		as.double(tolerance), relative, referent)
 }
 
+bsearch_first <- function(query, table, ...)
+{
+	bsearch_agg(query, table, seq_along(table), stat="min", ...)
+}
+
+bsearch_last <- function(query, table, ...)
+{
+	bsearch_agg(query, table, seq_along(table), stat="max", ...)
+}
+
 #### Binary multisearch
 ## ---------------------
 
@@ -58,13 +67,9 @@ msearch <- function(
 	relative_to = c("query", "table"),
 	nomatch = NA_integer_)
 {
-	if ( is.null(dim(query)) ) {
-		query <- t(query)
-	} else {
-		query <- as.matrix(query)
-	}
+	query <- as.matrix(query)
 	if ( ncol(query) != length(tables) )
-		stop("number of columns in 'query' must match length of 'tables'")
+		stop("number of columns in 'query' must equal length of 'tables'")
 	tolerance <- rep_len(tolerance, ncol(query))
 	relative <- rep_len(relative, ncol(query))
 	hits <- matrix(NA_integer_, nrow=nrow(query), ncol=ncol(query))
@@ -89,15 +94,11 @@ msearch_agg <- function(
 	relative = !missing(relative_to),
 	relative_to = c("query", "table"))
 {
-	if ( is.null(dim(query)) ) {
-		query <- t(query)
-	} else {
-		query <- as.matrix(query)
-	}
+	query <- as.matrix(query)
 	if ( ncol(query) != length(tables) )
-		stop("number of columns in query must match length of tables")
+		stop("number of columns in query must equal length of tables")
 	if ( !identical(lengths(tables), lengths(values)) )
-		stop("lengths of 'values' must equal lengths of 'tables'")
+		stop("lengths of 'values' must match lengths of 'tables'")
 	tolerance <- rep_len(tolerance, ncol(query))
 	relative <- rep_len(relative, ncol(query))
 	aggs <- matrix(NA_real_, nrow=nrow(query), ncol=ncol(query))
@@ -112,6 +113,16 @@ msearch_agg <- function(
 			relative=relative[i],
 			relative_to=relative_to)
 	aggs
+}
+
+msearch_first <- function(query, table, ...)
+{
+	msearch_agg(query, table, lapply(table, seq_along), stat="min", ...)
+}
+
+msearch_last <- function(query, table, ...)
+{
+	msearch_agg(query, table, lapply(table, seq_along), stat="max", ...)
 }
 
 #### Kd-tree search
@@ -131,15 +142,11 @@ kdsearch <- function(
 	relative = !missing(relative_to),
 	relative_to = c("query", "table"),
 	nomatch = NA_integer_,
-	num.threads = 1)
+	num.threads = 0)
 {
+	query <- as.matrix(query)
 	if ( !inherits(table, "kdtree") )
 		table <- kdtree(table)
-	if ( is.null(dim(query)) ) {
-		query <- t(query)
-	} else {
-		query <- as.matrix(query)
-	}
 	if ( ncol(query) != ncol(table$table) )
 		stop("'query' must have the same number of columns as 'table'")
 	if ( anyNA(tolerance) )
@@ -165,16 +172,12 @@ kdsearch_agg <- function(
 	tolerance = 0,
 	relative = !missing(relative_to),
 	relative_to = c("query", "table"),
-	num.threads = 1)
+	num.threads = 0)
 {
 	stat <- match.arg(stat)
+	query <- as.matrix(query)
 	if ( !inherits(table, "kdtree") )
 		table <- kdtree(table)
-	if ( is.null(dim(query)) ) {
-		query <- t(query)
-	} else {
-		query <- as.matrix(query)
-	}
 	if ( length(values) != nrow(table$table) )
 		stop("length of 'values' must equal number of rows in 'table'")
 	if ( ncol(query) != ncol(table$table) )
@@ -195,20 +198,26 @@ kdsearch_agg <- function(
 		tolerance, relative, referent, as.integer(num.threads))
 }
 
+kdsearch_first <- function(query, table, ...)
+{
+	kdsearch_agg(query, table, seq_len(nrow(table)), stat="min", ...)
+}
+
+kdsearch_last <- function(query, table, ...)
+{
+	kdsearch_agg(query, table, seq_len(nrow(table)), stat="max", ...)
+}
+
 knnsearch <- function(
 	query,
 	table,
 	k = 1L,
 	metric = c("Euclidean", "Manhattan", "Maximum"),
-	num.threads = 1)
+	num.threads = 0)
 {
+	query <- as.matrix(query)
 	if ( !inherits(table, "kdtree") )
 		table <- kdtree(table)
-	if ( is.null(dim(query)) ) {
-		query <- t(query)
-	} else {
-		query <- as.matrix(query)
-	}
 	if ( is.integer(query) && is.double(table$table) )
 		storage.mode(query) <- "double"
 	if ( is.double(query) && is.integer(table$table) )

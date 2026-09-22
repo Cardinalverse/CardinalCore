@@ -44,8 +44,59 @@ peaks_summary <- function(y, x = seq_along(y), k = 5L,
 	.Call(C_do_peaks_summary, y, x, k, noise, wlen, fmax)
 }
 
-#### Peak methods
-## ---------------
+#### Peak grouping
+## ----------------
+
+resolve_dx <- function(abs, ppm, names)
+{
+	dx <- rep(abs, length.out=length(names))
+	relative <- logical(length(names))
+	if ( is.null(names(dx)) ) {
+		names(dx) <- names
+		names(relative) <- names
+	}
+	if ( is.null(names(ppm)) ) {
+		i <- seq_along(ppm)
+	} else {
+		i <- names(ppm)
+	}
+	dx[i] <- 1e-6 * ppm
+	relative[i] <- TRUE
+	nomatch <- names(dx) %notin% names
+	if ( any(nomatch) ) {
+		badnames <- names(dx)[nomatch]
+		stop("unexpected name(s) [", paste0(badnames, collapse=", "), "]")
+	}
+	list(dx=dx, relative=relative)
+}
+
+group_by_ref <- function(x, ref, tolerance = 0, ppm = numeric())
+{
+	x <- as.matrix(x)
+	if ( is.vector(ref) )
+		ref <- list(ref=ref)
+	if ( is.list(ref) ) {
+		dims <- lengths(ref)
+		tol <- resolve_dx(tolerance, ppm, names(ref))
+		grp <- msearch(x, ref, tolerance=tol$dx,
+			relative=tol$relative, relative_to="table")
+		if ( length(dims) > 1L ) {
+			strides <- cumprod(c(1L, dims[-length(dims)]))
+			grp <- ((grp - 1L) %*% strides) + 1L
+		}
+		grp <- as.vector(grp)
+	} else if ( is.matrix(ref) ) {
+		tol <- resolve_dx(tolerance, ppm, colnames(ref))
+		grp <- kdsearch_first(x, ref, tolerance=tol$dx,
+			relative=tol$relative, relative_to="table")
+	} else {
+		stop("'ref' must be a numeric vector, list, or matrix")
+	}
+	grp
+}
+
+#### Peak pick methods
+## -------------------
 
 setMethod("peakPick", "matrix",
 	function(object, x = "mz", y = "intensity", ...)
@@ -75,30 +126,12 @@ setMethod("peakPick", "DataFrame",
 	do.call(cbind, c(list(object), peaks[withCols]))
 }
 
-#### Peak helpers
-## ---------------
+#### Peak pick methods
+## -------------------
 
-resolve_dx <- function(abs, ppm, names)
+setMethod("peakAlign", "matrix",
+	function(object, ref, ...)
 {
-	dx <- rep(abs, length.out=length(names))
-	relative <- logical(length(names))
-	if ( is.null(names(dx)) ) {
-		names(dx) <- names
-		names(relative) <- names
-	}
-	if ( is.null(names(ppm)) ) {
-		i <- seq_along(ppm)
-	} else {
-		i <- names(ppm)
-	}
-	dx[i] <- 1e-6 * ppm
-	relative[i] <- TRUE
-	nomatch <- names(dx) %notin% names
-	if ( any(nomatch) ) {
-		badnames <- names(dx)[nomatch]
-		stop("unexpected name(s) [", paste0(badnames, collapse=", "), "]")
-	}
-	list(dx=dx, relative=relative)
-}
+})
 
 
