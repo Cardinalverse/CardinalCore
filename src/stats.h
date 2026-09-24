@@ -56,6 +56,57 @@ concept Stats = Vec<S> &&
 		{ s.nobs(i) } -> Num;
 	};
 
+//// Stats Vec operations
+//-----------------------
+// Merge and update streaming statistics
+
+// Used to implement dst.merge(src)
+template<Stats Dst, Stat Val>
+Dst fill_stats(Dst dst, const Val value) noexcept
+{
+	for ( ptrdiff_t i = 0; i < dst.ssize(); ++i )
+		dst.set(i, value);
+	return dst;
+}
+
+// Used to implement dst.update(src)
+template<Stats Dst, Vec Src>
+Dst update_stats(Dst dst, const Src src) noexcept
+{
+	assert(dst.ssize() == src.ssize());
+	for ( ptrdiff_t i = 0; i < dst.ssize(); ++i )
+	{
+		if ( is_valid(src, i) )
+			dst.set(i, dst.get(i).update(src[i]));
+	}
+	return dst;
+}
+
+// Used to implement dst.merge(src)
+template<Stats Dst, Stats Src>
+Dst merge_stats(Dst dst, const Src src) noexcept
+{
+	assert(dst.ssize() == src.ssize());
+	for ( ptrdiff_t i = 0; i < dst.ssize(); ++i )
+		dst.set(i, dst.get(i).merge(src.get(i)));
+	return dst;
+}
+
+// Used to implement dst.scatter(index, src)
+template<Stats Dst, Vec Index, Stats Src>
+Dst scatter_stats(Dst dst, const Index index, const Src src) noexcept
+{
+	assert(dst.ssize() == src.ssize());
+	for ( ptrdiff_t i = 0; i < src.ssize(); ++i )
+	{
+		if ( !is_valid(index, i) )
+			continue;
+		auto ii = index[i];
+		dst.set(ii, dst.get(ii).merge(src.get(i)));
+	}
+	return dst;
+}
+
 //// Scalar statistics
 //--------------------
 // Streaming scalar statistics
@@ -214,57 +265,6 @@ struct stream_stat<Var,T,N>
 		}
 	}
 };
-
-//// Stats Vec operations
-//-----------------------
-// Merge and update streaming statistics
-
-// Used to implement dst.merge(src)
-template<Stats Dst, Stat Val>
-Dst fill_stats(Dst dst, const Val value) noexcept
-{
-	for ( ptrdiff_t i = 0; i < dst.ssize(); ++i )
-		dst.set(i, value);
-	return dst;
-}
-
-// Used to implement dst.update(src)
-template<Stats Dst, Vec Src>
-Dst update_stats(Dst dst, const Src src) noexcept
-{
-	assert(dst.ssize() == src.ssize());
-	for ( ptrdiff_t i = 0; i < dst.ssize(); ++i )
-	{
-		if ( is_valid(src, i) )
-			dst.set(i, dst.get(i).update(src[i]));
-	}
-	return dst;
-}
-
-// Used to implement dst.merge(src)
-template<Stats Dst, Stats Src>
-Dst merge_stats(Dst dst, const Src src) noexcept
-{
-	assert(dst.ssize() == src.ssize());
-	for ( ptrdiff_t i = 0; i < dst.ssize(); ++i )
-		dst.set(i, dst.get(i).merge(src.get(i)));
-	return dst;
-}
-
-// Used to implement dst.scatter(index, src)
-template<Stats Dst, Vec Index, Stats Src>
-Dst scatter_stats(Dst dst, const Index index, const Src src) noexcept
-{
-	assert(dst.ssize() == src.ssize());
-	for ( ptrdiff_t i = 0; i < src.ssize(); ++i )
-	{
-		if ( !is_valid(index, i) )
-			continue;
-		auto ii = index[i];
-		dst.set(ii, dst.get(ii).merge(src.get(i)));
-	}
-	return dst;
-}
 
 //// Vector statistics
 //--------------------
