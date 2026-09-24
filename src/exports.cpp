@@ -1046,12 +1046,12 @@ SEXP do_peaks_summary(
 		Rf_error("'y' and 'x' must have the same length");
 	int count = peaks_count(y, k);
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, count));
-	SEXP centroids = PROTECT(Rf_allocVector(REALSXP, count));
 	SEXP snrs = PROTECT(Rf_allocVector(REALSXP, count));
 	SEXP maxs = PROTECT(Rf_allocVector(REALSXP, count));
 	SEXP sums = PROTECT(Rf_allocVector(REALSXP, count));
 	SEXP areas = PROTECT(Rf_allocVector(REALSXP, count));
 	SEXP widths = PROTECT(Rf_allocVector(REALSXP, count));
+	SEXP centroids = PROTECT(Rf_allocVector(REALSXP, count));
 	switch(TYPEOF(y))
 	{
 		case INTSXP:
@@ -1062,12 +1062,12 @@ SEXP do_peaks_summary(
 					peaks{r_vec<int>(y), r_vec<int>(x), Rf_asInteger(k)}
 						.summary_into(
 							r_vec<int>(index),
-							r_vec<double>(centroids),
 							r_vec<double>(snrs),
 							r_vec<double>(maxs),
 							r_vec<double>(sums),
 							r_vec<double>(areas),
 							r_vec<double>(widths),
+							r_vec<double>(centroids),
 							static_cast<Noise>(Rf_asInteger(method)),
 							Rf_asInteger(wlen),
 							Rf_asReal(fmax));
@@ -1076,12 +1076,12 @@ SEXP do_peaks_summary(
 					peaks{r_vec<int>(y), r_vec<double>(x), Rf_asInteger(k)}
 						.summary_into(
 							r_vec<int>(index),
-							r_vec<double>(centroids),
 							r_vec<double>(snrs),
 							r_vec<double>(maxs),
 							r_vec<double>(sums),
 							r_vec<double>(areas),
 							r_vec<double>(widths),
+							r_vec<double>(centroids),
 							static_cast<Noise>(Rf_asInteger(method)),
 							Rf_asInteger(wlen),
 							Rf_asReal(fmax));
@@ -1098,12 +1098,12 @@ SEXP do_peaks_summary(
 					peaks{r_vec<double>(y), r_vec<int>(x), Rf_asInteger(k)}
 						.summary_into(
 							r_vec<int>(index),
-							r_vec<double>(centroids),
 							r_vec<double>(snrs),
 							r_vec<double>(maxs),
 							r_vec<double>(sums),
 							r_vec<double>(areas),
 							r_vec<double>(widths),
+							r_vec<double>(centroids),
 							static_cast<Noise>(Rf_asInteger(method)),
 							Rf_asInteger(wlen),
 							Rf_asReal(fmax));
@@ -1112,12 +1112,12 @@ SEXP do_peaks_summary(
 					peaks{r_vec<double>(y), r_vec<double>(x), Rf_asInteger(k)}
 						.summary_into(
 							r_vec<int>(index),
-							r_vec<double>(centroids),
 							r_vec<double>(snrs),
 							r_vec<double>(maxs),
 							r_vec<double>(sums),
 							r_vec<double>(areas),
 							r_vec<double>(widths),
+							r_vec<double>(centroids),
 							static_cast<Noise>(Rf_asInteger(method)),
 							Rf_asInteger(wlen),
 							Rf_asReal(fmax));
@@ -1131,19 +1131,19 @@ SEXP do_peaks_summary(
 	SEXP out = PROTECT(Rf_allocVector(VECSXP, 7));
 	SEXP names = PROTECT(Rf_allocVector(STRSXP, 7));
 	SET_VECTOR_ELT(out, 0, index);
-	SET_VECTOR_ELT(out, 1, centroids);
-	SET_VECTOR_ELT(out, 2, snrs);
-	SET_VECTOR_ELT(out, 3, maxs);
-	SET_VECTOR_ELT(out, 4, sums);
-	SET_VECTOR_ELT(out, 5, areas);
-	SET_VECTOR_ELT(out, 6, widths);
+	SET_VECTOR_ELT(out, 1, snrs);
+	SET_VECTOR_ELT(out, 2, maxs);
+	SET_VECTOR_ELT(out, 3, sums);
+	SET_VECTOR_ELT(out, 4, areas);
+	SET_VECTOR_ELT(out, 5, widths);
+	SET_VECTOR_ELT(out, 6, centroids);
 	SET_STRING_ELT(names, 0, Rf_mkChar("index"));
-	SET_STRING_ELT(names, 1, Rf_mkChar("centroid"));
-	SET_STRING_ELT(names, 2, Rf_mkChar("snr"));
-	SET_STRING_ELT(names, 3, Rf_mkChar("max"));
-	SET_STRING_ELT(names, 4, Rf_mkChar("sum"));
-	SET_STRING_ELT(names, 5, Rf_mkChar("area"));
-	SET_STRING_ELT(names, 6, Rf_mkChar("width"));
+	SET_STRING_ELT(names, 1, Rf_mkChar("snr"));
+	SET_STRING_ELT(names, 2, Rf_mkChar("max"));
+	SET_STRING_ELT(names, 3, Rf_mkChar("sum"));
+	SET_STRING_ELT(names, 4, Rf_mkChar("area"));
+	SET_STRING_ELT(names, 5, Rf_mkChar("width"));
+	SET_STRING_ELT(names, 6, Rf_mkChar("centroid"));
 	Rf_setAttrib(out, R_NamesSymbol, names);
 	UNPROTECT(9);
 	return out;

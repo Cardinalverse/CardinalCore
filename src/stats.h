@@ -473,6 +473,10 @@ struct stream_stats<Var,T,N>
 	#endif // USING_R
 };
 
+//// Stats kernels
+//----------------
+// Summarize matrices
+
 //// Aggregate
 //------------
 // Summarize a vector
@@ -481,8 +485,8 @@ struct stream_stats<Var,T,N>
 template<Summary S, Num T, Num N, Vec V>
 struct aggregate
 {
-	stream_stat<S,T,N> * stat;
-	V x;
+	stream_stat<S,T,N> * stat; // out
+	V x;                       // in
 
 	void operator()(ptrdiff_t i) noexcept
 	{

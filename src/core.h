@@ -46,6 +46,20 @@ concept Vec =
 		{ v[i] } -> Num;
 	};
 
+// A Vecs type is a container of Vec elements
+// - MUST be trivially copyable as a struct
+// - MUST implement ssize() -> ptrdiff_t
+// - MUST implement get[](ptrdiff_t i) -> Vec
+template<class V>
+concept Vecs = 
+	std::is_standard_layout_v<V> &&
+	std::is_trivially_copyable_v<V> &&
+	requires (const std::remove_cvref_t<V>& v, ptrdiff_t i)
+	{
+		{ v.ssize() } -> std::convertible_to<ptrdiff_t>;
+		{ v.get(i) } -> Vec;
+	};
+
 // Get type of a Vec's elements
 template<class V>
 using typeof_vec = std::remove_cvref_t<decltype(

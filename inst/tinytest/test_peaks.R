@@ -24,9 +24,9 @@ expect_equal(p1$prominence, c(1, 1, 3))
 expect_equal(p2$prominence, c(1, 1, 3))
 expect_equal(p3$prominence, 1)
 
-peaks_summary(y1)
-peaks_summary(y2)
-peaks_summary(y3)
+as.data.frame(peaks_summary(y1))
+as.data.frame(peaks_summary(y2))
+as.data.frame(peaks_summary(y3))
 
 # test case 1
 

@@ -419,12 +419,12 @@ struct peaks
 	template<Num Index, Num T = double>
 	ptrdiff_t summary_into(
 		vec<Index> index,
-		vec<T> centroids,
 		vec<T> snrs,
 		vec<T> maxs,
 		vec<T> sums,
 		vec<T> areas,
 		vec<T> widths,
+		vec<T> centroids,
 		const Noise method,
 		const ptrdiff_t wlen = 0,
 		const double fmax = 0.5) const
@@ -438,7 +438,6 @@ struct peaks
 				T height = coerce_cast<T>(y[i]);
 				ptrdiff_t lo = this->left_end(i);
 				ptrdiff_t hi = this->right_end(i);
-				centroids[n] = centroid(lo, hi);
 				if ( wlen > 0 )
 					snrs[n] = snr(i, method, wlen);
 				else
@@ -447,6 +446,7 @@ struct peaks
 				sums[n] = sum(lo, hi);
 				areas[n] = area(lo, hi);
 				widths[n] = width(i, fmax);
+				centroids[n] = centroid(lo, hi);
 				++n;
 			}
 		}
