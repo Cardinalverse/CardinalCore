@@ -578,17 +578,17 @@ struct nstream_stats
 	stream_stats<S,T,N> get(ptrdiff_t i) const noexcept
 	{
 		if constexpr ( Channels == Rows )
-			return {stats.col(i), nchannels()};
+			return {stats.col(i), n.col(i)};
 		else
-			return {stats.row(i), nchannels()};
+			return {stats.row(i), n.row(i)};
 	}
 
 	stream_stats<S,T,N> channel(ptrdiff_t i) const noexcept
 	{
 		if constexpr ( Channels == Rows )
-			return {stats.row(i), ssize()};
+			return {stats.row(i), n.row(i)};
 		else
-			return {stats.col(i), ssize()};
+			return {stats.col(i), n.col(i)};
 	}
 };
 
@@ -621,17 +621,17 @@ struct nstream_stats<Mean,T,N,Channels>
 	stream_stats<Mean,T,N> get(ptrdiff_t i) const noexcept
 	{
 		if constexpr ( Channels == Rows )
-			return {means.col(i), nchannels()};
+			return {means.col(i), n.col(i)};
 		else
-			return {means.row(i), nchannels()};
+			return {means.row(i), n.row(i)};
 	}
 
 	stream_stats<Mean,T,N> channel(ptrdiff_t i) const noexcept
 	{
 		if constexpr ( Channels == Rows )
-			return {means.row(i), ssize()};
+			return {means.row(i), n.row(i)};
 		else
-			return {means.col(i), ssize()};
+			return {means.col(i), n.col(i)};
 	}
 };
 
@@ -665,17 +665,17 @@ struct nstream_stats<Var,T,N,Channels>
 	stream_stats<Var,T,N> get(ptrdiff_t i) const noexcept
 	{
 		if constexpr ( Channels == Rows )
-			return {vars.col(i), means.col(i), nchannels()};
+			return {vars.col(i), means.col(i), n.col(i)};
 		else
-			return {vars.row(i), means.row(i), nchannels()};
+			return {vars.row(i), means.row(i), n.row(i)};
 	}
 
 	stream_stats<Var,T,N> channel(ptrdiff_t i) const noexcept
 	{
 		if constexpr ( Channels == Rows )
-			return {vars.row(i), means.row(i), ssize()};
+			return {vars.row(i), means.row(i), n.row(i)};
 		else
-			return {vars.col(i), means.col(i), ssize()};
+			return {vars.col(i), means.col(i), n.col(i)};
 	}
 };
 
