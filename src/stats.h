@@ -56,6 +56,23 @@ concept Stats = Vec<S> &&
 		{ s.nobs(i) } -> Num;
 	};
 
+
+//// Stat operations
+//-----------------
+// Reduce a Vec to a streaming statistic
+
+// Used to implement dst.reduce(src)
+template<Stat Dst, Vec V>
+Dst reduce_stat(Dst dst, const V src) noexcept
+{
+	for ( ptrdiff_t i = 0; i < src.ssize(); ++i )
+	{
+		if ( is_valid(src, i) )
+			dst = dst.update(src[i]);
+	}
+	return dst;
+}
+
 //// Stats Vec operations
 //-----------------------
 // Merge and update streaming statistics
@@ -136,6 +153,11 @@ struct stream_stat
 			.n = n + s.n,
 		};
 	}
+
+	template<Vec V>
+	auto reduce(const V x) const noexcept {
+		return reduce_stat(*this, x);
+	}
 };
 
 // Mean specialization
@@ -183,6 +205,11 @@ struct stream_stat<Mean,T,N>
 			else
 				return (*this);
 		}
+	}
+
+	template<Vec V>
+	auto reduce(const V x) const noexcept {
+		return reduce_stat(*this, x);
 	}
 };
 
@@ -264,6 +291,11 @@ struct stream_stat<Var,T,N>
 				return (*this);
 		}
 	}
+
+	template<Vec V>
+	auto reduce(const V x) const noexcept {
+		return reduce_stat(*this, x);
+	}
 };
 
 //// Vector statistics
@@ -304,6 +336,11 @@ struct stream_stats
 		n[i] = s.n;
 	}
 
+	template<Vec V>
+	void set_from(const ptrdiff_t i, V x) noexcept {
+		set(i, stream_stat<S,T,N>{}.reduce(x));
+	}
+
 	stream_stats<S,T,N> fill(stream_stat<S,T,N> value = {}) noexcept {
 		return fill_stats(*this, value);
 	}
@@ -323,6 +360,14 @@ struct stream_stats
 		const stream_stats<S,T,N> s) noexcept 
 	{
 		return scatter_stats(*this, index, s);
+	}
+
+	stream_stats<S,T,N> slice(bounds b) const noexcept
+	{
+		return {
+			.stats = stats.slice(b),
+			.n = n.slice(b),
+		};
 	}
 
 	#ifdef USING_R
@@ -371,6 +416,11 @@ struct stream_stats<Mean,T,N>
 		n[i] = s.n;
 	}
 
+	template<Vec V>
+	void set_from(const ptrdiff_t i, V x) noexcept {
+		set(i, stream_stat<Mean,T,N>{}.reduce(x));
+	}
+
 	stream_stats<Mean,T,N> fill(stream_stat<Mean,T,N> value = {}) noexcept {
 		return fill_stats(*this, value);
 	}
@@ -392,6 +442,14 @@ struct stream_stats<Mean,T,N>
 		return scatter_stats(*this, index, s);
 	}
 
+	stream_stats<Mean,T,N> slice(bounds b) const noexcept
+	{
+		return {
+			.means = means.slice(b),
+			.n = n.slice(b),
+		};
+	}
+
 	#ifdef USING_R
 	static stream_stats<Mean,T,N> from(SEXP obj) noexcept
 	{
@@ -403,7 +461,7 @@ struct stream_stats<Mean,T,N>
 	#endif // USING_R
 };
 
-// Vector with streaming variance
+// Vector with streaming variances
 // - Pairs variances and numbers of observations
 // - MUST have n.ssize() == vars.ssize() == means.ssize()
 template<Num T, Num N>
@@ -440,6 +498,11 @@ struct stream_stats<Var,T,N>
 		n[i] = s.n;
 	}
 
+	template<Vec V>
+	void set_from(const ptrdiff_t i, V x) noexcept {
+		set(i, stream_stat<Var,T,N>{}.reduce(x));
+	}
+
 	stream_stats<Var,T,N> fill(stream_stat<Var,T,N> value = {}) noexcept {
 		return fill_stats(*this, value);
 	}
@@ -461,6 +524,15 @@ struct stream_stats<Var,T,N>
 		return scatter_stats(*this, index, s);
 	}
 
+	stream_stats<Var,T,N> slice(bounds b) const noexcept
+	{
+		return {
+			.vars = vars.slice(b),
+			.means = means.slice(b),
+			.n = n.slice(b),
+		};
+	}
+
 	#ifdef USING_R
 	static stream_stats<Var,T,N> from(SEXP obj) noexcept
 	{
@@ -473,9 +545,139 @@ struct stream_stats<Var,T,N>
 	#endif // USING_R
 };
 
-//// Stats kernels
-//----------------
-// Summarize matrices
+//// Multichannel statistics
+//--------------------------
+// Multiple streams of statistics
+
+// Vectors with streaming summary stats
+// - Consists of ssize() streams with nchannels() features
+// - Where get(i) -> stream_stats with nchannels() elements
+// - Where channel(j) -> stream_stats with ssize() elements
+template<Summary S, Num T, Num N, Dim Channels = Rows>
+struct nstream_stats
+{
+	mat<T> stats{};
+	mat<N> n{};
+
+	ptrdiff_t ssize() const noexcept
+	{
+		if constexpr ( Channels == Rows )
+			return n.ncols();
+		else
+			return n.nrows();
+	}
+
+	ptrdiff_t nchannels(ptrdiff_t i) const noexcept
+	{
+		if constexpr ( Channels == Rows )
+			return n.nrows();
+		else
+			return n.ncols();
+	}
+
+	stream_stats<S,T,N> get(ptrdiff_t i) const noexcept
+	{
+		if constexpr ( Channels == Rows )
+			return {stats.col(i), nchannels()};
+		else
+			return {stats.row(i), nchannels()};
+	}
+
+	stream_stats<S,T,N> channel(ptrdiff_t i) const noexcept
+	{
+		if constexpr ( Channels == Rows )
+			return {stats.row(i), ssize()};
+		else
+			return {stats.col(i), ssize()};
+	}
+};
+
+// Vectors with streaming means
+// - Consists of ssize() streams with nchannels() features
+// - Where get(i) -> stream_stats with nchannels() elements
+// - Where channel(j) -> stream_stats with ssize() elements
+template<Num T, Num N, Dim Channels>
+struct nstream_stats<Mean,T,N,Channels>
+{
+	mat<T> means{};
+	mat<N> n{};
+
+	ptrdiff_t ssize() const noexcept
+	{
+		if constexpr ( Channels == Rows )
+			return n.ncols();
+		else
+			return n.nrows();
+	}
+
+	ptrdiff_t nchannels(ptrdiff_t i) const noexcept
+	{
+		if constexpr ( Channels == Rows )
+			return n.nrows();
+		else
+			return n.ncols();
+	}
+
+	stream_stats<Mean,T,N> get(ptrdiff_t i) const noexcept
+	{
+		if constexpr ( Channels == Rows )
+			return {means.col(i), nchannels()};
+		else
+			return {means.row(i), nchannels()};
+	}
+
+	stream_stats<Mean,T,N> channel(ptrdiff_t i) const noexcept
+	{
+		if constexpr ( Channels == Rows )
+			return {means.row(i), ssize()};
+		else
+			return {means.col(i), ssize()};
+	}
+};
+
+// Vectors with streaming variances
+// - Consists of ssize() streams with nchannels() features
+// - Where get(i) -> stream_stats with nchannels() elements
+// - Where channel(j) -> stream_stats with ssize() elements
+template<Num T, Num N, Dim Channels>
+struct nstream_stats<Var,T,N,Channels>
+{
+	mat<T> vars{};
+	mat<T> means{};
+	mat<N> n{};
+
+	ptrdiff_t ssize() const noexcept
+	{
+		if constexpr ( Channels == Rows )
+			return n.ncols();
+		else
+			return n.nrows();
+	}
+
+	ptrdiff_t nchannels(ptrdiff_t i) const noexcept
+	{
+		if constexpr ( Channels == Rows )
+			return n.nrows();
+		else
+			return n.ncols();
+	}
+
+	stream_stats<Var,T,N> get(ptrdiff_t i) const noexcept
+	{
+		if constexpr ( Channels == Rows )
+			return {vars.col(i), means.col(i), nchannels()};
+		else
+			return {vars.row(i), means.row(i), nchannels()};
+	}
+
+	stream_stats<Var,T,N> channel(ptrdiff_t i) const noexcept
+	{
+		if constexpr ( Channels == Rows )
+			return {vars.row(i), means.row(i), ssize()};
+		else
+			return {vars.col(i), means.col(i), ssize()};
+	}
+};
 
 //// Aggregate
 //------------
@@ -498,6 +700,34 @@ struct aggregate
 	{
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 			(*this)(i);
+	}
+};
+
+//// Stats kernels
+//----------------
+// Summarize matrices
+
+template<Summary S, Num T, Num N, Mat M>
+struct col_stats
+{
+	stream_stats<S,T,N> stats; // out
+	M x;                       // in
+
+	ptrdiff_t ssize() const { return stats.len; }
+
+	void operator()()
+	{
+		if ( x.prefer_rows() )
+			for ( ptrdiff_t i = 0; i < x.nrows(); ++i )
+				stats.update(mask(x.row(i)));
+		else
+			for ( ptrdiff_t j = 0; j < x.ncols(); ++j )
+				stats.set_from(j, mask(x.col(j)));
+	}
+
+	void operator()(bounds b, task ctx)
+	{
+		col_stats{stats.slice(b), x.slice_cols(b)}();
 	}
 };
 
