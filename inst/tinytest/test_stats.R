@@ -16,6 +16,21 @@ nc <- 72
 x <- matrix(runif(nr * nc), nrow=nr, ncol=nc)
 g <- sample(8, nrow(x), replace=TRUE)
 
+expect_equal(c(col_stats(x, "sum")), colSums(x, na.rm=TRUE))
+bench::mark(c(col_stats(x, "sum")), colSums(x, na.rm=TRUE))
+bench::mark(c(col_stats(x, "sum", num.threads=2)), colSums(x, na.rm=TRUE))
+bench::mark(c(col_stats(x, "sum", num.threads=4)), colSums(x, na.rm=TRUE))
+
+expect_equal(c(col_stats(x, "mean")), colMeans(x, na.rm=TRUE))
+bench::mark(c(col_stats(x, "mean")), colMeans(x, na.rm=TRUE))
+bench::mark(c(col_stats(x, "mean", num.threads=2)), colMeans(x, na.rm=TRUE))
+bench::mark(c(col_stats(x, "mean", num.threads=4)), colMeans(x, na.rm=TRUE))
+
+expect_equal(c(col_stats(x, "var")), apply(x, 2, var, na.rm=TRUE))
+bench::mark(c(col_stats(x, "var")), apply(x, 2, var, na.rm=TRUE))
+bench::mark(c(col_stats(x, "var", num.threads=2)), apply(x, 2, var, na.rm=TRUE))
+bench::mark(c(col_stats(x, "var", num.threads=4)), apply(x, 2, var, na.rm=TRUE))
+
 # col_sums
 expect_equal(col_sums(x), colSums(x, na.rm=TRUE))
 

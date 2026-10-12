@@ -50,6 +50,12 @@ group_stats <- function(x, group, reorder = TRUE)
 #### Compute column sums
 ## ---------------------
 
+col_stats <- function(x, stat, num.threads = 1)
+{
+	stat <- match.arg(stat, c("sum", "prod", "max", "min", "mean", "var"))
+	.Call(C_do_col_stats, as.matrix(x), stat, as.integer(num.threads))
+}
+
 col_sums <- function(
 	x,
 	group = NULL,

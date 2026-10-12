@@ -29,7 +29,8 @@ export(
 export(
 	"stream_stats",
 	"merge_stats",
-	"group_stats")
+	"group_stats",
+	"col_stats")
 
 export(
 	"peaks_find",

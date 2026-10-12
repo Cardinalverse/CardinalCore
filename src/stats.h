@@ -155,8 +155,15 @@ struct stream_stat
 	}
 
 	template<Vec V>
-	auto reduce(const V x) const noexcept {
-		return reduce_stat(*this, x);
+	stream_stat<S,T,N> reduce(const V src) const noexcept
+	{
+		auto dst = *this;
+		for ( ptrdiff_t i = 0; i < src.ssize(); ++i )
+		{
+			if ( is_valid(src, i) )
+				dst = dst.update(src[i]);
+		}
+		return dst;
 	}
 };
 
@@ -208,8 +215,21 @@ struct stream_stat<Mean,T,N>
 	}
 
 	template<Vec V>
-	auto reduce(const V x) const noexcept {
-		return reduce_stat(*this, x);
+	stream_stat<Mean,T,N> reduce(const V src) const noexcept
+	{
+		T sout = n > 0 ? n * mean : 0.0;
+		N nout = n;
+		for ( ptrdiff_t i = 0; i < src.ssize(); ++i )
+		{
+			if ( is_valid(src, i) ) {
+				sout += src[i];
+				++nout;
+			}
+		}
+		return {
+			.mean = sout / nout,
+			.n = nout,
+		};
 	}
 };
 
@@ -293,8 +313,23 @@ struct stream_stat<Var,T,N>
 	}
 
 	template<Vec V>
-	auto reduce(const V x) const noexcept {
-		return reduce_stat(*this, x);
+	stream_stat<Var,T,N> reduce(const V src) const noexcept
+	{
+		auto init = stream_stat<Mean,T,N>{mean, n};
+		auto xbar = init.reduce(src);
+		T ssout = 0;
+		for ( ptrdiff_t i = 0; i < src.ssize(); ++i )
+		{
+			if ( is_valid(src, i) ) {
+				T dx = src[i] - xbar.mean;
+				ssout += (dx * dx);
+			}
+		}
+		return {
+			.var = ssout / (xbar.n - 1),
+			.mean = xbar.mean,
+			.n = xbar.n,
+		};
 	}
 };
 
@@ -575,6 +610,14 @@ struct nstream_stats
 			return n.ncols();
 	}
 
+	stream_stats<S,T,N> channel(ptrdiff_t i) const noexcept
+	{
+		if constexpr ( Channels == Rows )
+			return {stats.row(i), n.row(i)};
+		else
+			return {stats.col(i), n.col(i)};
+	}
+
 	stream_stats<S,T,N> get(ptrdiff_t i) const noexcept
 	{
 		if constexpr ( Channels == Rows )
@@ -583,12 +626,12 @@ struct nstream_stats
 			return {stats.row(i), n.row(i)};
 	}
 
-	stream_stats<S,T,N> channel(ptrdiff_t i) const noexcept
+	nstream_stats<S,T,N,Channels> slice(bounds b) const noexcept
 	{
 		if constexpr ( Channels == Rows )
-			return {stats.row(i), n.row(i)};
+			return {stats.slice_cols(b), n.slice_cols(b)};
 		else
-			return {stats.col(i), n.col(i)};
+			return {stats.slice_rows(b), n.slice_rows(b)};
 	}
 };
 
@@ -618,6 +661,14 @@ struct nstream_stats<Mean,T,N,Channels>
 			return n.ncols();
 	}
 
+	stream_stats<Mean,T,N> channel(ptrdiff_t i) const noexcept
+	{
+		if constexpr ( Channels == Rows )
+			return {means.row(i), n.row(i)};
+		else
+			return {means.col(i), n.col(i)};
+	}
+
 	stream_stats<Mean,T,N> get(ptrdiff_t i) const noexcept
 	{
 		if constexpr ( Channels == Rows )
@@ -626,12 +677,12 @@ struct nstream_stats<Mean,T,N,Channels>
 			return {means.row(i), n.row(i)};
 	}
 
-	stream_stats<Mean,T,N> channel(ptrdiff_t i) const noexcept
+	nstream_stats<Mean,T,N,Channels> slice(bounds b) const noexcept
 	{
 		if constexpr ( Channels == Rows )
-			return {means.row(i), n.row(i)};
+			return {means.slice_cols(b), n.slice_cols(b)};
 		else
-			return {means.col(i), n.col(i)};
+			return {means.slice_rows(b), n.slice_rows(b)};
 	}
 };
 
@@ -662,6 +713,14 @@ struct nstream_stats<Var,T,N,Channels>
 			return n.ncols();
 	}
 
+	stream_stats<Var,T,N> channel(ptrdiff_t i) const noexcept
+	{
+		if constexpr ( Channels == Rows )
+			return {vars.row(i), means.row(i), n.row(i)};
+		else
+			return {vars.col(i), means.col(i), n.col(i)};
+	}
+
 	stream_stats<Var,T,N> get(ptrdiff_t i) const noexcept
 	{
 		if constexpr ( Channels == Rows )
@@ -670,12 +729,12 @@ struct nstream_stats<Var,T,N,Channels>
 			return {vars.row(i), means.row(i), n.row(i)};
 	}
 
-	stream_stats<Var,T,N> channel(ptrdiff_t i) const noexcept
+	nstream_stats<Var,T,N,Channels> slice(bounds b) const noexcept
 	{
 		if constexpr ( Channels == Rows )
-			return {vars.row(i), means.row(i), n.row(i)};
+			return {vars.slice_cols(b), means.slice_cols(b), n.slice_cols(b)};
 		else
-			return {vars.col(i), means.col(i), n.col(i)};
+			return {vars.slice_rows(b), means.slice_rows(b), n.slice_rows(b)};
 	}
 };
 
@@ -713,7 +772,7 @@ struct col_stats
 	stream_stats<S,T,N> stats; // out
 	M x;                       // in
 
-	ptrdiff_t ssize() const { return stats.len; }
+	ptrdiff_t ssize() const { return stats.ssize(); }
 
 	void operator()()
 	{
