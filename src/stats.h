@@ -56,23 +56,6 @@ concept Stats = Vec<S> &&
 		{ s.nobs(i) } -> Num;
 	};
 
-
-//// Stat operations
-//-----------------
-// Reduce a Vec to a streaming statistic
-
-// Used to implement dst.reduce(src)
-template<Stat Dst, Vec V>
-Dst reduce_stat(Dst dst, const V src) noexcept
-{
-	for ( ptrdiff_t i = 0; i < src.ssize(); ++i )
-	{
-		if ( is_valid(src, i) )
-			dst = dst.update(src[i]);
-	}
-	return dst;
-}
-
 //// Stats Vec operations
 //-----------------------
 // Merge and update streaming statistics
@@ -120,6 +103,21 @@ Dst scatter_stats(Dst dst, const Index index, const Src src) noexcept
 			continue;
 		auto ii = index[i];
 		dst.set(ii, dst.get(ii).merge(src.get(i)));
+	}
+	return dst;
+}
+
+// Used to implement dst.scatter(index, src)
+template<Stats Dst, Vec Index, Vec Src>
+Dst scatter_stats(Dst dst, const Index index, const Src src) noexcept
+{
+	assert(dst.ssize() == src.ssize());
+	for ( ptrdiff_t i = 0; i < src.ssize(); ++i )
+	{
+		if ( !is_valid(index, i) || !is_valid(src, i) )
+			continue;
+		auto ii = index[i];
+		dst.set(ii, dst.get(ii).update(src[i]));
 	}
 	return dst;
 }
@@ -397,6 +395,14 @@ struct stream_stats
 		return scatter_stats(*this, index, s);
 	}
 
+	template<Vec Index, Vec V>
+	stream_stats<S,T,N> scatter(
+		const Index index, 
+		const V src) noexcept 
+	{
+		return scatter_stats(*this, index, src);
+	}
+
 	stream_stats<S,T,N> slice(bounds b) const noexcept
 	{
 		return {
@@ -475,6 +481,14 @@ struct stream_stats<Mean,T,N>
 		const stream_stats<Mean,T,N> s) noexcept 
 	{
 		return scatter_stats(*this, index, s);
+	}
+
+	template<Vec Index, Vec V>
+	stream_stats<Mean,T,N> scatter(
+		const Index index, 
+		const V src) noexcept 
+	{
+		return scatter_stats(*this, index, src);
 	}
 
 	stream_stats<Mean,T,N> slice(bounds b) const noexcept
@@ -559,6 +573,14 @@ struct stream_stats<Var,T,N>
 		return scatter_stats(*this, index, s);
 	}
 
+	template<Vec Index, Vec V>
+	stream_stats<Var,T,N> scatter(
+		const Index index, 
+		const V src) noexcept 
+	{
+		return scatter_stats(*this, index, src);
+	}
+
 	stream_stats<Var,T,N> slice(bounds b) const noexcept
 	{
 		return {
@@ -618,6 +640,12 @@ struct nstream_stats
 			return {stats.col(i), n.col(i)};
 	}
 
+	stream_stats<S,T,N> fill(stream_stat<S,T,N> value = {}) const noexcept
+	{
+		for ( ptrdiff_t i = 0; i < ssize(); ++i )
+			get(i).fill(value);
+	}
+
 	stream_stats<S,T,N> get(ptrdiff_t i) const noexcept
 	{
 		if constexpr ( Channels == Rows )
@@ -667,6 +695,12 @@ struct nstream_stats<Mean,T,N,Channels>
 			return {means.row(i), n.row(i)};
 		else
 			return {means.col(i), n.col(i)};
+	}
+
+	stream_stats<Mean,T,N> fill(stream_stat<Mean,T,N> value = {}) const noexcept
+	{
+		for ( ptrdiff_t i = 0; i < ssize(); ++i )
+			get(i).fill(value);
 	}
 
 	stream_stats<Mean,T,N> get(ptrdiff_t i) const noexcept
@@ -719,6 +753,12 @@ struct nstream_stats<Var,T,N,Channels>
 			return {vars.row(i), means.row(i), n.row(i)};
 		else
 			return {vars.col(i), means.col(i), n.col(i)};
+	}
+
+	stream_stats<Var,T,N> fill(stream_stat<Var,T,N> value = {}) const noexcept
+	{
+		for ( ptrdiff_t i = 0; i < ssize(); ++i )
+			get(i).fill(value);
 	}
 
 	stream_stats<Var,T,N> get(ptrdiff_t i) const noexcept
@@ -787,6 +827,35 @@ struct col_stats
 	void operator()(bounds b, task ctx)
 	{
 		col_stats{stats.slice(b), x.slice_cols(b)}();
+	}
+};
+
+template<Summary S, Num T, Num N, Dim Channels, Mat M, Vec Index>
+struct col_scatter_stats
+{
+	nstream_stats<S,T,N,Channels> stats; // out
+	Index index;                         // in
+	M x;                                 // in
+
+	ptrdiff_t ssize() const { return stats.ssize(); }
+
+	void operator()()
+	{
+		if ( x.prefer_rows() )
+		{
+			for ( ptrdiff_t i = 0; i < x.nrows(); ++i ) {
+				if ( is_valid(index, i) )
+					stats.channel(index[i]).update(mask(x.row(i)));
+			}
+		}
+		else
+			for ( ptrdiff_t j = 0; j < x.ncols(); ++j )
+				stats.get(j).scatter(index, mask(x.col(j)));
+	}
+
+	void operator()(bounds b, task ctx)
+	{
+		col_scatter_stats{stats.slice(b), index, x.slice_cols(b)}();
 	}
 };
 
