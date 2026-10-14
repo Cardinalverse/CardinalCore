@@ -78,6 +78,12 @@ SEXP do_peaks_summary(
 SEXP do_merge_stats(SEXP x, SEXP y);
 SEXP do_group_stats(SEXP x, SEXP group, SEXP ugroup);
 SEXP do_col_stats(SEXP x, SEXP stat, SEXP num_threads);
+SEXP do_col_group_stats(
+	SEXP x, 
+	SEXP stat, 
+	SEXP group,
+	SEXP ugroup,
+	SEXP num_threads);
 
 //// Matrix statistics
 //---------------------
@@ -117,6 +123,7 @@ static const R_CallMethodDef callMethods[] = {
 	CALLDEF(do_merge_stats, 2),
 	CALLDEF(do_group_stats, 3),
 	CALLDEF(do_col_stats, 3),
+	CALLDEF(do_col_group_stats, 5),
 	// Matrix statistics
 	CALLDEF(do_col_sums, 2),
 	// Test expressions

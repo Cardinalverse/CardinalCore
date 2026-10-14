@@ -640,10 +640,11 @@ struct nstream_stats
 			return {stats.col(i), n.col(i)};
 	}
 
-	stream_stats<S,T,N> fill(stream_stat<S,T,N> value = {}) const noexcept
+	nstream_stats<S,T,N> fill(stream_stat<S,T,N> value = {}) const noexcept
 	{
 		for ( ptrdiff_t i = 0; i < ssize(); ++i )
 			get(i).fill(value);
+		return *this;
 	}
 
 	stream_stats<S,T,N> get(ptrdiff_t i) const noexcept
@@ -661,6 +662,16 @@ struct nstream_stats
 		else
 			return {stats.slice_rows(b), n.slice_rows(b)};
 	}
+
+	#ifdef USING_R
+	static nstream_stats<S,T,N,Channels> from(SEXP obj) noexcept
+	{
+		return {
+			.stats = r_mat<T>(obj),
+			.n = r_mat<N>(Rf_getAttrib(obj, Rf_install("nobs"))),
+		};
+	}
+	#endif // USING_R
 };
 
 // Vectors with streaming means
@@ -697,10 +708,11 @@ struct nstream_stats<Mean,T,N,Channels>
 			return {means.col(i), n.col(i)};
 	}
 
-	stream_stats<Mean,T,N> fill(stream_stat<Mean,T,N> value = {}) const noexcept
+	nstream_stats<Mean,T,N> fill(stream_stat<Mean,T,N> value = {}) const noexcept
 	{
 		for ( ptrdiff_t i = 0; i < ssize(); ++i )
 			get(i).fill(value);
+		return *this;
 	}
 
 	stream_stats<Mean,T,N> get(ptrdiff_t i) const noexcept
@@ -718,6 +730,16 @@ struct nstream_stats<Mean,T,N,Channels>
 		else
 			return {means.slice_rows(b), n.slice_rows(b)};
 	}
+
+	#ifdef USING_R
+	static nstream_stats<Mean,T,N,Channels> from(SEXP obj) noexcept
+	{
+		return {
+			.means = r_mat<T>(obj),
+			.n = r_mat<N>(Rf_getAttrib(obj, Rf_install("nobs"))),
+		};
+	}
+	#endif // USING_R
 };
 
 // Vectors with streaming variances
@@ -755,10 +777,11 @@ struct nstream_stats<Var,T,N,Channels>
 			return {vars.col(i), means.col(i), n.col(i)};
 	}
 
-	stream_stats<Var,T,N> fill(stream_stat<Var,T,N> value = {}) const noexcept
+	nstream_stats<Var,T,N> fill(stream_stat<Var,T,N> value = {}) const noexcept
 	{
 		for ( ptrdiff_t i = 0; i < ssize(); ++i )
 			get(i).fill(value);
+		return *this;
 	}
 
 	stream_stats<Var,T,N> get(ptrdiff_t i) const noexcept
@@ -776,6 +799,17 @@ struct nstream_stats<Var,T,N,Channels>
 		else
 			return {vars.slice_rows(b), means.slice_rows(b), n.slice_rows(b)};
 	}
+
+	#ifdef USING_R
+	static nstream_stats<Var,T,N,Channels> from(SEXP obj) noexcept
+	{
+		return {
+			.vars = r_mat<T>(obj),
+			.means = r_mat<T>(Rf_getAttrib(obj, Rf_install("mean"))),
+			.n = r_mat<N>(Rf_getAttrib(obj, Rf_install("nobs"))),
+		};
+	}
+	#endif // USING_R
 };
 
 //// Aggregate

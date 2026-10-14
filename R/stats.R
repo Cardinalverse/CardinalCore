@@ -50,10 +50,35 @@ group_stats <- function(x, group, reorder = TRUE)
 #### Compute column sums
 ## ---------------------
 
-col_stats <- function(x, stat, num.threads = 1)
+col_stats <- function(
+	x, 
+	stat, 
+	group = NULL,
+	reorder = TRUE,
+	num.threads = 1)
 {
 	stat <- match.arg(stat, c("sum", "prod", "max", "min", "mean", "var"))
-	.Call(C_do_col_stats, as.matrix(x), stat, as.integer(num.threads))
+	if ( !is.null(group) )
+	{
+		if ( length(group) != NROW(x) )
+			stop("length(group) [", length(group), "] and ",
+				"NROW(x) [", NROW(x), "] must be equal")
+		if ( anyNA(group) )
+			stop("missing values in 'group'")
+		if ( is.factor(group) ) {
+			ugroup <- levels(group)
+			group <- as.integer(group) - 1L
+		} else {
+			ugroup <- if (reorder) sort(unique(group)) else unique(group)
+			group <- as.integer(match(group, ugroup)) - 1L
+		}
+	}
+	if ( is.null(group) ) {
+		.Call(C_do_col_stats, as.matrix(x), stat, as.integer(num.threads))
+	} else {
+		.Call(C_do_col_group_stats, 
+			as.matrix(x), stat, group, ugroup, as.integer(num.threads))
+	}
 }
 
 col_sums <- function(

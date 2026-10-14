@@ -16,6 +16,11 @@ nc <- 72
 x <- matrix(runif(nr * nc), nrow=nr, ncol=nc)
 g <- sample(8, nrow(x), replace=TRUE)
 
+c2 <- function(x) {
+	attributes(x) <- attributes(x)[c("dim", "dimnames")]
+	x
+}
+
 expect_equal(c(col_stats(x, "sum")), colSums(x, na.rm=TRUE))
 bench::mark(c(col_stats(x, "sum")), colSums(x, na.rm=TRUE))
 bench::mark(c(col_stats(x, "sum", num.threads=2)), colSums(x, na.rm=TRUE))
@@ -30,6 +35,11 @@ expect_equal(c(col_stats(x, "var")), apply(x, 2, var, na.rm=TRUE))
 bench::mark(c(col_stats(x, "var")), apply(x, 2, var, na.rm=TRUE))
 bench::mark(c(col_stats(x, "var", num.threads=2)), apply(x, 2, var, na.rm=TRUE))
 bench::mark(c(col_stats(x, "var", num.threads=4)), apply(x, 2, var, na.rm=TRUE))
+
+expect_equal(c2(col_stats(x, "sum", group=g)), rowsum(x, group=g))
+bench::mark(c2(col_stats(x, "sum", group=g, num.threads=1)), rowsum(x, group=g))
+bench::mark(c2(col_stats(x, "sum", group=g, num.threads=2)), rowsum(x, group=g))
+bench::mark(c2(col_stats(x, "sum", group=g, num.threads=4)), rowsum(x, group=g))
 
 # col_sums
 expect_equal(col_sums(x), colSums(x, na.rm=TRUE))
