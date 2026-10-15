@@ -16,6 +16,24 @@ stream_stats <- function(x = numeric(),
 	}
 }
 
+print.stream_stats <- function(x, nobs.max = 6L, ...)
+{
+	cat("Streaming ", attr(x, "stat"), "(s)\n", sep="")
+	n <- attr(x, "nobs")
+	s <- c(x)
+	attributes(s) <- list(dim=dim(x), dimnames=dimnames(x), names=names(x))
+	print.default(s, ...)
+	if ( length(n) > nobs.max ) {
+		cat("nobs():", head(as.vector(n), nobs.max), " ...\n")
+	} else {
+		cat("nobs():", n)
+	}
+}
+
+nobs.stream_stats <- function(object, ...) {
+	attr(object, "nobs")
+}
+
 merge_stats <- function(x, y)
 {
 	if ( !inherits(x, "stream_stats") || !inherits(y, "stream_stats") )

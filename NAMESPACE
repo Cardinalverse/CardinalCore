@@ -21,17 +21,20 @@ export(
 	"knnsearch")
 
 export(
-	"roll",
-	"roll_apply",
-	"filt1_mean",
-	"filt1_conv")
-
-export(
 	"stream_stats",
 	"merge_stats",
 	"group_stats",
 	"col_stats",
 	"row_stats")
+
+S3method("print", "stream_stats")
+S3method("nobs", "stream_stats")
+
+export(
+	"roll",
+	"roll_apply",
+	"filt1_mean",
+	"filt1_conv")
 
 export(
 	"peaks_find",
