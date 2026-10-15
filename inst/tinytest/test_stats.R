@@ -12,7 +12,7 @@ merge_stats(x, z)
 # Setup example matrix
 set.seed(1)
 nr <- 1e6
-nc <- 72
+nc <- 128
 x <- matrix(runif(nr * nc), nrow=nr, ncol=nc)
 g <- sample(8, nrow(x), replace=TRUE)
 
@@ -40,6 +40,18 @@ expect_equal(c2(col_stats(x, "sum", group=g)), rowsum(x, group=g))
 bench::mark(c2(col_stats(x, "sum", group=g, num.threads=1)), rowsum(x, group=g))
 bench::mark(c2(col_stats(x, "sum", group=g, num.threads=2)), rowsum(x, group=g))
 bench::mark(c2(col_stats(x, "sum", group=g, num.threads=4)), rowsum(x, group=g))
+
+xt <- t(x)
+expect_equal(c(row_stats(xt, "sum")), rowSums(xt, na.rm=TRUE))
+bench::mark(c(row_stats(xt, "sum")), rowSums(xt, na.rm=TRUE))
+bench::mark(c(row_stats(xt, "sum", num.threads=2)), rowSums(xt, na.rm=TRUE))
+bench::mark(c(row_stats(xt, "sum", num.threads=4)), rowSums(xt, na.rm=TRUE))
+
+xt <- t(x)
+expect_equal(c2(row_stats(xt, "sum", group=g)), rowsum(x, group=g))
+bench::mark(c2(row_stats(xt, "sum", group=g, num.threads=1)), rowsum(x, group=g))
+bench::mark(c2(row_stats(xt, "sum", group=g, num.threads=2)), rowsum(x, group=g))
+bench::mark(c2(row_stats(xt, "sum", group=g, num.threads=4)), rowsum(x, group=g))
 
 # col_sums
 expect_equal(col_sums(x), colSums(x, na.rm=TRUE))

@@ -84,6 +84,13 @@ SEXP do_col_group_stats(
 	SEXP group,
 	SEXP ugroup,
 	SEXP num_threads);
+SEXP do_row_stats(SEXP x, SEXP stat, SEXP num_threads);
+SEXP do_row_group_stats(
+	SEXP x, 
+	SEXP stat, 
+	SEXP group,
+	SEXP ugroup,
+	SEXP num_threads);
 
 //// Matrix statistics
 //---------------------
@@ -124,6 +131,8 @@ static const R_CallMethodDef callMethods[] = {
 	CALLDEF(do_group_stats, 3),
 	CALLDEF(do_col_stats, 3),
 	CALLDEF(do_col_group_stats, 5),
+	CALLDEF(do_row_stats, 3),
+	CALLDEF(do_row_group_stats, 5),
 	// Matrix statistics
 	CALLDEF(do_col_sums, 2),
 	// Test expressions

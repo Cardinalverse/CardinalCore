@@ -864,6 +864,30 @@ struct col_stats
 	}
 };
 
+template<Summary S, Num T, Num N, Mat M>
+struct row_stats
+{
+	stream_stats<S,T,N> stats; // out
+	M x;                       // in
+
+	ptrdiff_t ssize() const { return stats.ssize(); }
+
+	void operator()()
+	{
+		if ( x.prefer_rows() )
+			for ( ptrdiff_t i = 0; i < x.nrows(); ++i )
+				stats.set_from(i, mask(x.row(i)));
+		else
+			for ( ptrdiff_t j = 0; j < x.ncols(); ++j )
+				stats.update(mask(x.col(j)));
+	}
+
+	void operator()(bounds b, task ctx)
+	{
+		row_stats{stats.slice(b), x.slice_rows(b)}();
+	}
+};
+
 template<Summary S, Num T, Num N, Dim Channels, Mat M, Vec Index>
 struct col_scatter_stats
 {
@@ -892,5 +916,35 @@ struct col_scatter_stats
 		col_scatter_stats{stats.slice(b), index, x.slice_cols(b)}();
 	}
 };
+
+template<Summary S, Num T, Num N, Dim Channels, Mat M, Vec Index>
+struct row_scatter_stats
+{
+	nstream_stats<S,T,N,Channels> stats; // out
+	Index index;                         // in
+	M x;                                 // in
+
+	ptrdiff_t ssize() const { return stats.ssize(); }
+
+	void operator()()
+	{
+		if ( x.prefer_rows() )
+			for ( ptrdiff_t i = 0; i < x.nrows(); ++i )
+				stats.get(i).scatter(index, mask(x.row(i)));
+		else
+		{
+			for ( ptrdiff_t j = 0; j < x.ncols(); ++j ) {
+				if ( is_valid(index, j) )
+					stats.channel(index[j]).update(mask(x.col(j)));
+			}
+		}
+	}
+
+	void operator()(bounds b, task ctx)
+	{
+		row_scatter_stats{stats.slice(b), index, x.slice_rows(b)}();
+	}
+};
+
 
 #endif // CARDINAL_CORE_STATS

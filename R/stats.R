@@ -81,6 +81,37 @@ col_stats <- function(
 	}
 }
 
+row_stats <- function(
+	x, 
+	stat, 
+	group = NULL,
+	reorder = TRUE,
+	num.threads = 1)
+{
+	stat <- match.arg(stat, c("sum", "prod", "max", "min", "mean", "var"))
+	if ( !is.null(group) )
+	{
+		if ( length(group) != NCOL(x) )
+			stop("length(group) [", length(group), "] and ",
+				"NCOL(x) [", NCOL(x), "] must be equal")
+		if ( anyNA(group) )
+			stop("missing values in 'group'")
+		if ( is.factor(group) ) {
+			ugroup <- levels(group)
+			group <- as.integer(group) - 1L
+		} else {
+			ugroup <- if (reorder) sort(unique(group)) else unique(group)
+			group <- as.integer(match(group, ugroup)) - 1L
+		}
+	}
+	if ( is.null(group) ) {
+		.Call(C_do_row_stats, as.matrix(x), stat, as.integer(num.threads))
+	} else {
+		.Call(C_do_row_group_stats, 
+			as.matrix(x), stat, group, ugroup, as.integer(num.threads))
+	}
+}
+
 col_sums <- function(
 	x,
 	group = NULL,

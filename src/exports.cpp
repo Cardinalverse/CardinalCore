@@ -1658,6 +1658,290 @@ SEXP do_col_group_stats(
 	return xout;
 }
 
+SEXP do_row_stats(SEXP x, SEXP stat, SEXP num_threads)
+{
+	SEXP xout = PROTECT(Rf_allocVector(REALSXP, Rf_nrows(x)));
+	SEXP nobs = PROTECT(Rf_allocVector(INTSXP, Rf_nrows(x)));
+	if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
+	{
+		SEXP means = PROTECT(Rf_allocVector(REALSXP, Rf_nrows(x)));
+		Rf_setAttrib(xout, Rf_install("mean"), means);
+		UNPROTECT(1);
+	}
+	Rf_setAttrib(xout, Rf_install("nobs"), nobs);
+	Rf_setAttrib(xout, Rf_install("stat"), stat);
+	Rf_setAttrib(xout, R_ClassSymbol, Rf_mkString("stream_stats"));
+	switch(TYPEOF(x))
+	{
+		case INTSXP:
+		{
+			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
+			{
+				compute(
+					row_stats{
+						stream_stats<Sum,int,int>::from(xout).fill(),
+						r_mat<int>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
+			{
+				compute(
+					row_stats{
+						stream_stats<Prod,int,int>::from(xout).fill(),
+						r_mat<int>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
+			{
+				compute(
+					row_stats{
+						stream_stats<Maximum,int,int>::from(xout).fill(),
+						r_mat<int>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
+			{
+				compute(
+					row_stats{
+						stream_stats<Minimum,int,int>::from(xout).fill(),
+						r_mat<int>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "mean") == 0 )
+			{
+				compute(
+					row_stats{
+						stream_stats<Mean,int,int>::from(xout).fill(),
+						r_mat<int>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
+			{
+				compute(
+					row_stats{
+						stream_stats<Var,int,int>::from(xout).fill(),
+						r_mat<int>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else
+				Rf_error("unsupported summary statistic");
+			break;
+		}
+		case REALSXP:
+		{
+			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
+			{
+				compute(
+					row_stats{
+						stream_stats<Sum,double,int>::from(xout).fill(),
+						r_mat<double>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
+			{
+				compute(
+					row_stats{
+						stream_stats<Prod,double,int>::from(xout).fill(),
+						r_mat<double>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
+			{
+				compute(
+					row_stats{
+						stream_stats<Maximum,double,int>::from(xout).fill(),
+						r_mat<double>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
+			{
+				compute(
+					row_stats{
+						stream_stats<Minimum,double,int>::from(xout).fill(),
+						r_mat<double>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "mean") == 0 )
+			{
+				compute(
+					row_stats{
+						stream_stats<Mean,double,int>::from(xout).fill(),
+						r_mat<double>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
+			{
+				compute(
+					row_stats{
+						stream_stats<Var,double,int>::from(xout).fill(),
+						r_mat<double>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else
+				Rf_error("unsupported summary statistic");
+
+			break;
+		}
+		default:
+			Rf_error("'x' must be integer or double");
+	}
+	UNPROTECT(2);
+	return xout;
+}
+
+SEXP do_row_group_stats(
+	SEXP x, 
+	SEXP stat, 
+	SEXP group, 
+	SEXP ugroup, 
+	SEXP num_threads)
+{
+	SEXP xout = PROTECT(Rf_allocMatrix(REALSXP, LENGTH(ugroup), Rf_nrows(x)));
+	SEXP nobs = PROTECT(Rf_allocMatrix(INTSXP, LENGTH(ugroup), Rf_nrows(x)));
+	if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
+	{
+		SEXP means = PROTECT(Rf_allocMatrix(REALSXP, 
+			LENGTH(ugroup), Rf_nrows(x)));
+		Rf_setAttrib(xout, Rf_install("mean"), means);
+		UNPROTECT(1);
+	}
+	SEXP dnms = PROTECT(Rf_allocVector(VECSXP, 2));
+	SET_VECTOR_ELT(dnms, 0, ugroup);
+	SET_VECTOR_ELT(dnms, 1, R_NilValue);
+	Rf_setAttrib(xout, Rf_install("nobs"), nobs);
+	Rf_setAttrib(xout, Rf_install("stat"), stat);
+	Rf_setAttrib(xout, R_DimNamesSymbol, dnms);
+	Rf_setAttrib(xout, R_ClassSymbol, Rf_mkString("stream_stats"));
+	switch(TYPEOF(x))
+	{
+		case INTSXP:
+		{
+			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
+			{
+				compute(
+					row_scatter_stats{
+						nstream_stats<Sum,int,int>::from(xout).fill(),
+						r_vec<int>(group),
+						r_mat<int>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
+			{
+				compute(
+					row_scatter_stats{
+						nstream_stats<Prod,int,int>::from(xout).fill(),
+						r_vec<int>(group),
+						r_mat<int>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
+			{
+				compute(
+					row_scatter_stats{
+						nstream_stats<Maximum,int,int>::from(xout).fill(),
+						r_vec<int>(group),
+						r_mat<int>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
+			{
+				compute(
+					row_scatter_stats{
+						nstream_stats<Minimum,int,int>::from(xout).fill(),
+						r_vec<int>(group),
+						r_mat<int>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "mean") == 0 )
+			{
+				compute(
+					row_scatter_stats{
+						nstream_stats<Mean,int,int>::from(xout).fill(),
+						r_vec<int>(group),
+						r_mat<int>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
+			{
+				compute(
+					row_scatter_stats{
+						nstream_stats<Var,int,int>::from(xout).fill(),
+						r_vec<int>(group),
+						r_mat<int>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else
+				Rf_error("unsupported summary statistic");
+			break;
+		}
+		case REALSXP:
+		{
+			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
+			{
+				compute(
+					row_scatter_stats{
+						nstream_stats<Sum,double,int>::from(xout).fill(),
+						r_vec<int>(group),
+						r_mat<double>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
+			{
+				compute(
+					row_scatter_stats{
+						nstream_stats<Prod,double,int>::from(xout).fill(),
+						r_vec<int>(group),
+						r_mat<double>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
+			{
+				compute(
+					row_scatter_stats{
+						nstream_stats<Maximum,double,int>::from(xout).fill(),
+						r_vec<int>(group),
+						r_mat<double>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
+			{
+				compute(
+					row_scatter_stats{
+						nstream_stats<Minimum,double,int>::from(xout).fill(),
+						r_vec<int>(group),
+						r_mat<double>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "mean") == 0 )
+			{
+				compute(
+					row_scatter_stats{
+						nstream_stats<Mean,double,int>::from(xout).fill(),
+						r_vec<int>(group),
+						r_mat<double>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
+			{
+				compute(
+					row_scatter_stats{
+						nstream_stats<Var,double,int>::from(xout).fill(),
+						r_vec<int>(group),
+						r_mat<double>(x)},
+					Rf_asInteger(num_threads));
+			}
+			else
+				Rf_error("unsupported summary statistic");
+
+			break;
+		}
+		default:
+			Rf_error("'x' must be integer or double");
+	}
+	UNPROTECT(3);
+	return xout;
+}
+
 
 SEXP do_col_sums(SEXP x, SEXP num_threads)
 {
