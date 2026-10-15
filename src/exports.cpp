@@ -1942,37 +1942,6 @@ SEXP do_row_group_stats(
 	return xout;
 }
 
-
-SEXP do_col_sums(SEXP x, SEXP num_threads)
-{
-	SEXP sums = PROTECT(Rf_allocVector(REALSXP, Rf_ncols(x)));
-	switch(TYPEOF(x))
-	{
-		case INTSXP:
-		{
-			compute(
-				col_sums{
-					r_vec<double>(sums).fill(0),
-					r_mat<int>(x)},
-				Rf_asInteger(num_threads));
-			break;
-		}
-		case REALSXP:
-		{
-			compute(
-				col_sums{
-					r_vec<double>(sums).fill(0),
-					r_mat<double>(x)},
-				Rf_asInteger(num_threads));
-			break;
-		}
-		default:
-			Rf_error("'x' must be integer or double");
-	}
-	UNPROTECT(1);
-	return sums;
-}
-
 //// Test expressions
 //--------------------
 

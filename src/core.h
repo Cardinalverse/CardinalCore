@@ -1497,4 +1497,13 @@ vecs_pack<T,Offset> r_vecs_pack(SEXP data, SEXP offset) noexcept
 }
 #endif // USING_R
 
+//// Test expressions
+//--------------------
+
+template<typename T>
+void test_expression(vec<T> result, const vec<T> x, const vec<int> index)
+{
+	result.assign(gather(index, log1p(mask(x) + mask(x))));
+}
+
 #endif // CARDINAL_CORE_CORE

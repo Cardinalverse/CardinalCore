@@ -46,6 +46,4 @@ exportMethods(
 	"peakPick",
 	"peakAlign")
 
-export("col_sums")
-
 useDynLib("CardinalCore", .registration=TRUE, .fixes="C_")

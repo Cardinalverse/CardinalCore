@@ -53,15 +53,6 @@ bench::mark(c2(row_stats(xt, "sum", group=g, num.threads=1)), rowsum(x, group=g)
 bench::mark(c2(row_stats(xt, "sum", group=g, num.threads=2)), rowsum(x, group=g))
 bench::mark(c2(row_stats(xt, "sum", group=g, num.threads=4)), rowsum(x, group=g))
 
-# col_sums
-expect_equal(col_sums(x), colSums(x, na.rm=TRUE))
-
-bench::mark(col_sums(x, num.threads=1), colSums(x, na.rm=TRUE))
-bench::mark(col_sums(x, num.threads=3), colSums(x, na.rm=TRUE))
-bench::mark(col_sums(x, num.threads=6), colSums(x, na.rm=TRUE))
-bench::mark(col_sums(x, num.threads=12), colSums(x, na.rm=TRUE))
-bench::mark(col_sums(x, num.threads=24), colSums(x, na.rm=TRUE))
-
 # test expression templates
 test <- function(x, i) {
 	.Call(CardinalCore:::C_do_test_expression, x, i)

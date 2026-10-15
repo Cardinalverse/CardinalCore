@@ -203,40 +203,4 @@ void compute(F kernel, int nthreads = 1, int ntasks = 1)
 	compute(kernel, p);
 }
 
-//// Matrix statistics
-//---------------------
-
-template<Mat M>
-struct col_sums
-{
-	vec<double> sums; // out
-	M x;              // in
-
-	ptrdiff_t ssize() const { return sums.len; }
-
-	void operator()()
-	{
-		if ( x.prefer_rows() )
-			for ( ptrdiff_t i = 0; i < x.nrows(); ++i )
-				sums += mask(x.row(i));
-		else
-			for ( ptrdiff_t j = 0; j < x.ncols(); ++j )
-				sums[j] = sum(mask(x.col(j)));
-	}
-
-	void operator()(bounds b, task ctx)
-	{
-		col_sums<M>{sums.slice(b), x.slice_cols(b)}();
-	}
-};
-
-//// Test expressions
-//--------------------
-
-template<typename T>
-void test_expression(vec<T> result, const vec<T> x, const vec<int> index)
-{
-	result.assign(gather(index, log1p(mask(x) + mask(x))));
-}
-
 #endif // CARDINAL_CORE_KERNELS
