@@ -51,11 +51,21 @@ peaks_summary <- function(y, x = seq_along(y), k = 5L,
 resolve_dx <- function(abs, ppm, names)
 {
 	k <- max(length(abs), length(ppm), length(names))
+	if ( is.list(abs) )
+		abs <- unlist(abs)
+	if ( is.list(ppm) )
+		ppm <- unlist(ppm)
 	dx <- rep(abs, length.out=k)
-	relative <- logical(k)
+	relative <- setNames(logical(k), names(dx))
 	if ( is.null(names(dx)) ) {
 		names(dx) <- names
 		names(relative) <- names
+	} else {
+		nomatch <- names(dx) %notin% names
+		if ( any(nomatch) ) {
+			badnames <- names(dx)[nomatch]
+			stop("unexpected name(s) [", paste0(badnames, collapse=", "), "]")
+		}
 	}
 	if ( is.null(names(ppm)) ) {
 		i <- seq_along(ppm)
@@ -68,16 +78,31 @@ resolve_dx <- function(abs, ppm, names)
 	}
 	dx[i] <- 1e-6 * ppm
 	relative[i] <- TRUE
-	nomatch <- names(dx) %notin% names
-	if ( any(nomatch) ) {
-		badnames <- names(dx)[nomatch]
-		stop("unexpected name(s) [", paste0(badnames, collapse=", "), "]")
-	}
 	list(dx=dx, relative=relative)
+}
+
+match_to_self <- function(x, score, tolerance = 0, ppm = numeric(), ...)
+{
+	x <- as.matrix(x)
+	# match to self reference
+	tol <- resolve_dx(tolerance, ppm, colnames(x))
+	hits <- kdsearch(x, x, tolerance=tol$dx,
+		relative=tol$relative, relative_to="table")
+	index <- split(hits$index, rep.int(seq_len(nrow(x)), hits$count))
+	# resolve matches based on score
+	grp <- vapply(index, function(i) i[which.max(score[i])], integer(1L))
+	# find invalid matches (i.e., hit doesn't match to itself)
+	self <- seq_len(nrow(x))
+	isHit <- grp == self
+	validHit <- isHit[grp]
+	# set invalid matches to self
+	grp[!validHit] <- self[!validHit]
+	grp
 }
 
 match_to_ref <- function(x, ref, tolerance = 0, ppm = numeric(), ...)
 {
+	x <- as.matrix(x)
 	if ( is.numeric(ref) && !is.array(ref) )
 		ref <- list(ref)
 	if ( is.list(ref) ) {
@@ -112,27 +137,8 @@ match_to_ref <- function(x, ref, tolerance = 0, ppm = numeric(), ...)
 		grp <- kdsearch_first(x, ref, tolerance=tol$dx,
 			relative=tol$relative, relative_to="table")
 	} else {
-		stop("'ref' must be a numeric vector, list or matrix")
+		stop("'ref' must be a numeric list, vector, or matrix")
 	}
-	grp
-}
-
-match_to_self <- function(x, score, tolerance = 0, ppm = numeric(), ...)
-{
-	x <- as.matrix(x)
-	# match to self reference
-	tol <- resolve_dx(tolerance, ppm, colnames(x))
-	hits <- kdsearch(x, x, tolerance=tol$dx,
-		relative=tol$relative, relative_to="table")
-	index <- split(hits$index, rep.int(seq_len(nrow(x)), hits$count))
-	# resolve matches based on score
-	grp <- vapply(index, function(i) i[which.max(score[i])], integer(1L))
-	# find invalid matches (i.e., hit doesn't match to itself)
-	self <- seq_len(nrow(x))
-	isHit <- grp == self
-	validHit <- isHit[grp]
-	# set invalid matches to self
-	grp[!validHit] <- self[!validHit]
 	grp
 }
 
@@ -149,7 +155,7 @@ match_to_self <- function(x, score, tolerance = 0, ppm = numeric(), ...)
 setMethod("peakPick", "matrix",
 	function(object, x = "mz", y = "intensity", ...)
 {
-	peaks <- peaks_summary(object[,y], object[,x], ...)
+	peaks <- peaks_summary(object[,y,drop=TRUE], object[,x,drop=TRUE], ...)
 	as.matrix(.peakPicked(object, peaks))
 })
 
@@ -165,6 +171,36 @@ setMethod("peakPick", "DataFrame",
 {
 	peaks <- peaks_summary(object[[y]], object[[x]], ...)
 	DataFrame(.peakPicked(object, peaks))
+})
+
+#### Peak group methods
+## --------------------
+
+.peakGrouped <- function(object, group, name = "group")
+{
+	grouplist <- setNames(list(group), name)
+	do.call(cbind, c(list(object), grouplist))
+}
+
+setMethod("peakGroup", "matrix",
+	function(object, x = "mz", y = "intensity", ...)
+{
+	group <- match_to_self(object[,x,drop=FALSE], object[,y,drop=TRUE], ...)
+	as.matrix(.peakGrouped(object, group))
+})
+
+setMethod("peakGroup", "data.frame",
+	function(object, x = "mz", y = "intensity", ...)
+{
+	group <- match_to_self(object[,x,drop=FALSE], object[[y]], ...)
+	as.data.frame(.peakGrouped(object, group))
+})
+
+setMethod("peakGroup", "DataFrame",
+	function(object, x = "mz", y = "intensity", ...)
+{
+	group <- match_to_self(object[,x,drop=FALSE], object[[y]], ...)
+	DataFrame(.peakGrouped(object, group))
 })
 
 #### Peak align methods

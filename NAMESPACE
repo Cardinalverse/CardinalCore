@@ -43,10 +43,12 @@ export(
 	"peaks_areas",
 	"peaks_summary",
 	"resolve_dx",
-	"match_to_ref")
+	"match_to_ref",
+	"match_to_self")
 
 exportMethods(
 	"peakPick",
+	"peakGroup",
 	"peakAlign")
 
 useDynLib("CardinalCore", .registration=TRUE, .fixes="C_")
