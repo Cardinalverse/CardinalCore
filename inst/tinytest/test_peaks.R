@@ -49,12 +49,22 @@ peakPick(sDF)
 mzr <- range(sdf$mz)
 mzs <- seq(from=mzr[1], to=mzr[2], by=0.1)
 
+transform(sdf, group=match_to_self(sdf$mz, sdf$intensity, tolerance=0.02))
+
+pdf <- peakPick(sdf)
+row.names(pdf) <- NULL
+transform(pdf, group=match_to_self(pdf$mz, pdf$intensity, tolerance=0.05))
+
+m <- seq(from=500, to=510, by=0.09)
+mdf <- data.frame(mz=m, intensity=rlnorm(length(m)))
+transform(mdf, group=match_to_self(mdf$mz, mdf$intensity, tolerance=0.1))
+
 bench::mark(peakPick(s))
 bench::mark(peakPick(sdf))
 bench::mark(peakPick(sDF))
 
-group_by_ref(sdf$mz, ref=mzs, tolerance=0.05)
-group_by_ref(sdf, ref=list(mz=mzs), tolerance=0.05)
+match_to_ref(sdf$mz, ref=mzs, tolerance=0.05)
+match_to_ref(sdf, ref=list(mz=mzs), tolerance=0.05)
 
 s |> peakPick() |> peakAlign(ref=list(mz=mzs), tolerance=0.05)
 sdf |> peakPick() |> peakAlign(ref=list(mz=mzs), tolerance=0.05)

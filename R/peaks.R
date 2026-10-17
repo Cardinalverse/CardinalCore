@@ -76,11 +76,12 @@ resolve_dx <- function(abs, ppm, names)
 	list(dx=dx, relative=relative)
 }
 
-group_by_ref <- function(x, ref, tolerance = 0, ppm = numeric(), ...)
+match_to_ref <- function(x, ref, tolerance = 0, ppm = numeric(), ...)
 {
 	if ( is.numeric(ref) && !is.array(ref) )
 		ref <- list(ref)
 	if ( is.list(ref) ) {
+		# match to sparse reference
 		tol <- resolve_dx(tolerance, ppm, names(ref))
 		if ( !identical(colnames(x), names(ref)) ) {
 			if ( is.null(colnames(x)) || is.null(names(ref)) ) {
@@ -92,12 +93,14 @@ group_by_ref <- function(x, ref, tolerance = 0, ppm = numeric(), ...)
 		grp <- msearch(x, ref, tolerance=tol$dx,
 			relative=tol$relative, relative_to="table")
 		dims <- lengths(ref)
+		# convert per-dimension groups to a single linear group
 		if ( length(dims) > 1L ) {
 			strides <- cumprod(c(1L, dims[-length(dims)]))
 			grp <- ((grp - 1L) %*% strides) + 1L
 		}
 		grp <- as.vector(grp)
 	} else if ( is.matrix(ref) ) {
+		# match to dense reference
 		tol <- resolve_dx(tolerance, ppm, colnames(ref))
 		if ( !identical(colnames(x), colnames(ref)) ) {
 			if ( is.null(colnames(x)) || is.null(colnames(ref)) ) {
@@ -111,6 +114,25 @@ group_by_ref <- function(x, ref, tolerance = 0, ppm = numeric(), ...)
 	} else {
 		stop("'ref' must be a numeric vector, list or matrix")
 	}
+	grp
+}
+
+match_to_self <- function(x, score, tolerance = 0, ppm = numeric(), ...)
+{
+	x <- as.matrix(x)
+	# match to self reference
+	tol <- resolve_dx(tolerance, ppm, colnames(x))
+	hits <- kdsearch(x, x, tolerance=tol$dx,
+		relative=tol$relative, relative_to="table")
+	index <- split(hits$index, rep.int(seq_len(nrow(x)), hits$count))
+	# resolve matches based on score
+	grp <- vapply(index, function(i) i[which.max(score[i])], integer(1L))
+	# find invalid matches (i.e., hit doesn't match to itself)
+	self <- seq_len(nrow(x))
+	isHit <- grp == self
+	validHit <- isHit[grp]
+	# set invalid matches to self
+	grp[!validHit] <- self[!validHit]
 	grp
 }
 
@@ -157,21 +179,21 @@ setMethod("peakPick", "DataFrame",
 setMethod("peakAlign", "matrix",
 	function(object, ref, ...)
 {
-	group <- group_by_ref(object, ref, ...)
+	group <- match_to_ref(object, ref, ...)
 	as.matrix(.peakAligned(object, group))
 })
 
 setMethod("peakAlign", "data.frame",
 	function(object, ref, ...)
 {
-	group <- group_by_ref(object, ref, ...)
+	group <- match_to_ref(object, ref, ...)
 	as.data.frame(.peakAligned(object, group))
 })
 
 setMethod("peakAlign", "DataFrame",
 	function(object, ref, ...)
 {
-	group <- group_by_ref(object, ref, ...)
+	group <- match_to_ref(object, ref, ...)
 	DataFrame(.peakAligned(object, group))
 })
 

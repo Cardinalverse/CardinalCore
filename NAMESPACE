@@ -43,7 +43,7 @@ export(
 	"peaks_areas",
 	"peaks_summary",
 	"resolve_dx",
-	"group_by_ref")
+	"match_to_ref")
 
 exportMethods(
 	"peakPick",
