@@ -56,6 +56,7 @@ pdf <- peakPick(sdf)
 row.names(pdf) <- NULL
 transform(pdf, group=match_to_self(pdf$mz, pdf$intensity, tolerance=0.05))
 
+set.seed(7)
 m <- seq(from=500, to=510, by=0.09)
 mdf <- data.frame(mz=m, intensity=rlnorm(length(m)))
 transform(mdf, group=match_to_self(mdf$mz, mdf$intensity, tolerance=0.2))

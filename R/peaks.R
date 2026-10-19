@@ -48,7 +48,7 @@ peaks_summary <- function(y, x = seq_along(y), k = 5L,
 #### Peak grouping
 ## ----------------
 
-resolve_dx <- function(abs, ppm, names)
+resolve_dx <- function(abs, ppm = numeric(), names = NULL)
 {
 	k <- max(length(abs), length(ppm), length(names))
 	if ( is.list(abs) )
@@ -61,24 +61,29 @@ resolve_dx <- function(abs, ppm, names)
 		names(dx) <- names
 		names(relative) <- names
 	} else {
-		nomatch <- names(dx) %notin% names
-		if ( any(nomatch) ) {
-			badnames <- names(dx)[nomatch]
+		if ( is.null(names) )
+			names <- union(names(dx), names(ppm))
+		unexpected <- names(dx) %notin% names
+		if ( any(unexpected) ) {
+			badnames <- unique(names(dx)[unexpected])
 			stop("unexpected name(s) [", paste0(badnames, collapse=", "), "]")
 		}
+		unresolved <- names %notin% names(dx)
+		if ( any(unresolved) ) {
+			badnames <- unique(names[unresolved])
+			stop("unresolved name(s) [", paste0(badnames, collapse=", "), "]")
+		}
+		dx <- dx[names]
+		relative <- relative[names]
 	}
 	if ( is.null(names(ppm)) ) {
 		i <- seq_along(ppm)
 	} else {
 		i <- names(ppm)
 	}
-	if ( !is.null(names(dx)) && !is.null(names) ) {
-		dx <- dx[names]
-		relative <- relative[names]
-	}
 	dx[i] <- 1e-6 * ppm
 	relative[i] <- TRUE
-	list(dx=dx, relative=relative)
+	list(dx=dx, relative=relative, names=names)
 }
 
 match_to_self <- function(x, score, tolerance = 0, ppm = numeric(), ...)
@@ -88,15 +93,21 @@ match_to_self <- function(x, score, tolerance = 0, ppm = numeric(), ...)
 	tol <- resolve_dx(tolerance, ppm, colnames(x))
 	hits <- kdsearch(x, x, tolerance=tol$dx,
 		relative=tol$relative, relative_to="table")
-	index <- split(hits$index, rep.int(seq_len(nrow(x)), hits$count))
+	hits <- split(hits$index, rep.int(seq_len(nrow(x)), hits$count))
 	# resolve matches based on score
-	grp <- vapply(index, function(i) i[which.max(score[i])], integer(1L))
-	# find invalid matches (i.e., hit doesn't match to itself)
+	grp <- vapply(hits, function(i) i[which.max(score[i])], integer(1L))
+	# valid hits that match to self-hits
 	self <- seq_len(nrow(x))
-	isHit <- grp == self
-	validHit <- isHit[grp]
-	# set invalid matches to self
-	grp[!validHit] <- self[!validHit]
+	selfHit <- grp == self
+	validHit <- selfHit[grp]
+	# loop until no invalid hits
+	while ( any(!validHit) )
+	{
+		cand <- lapply(hits, intersect, which(selfHit | !validHit))
+		grp <- vapply(cand, function(i) i[which.max(score[i])], integer(1L))
+		selfHit <- grp == self
+		validHit <- selfHit[grp]
+	}
 	grp
 }
 
@@ -231,6 +242,22 @@ setMethod("peakAlign", "DataFrame",
 {
 	group <- match_to_ref(object, ref, ...)
 	DataFrame(.peakAligned(object, group))
+})
+
+#### Peak merge methods
+## --------------------
+
+.peakMerged <- function(object, stats, count = "n")
+{
+	grouplist <- setNames(list(group), name)
+	do.call(cbind, c(list(object), grouplist))
+}
+
+setMethod("peakMerge", "matrix",
+	function(object, by, count = "n", ...)
+{
+	object <- object[,setdiff(colnames(object), c(by, count))]
+	as.matrix(.peakAligned(object, group))
 })
 
 
