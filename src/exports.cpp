@@ -1384,6 +1384,9 @@ SEXP do_col_stats(SEXP x, SEXP stat, SEXP num_threads)
 		Rf_setAttrib(xout, Rf_install("mean"), means);
 		UNPROTECT(1);
 	}
+	if ( Rf_getAttrib(x, R_DimNamesSymbol) != R_NilValue )
+		Rf_setAttrib(xout, R_NamesSymbol, 
+			VECTOR_ELT(Rf_getAttrib(x, R_DimNamesSymbol), 1));
 	Rf_setAttrib(xout, Rf_install("nobs"), nobs);
 	Rf_setAttrib(xout, Rf_install("stat"), stat);
 	Rf_setAttrib(xout, R_ClassSymbol, Rf_mkString("stream_stats"));
@@ -1523,7 +1526,11 @@ SEXP do_col_group_stats(
 	}
 	SEXP dnms = PROTECT(Rf_allocVector(VECSXP, 2));
 	SET_VECTOR_ELT(dnms, 0, ugroup);
-	SET_VECTOR_ELT(dnms, 1, R_NilValue);
+	if ( Rf_getAttrib(x, R_DimNamesSymbol) != R_NilValue )
+		SET_VECTOR_ELT(dnms, 1, 
+			VECTOR_ELT(Rf_getAttrib(x, R_DimNamesSymbol), 1));
+	else
+		SET_VECTOR_ELT(dnms, 1, R_NilValue);
 	Rf_setAttrib(xout, Rf_install("nobs"), nobs);
 	Rf_setAttrib(xout, Rf_install("stat"), stat);
 	Rf_setAttrib(xout, R_DimNamesSymbol, dnms);
@@ -1668,6 +1675,9 @@ SEXP do_row_stats(SEXP x, SEXP stat, SEXP num_threads)
 		Rf_setAttrib(xout, Rf_install("mean"), means);
 		UNPROTECT(1);
 	}
+	if ( Rf_getAttrib(x, R_DimNamesSymbol) != R_NilValue )
+		Rf_setAttrib(xout, R_NamesSymbol, 
+			VECTOR_ELT(Rf_getAttrib(x, R_DimNamesSymbol), 0));
 	Rf_setAttrib(xout, Rf_install("nobs"), nobs);
 	Rf_setAttrib(xout, Rf_install("stat"), stat);
 	Rf_setAttrib(xout, R_ClassSymbol, Rf_mkString("stream_stats"));
@@ -1807,7 +1817,11 @@ SEXP do_row_group_stats(
 	}
 	SEXP dnms = PROTECT(Rf_allocVector(VECSXP, 2));
 	SET_VECTOR_ELT(dnms, 0, ugroup);
-	SET_VECTOR_ELT(dnms, 1, R_NilValue);
+	if ( Rf_getAttrib(x, R_DimNamesSymbol) != R_NilValue )
+		SET_VECTOR_ELT(dnms, 1, 
+			VECTOR_ELT(Rf_getAttrib(x, R_DimNamesSymbol), 0));
+	else
+		SET_VECTOR_ELT(dnms, 1, R_NilValue);
 	Rf_setAttrib(xout, Rf_install("nobs"), nobs);
 	Rf_setAttrib(xout, Rf_install("stat"), stat);
 	Rf_setAttrib(xout, R_DimNamesSymbol, dnms);
