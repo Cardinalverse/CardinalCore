@@ -2,17 +2,17 @@
 #### Streaming statistics
 ## ----------------------
 
-stream_stats <- function(x = numeric(), 
+stream_stats <- function(x = numeric(), nobs = 1L, 
 	stat = c("sum", "prod", "max", "min", "mean", "var"))
 {
 	stat <- match.arg(stat)
-	nobs = rep_len(1L, length(x))
+	nobs = rep_len(nobs, length(x))
 	if ( stat == "var" ) {
-		mean <- x
-		x <- rep(NA_real_, length(x))
-		structure(x, mean=mean, nobs=nobs, stat=stat, class="stream_stats")
+		structure(rep(NA_real_, length(x)), mean=x, 
+			nobs=nobs, stat=stat, class="stream_stats")
 	} else {
-		structure(x, nobs=nobs, stat=stat, class="stream_stats")
+		structure(x, 
+			nobs=nobs, stat=stat, class="stream_stats")
 	}
 }
 

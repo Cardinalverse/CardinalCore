@@ -49,6 +49,7 @@ export(
 exportMethods(
 	"peakPick",
 	"peakGroup",
-	"peakAlign")
+	"peakAlign",
+	"peakMerge")
 
 useDynLib("CardinalCore", .registration=TRUE, .fixes="C_")

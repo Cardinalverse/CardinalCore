@@ -49,8 +49,9 @@ peakPick(sDF)
 mzr <- range(sdf$mz)
 mzs <- seq(from=mzr[1], to=mzr[2], by=0.1)
 
-peakGroup(sdf, tolerance=c(mz=0.05))
-peakGroup(sdf, tolerance=0.05)
+head(peakGroup(s, tolerance=c(mz=0.05)))
+head(peakGroup(sdf, tolerance=0.05))
+peakGroup(sDF, tolerance=0.05)
 
 pdf <- peakPick(sdf)
 row.names(pdf) <- NULL
@@ -66,7 +67,8 @@ bench::mark(peakPick(sdf))
 bench::mark(peakPick(sDF))
 
 match_to_ref(sdf$mz, ref=mzs, tolerance=0.05)
-match_to_ref(sdf, ref=list(mz=mzs), tolerance=0.05)
+match_to_ref(sdf["mz"], ref=list(mz=mzs), tolerance=0.05)
+# match_to_ref(sdf, ref=list(mz=mzs), tolerance=0.05)
 
 s |> peakPick() |> peakAlign(ref=list(mz=mzs), tolerance=0.05)
 sdf |> peakPick() |> peakAlign(ref=list(mz=mzs), tolerance=0.05)
@@ -76,7 +78,11 @@ bench::mark(s |> peakPick() |> peakAlign(ref=list(centroid=mzs), ppm=80))
 bench::mark(sdf |> peakPick() |> peakAlign(ref=list(centroid=mzs), ppm=80))
 bench::mark(sDF |> peakPick() |> peakAlign(ref=list(centroid=mzs), ppm=80))
 
-s |> peakPick() |> peakAlign(ref=list(mz=mzs), tolerance=0.045)
+s |> 
+	peakPick() |> 
+	peakAlign(ref=list(mz=mzs), tolerance=0.05) |>
+	peakMerge(by="ref")
+
 s |> peakPick() |> peakAlign(ref=list(centroid=mzs), tolerance=0.045)
 
 intensity <- function(i) mzml$ibd$intensity[[i]]
