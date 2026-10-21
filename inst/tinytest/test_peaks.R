@@ -89,7 +89,7 @@ s |>
 
 s |> 
 	peakPick() |> 
-	peakGroup(tolerance=0.1) |>
+	peakGroup(tolerance=0.5) |>
 	peakMerge(by="group")
 
 intensity <- function(i) mzml$ibd$intensity[[i]]

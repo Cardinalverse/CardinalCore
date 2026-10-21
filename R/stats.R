@@ -28,7 +28,7 @@ print.stream_stats <- function(x, nobs.max = 6L, ...)
 	if ( length(n) > nobs.max ) {
 		cat("nobs():", head(as.vector(n), nobs.max), " ...\n")
 	} else {
-		cat("nobs():", n)
+		cat("nobs():", n, "\n")
 	}
 }
 
@@ -64,7 +64,7 @@ group_stats <- function(x, group, reorder = TRUE)
 		ugroup <- if (reorder) sort(unique(group)) else unique(group)
 		group <- as.integer(match(group, ugroup) - 1L)
 	}
-	.Call(C_do_group_stats, x, group, as.character(ugroup))
+	.Call(C_do_group_stats, x, group, ugroup)
 }
 
 #### Matrix statistics
