@@ -92,24 +92,9 @@ Dst merge_stats(Dst dst, const Src src) noexcept
 	return dst;
 }
 
-// Used to implement dst.scatter(index, src)
-template<Stats Dst, Vec Index, Stats Src>
-Dst scatter_stats(Dst dst, const Index index, const Src src) noexcept
-{
-	assert(dst.ssize() == src.ssize());
-	for ( ptrdiff_t i = 0; i < src.ssize(); ++i )
-	{
-		if ( !is_valid(index, i) )
-			continue;
-		auto ii = index[i];
-		dst.set(ii, dst.get(ii).merge(src.get(i)));
-	}
-	return dst;
-}
-
-// Used to implement dst.scatter(index, src)
+// Used to implement dst.scatter_update(index, src)
 template<Stats Dst, Vec Index, Vec Src>
-Dst scatter_stats(Dst dst, const Index index, const Src src) noexcept
+Dst scatter_update_stats(Dst dst, const Index index, const Src src) noexcept
 {
 	assert(dst.ssize() == src.ssize());
 	for ( ptrdiff_t i = 0; i < src.ssize(); ++i )
@@ -118,6 +103,21 @@ Dst scatter_stats(Dst dst, const Index index, const Src src) noexcept
 			continue;
 		auto ii = index[i];
 		dst.set(ii, dst.get(ii).update(src[i]));
+	}
+	return dst;
+}
+
+// Used to implement dst.scatter_merge(index, src)
+template<Stats Dst, Vec Index, Stats Src>
+Dst scatter_merge_stats(Dst dst, const Index index, const Src src) noexcept
+{
+	assert(dst.ssize() == src.ssize());
+	for ( ptrdiff_t i = 0; i < src.ssize(); ++i )
+	{
+		if ( !is_valid(index, i) )
+			continue;
+		auto ii = index[i];
+		dst.set(ii, dst.get(ii).merge(src.get(i)));
 	}
 	return dst;
 }
@@ -369,11 +369,6 @@ struct stream_stats
 		n[i] = s.n;
 	}
 
-	template<Vec V>
-	void set_from(const ptrdiff_t i, V x) noexcept {
-		set(i, stream_stat<S,T,N>{}.reduce(x));
-	}
-
 	stream_stats<S,T,N> fill(stream_stat<S,T,N> value = {}) noexcept {
 		return fill_stats(*this, value);
 	}
@@ -387,20 +382,25 @@ struct stream_stats
 		return merge_stats(*this, s);
 	}
 
-	template<Vec Index>
-	stream_stats<S,T,N> scatter(
-		const Index index, 
-		const stream_stats<S,T,N> s) noexcept 
-	{
-		return scatter_stats(*this, index, s);
-	}
-
 	template<Vec Index, Vec V>
-	stream_stats<S,T,N> scatter(
+	stream_stats<S,T,N> scatter_update(
 		const Index index, 
 		const V src) noexcept 
 	{
-		return scatter_stats(*this, index, src);
+		return scatter_update_stats(*this, index, src);
+	}
+
+	template<Vec Index>
+	stream_stats<S,T,N> scatter_merge(
+		const Index index, 
+		const stream_stats<S,T,N> s) noexcept 
+	{
+		return scatter_merge_stats(*this, index, s);
+	}
+
+	template<Vec V>
+	void reduce_into(const ptrdiff_t i, V x) noexcept {
+		set(i, stream_stat<S,T,N>{}.reduce(x));
 	}
 
 	stream_stats<S,T,N> slice(bounds b) const noexcept
@@ -457,11 +457,6 @@ struct stream_stats<Mean,T,N>
 		n[i] = s.n;
 	}
 
-	template<Vec V>
-	void set_from(const ptrdiff_t i, V x) noexcept {
-		set(i, stream_stat<Mean,T,N>{}.reduce(x));
-	}
-
 	stream_stats<Mean,T,N> fill(stream_stat<Mean,T,N> value = {}) noexcept {
 		return fill_stats(*this, value);
 	}
@@ -475,20 +470,25 @@ struct stream_stats<Mean,T,N>
 		return merge_stats(*this, s);
 	}
 
-	template<Vec Index>
-	stream_stats<Mean,T,N> scatter(
-		const Index index, 
-		const stream_stats<Mean,T,N> s) noexcept 
-	{
-		return scatter_stats(*this, index, s);
-	}
-
 	template<Vec Index, Vec V>
-	stream_stats<Mean,T,N> scatter(
+	stream_stats<Mean,T,N> scatter_update(
 		const Index index, 
 		const V src) noexcept 
 	{
-		return scatter_stats(*this, index, src);
+		return scatter_update_stats(*this, index, src);
+	}
+
+	template<Vec Index>
+	stream_stats<Mean,T,N> scatter_merge(
+		const Index index, 
+		const stream_stats<Mean,T,N> s) noexcept 
+	{
+		return scatter_merge_stats(*this, index, s);
+	}
+
+	template<Vec V>
+	void reduce_into(const ptrdiff_t i, V x) noexcept {
+		set(i, stream_stat<Mean,T,N>{}.reduce(x));
 	}
 
 	stream_stats<Mean,T,N> slice(bounds b) const noexcept
@@ -547,11 +547,6 @@ struct stream_stats<Var,T,N>
 		n[i] = s.n;
 	}
 
-	template<Vec V>
-	void set_from(const ptrdiff_t i, V x) noexcept {
-		set(i, stream_stat<Var,T,N>{}.reduce(x));
-	}
-
 	stream_stats<Var,T,N> fill(stream_stat<Var,T,N> value = {}) noexcept {
 		return fill_stats(*this, value);
 	}
@@ -565,20 +560,25 @@ struct stream_stats<Var,T,N>
 		return merge_stats(*this, s);
 	}
 
-	template<Vec Index>
-	stream_stats<Var,T,N> scatter(
-		const Index index, 
-		const stream_stats<Var,T,N> s) noexcept 
-	{
-		return scatter_stats(*this, index, s);
-	}
-
 	template<Vec Index, Vec V>
-	stream_stats<Var,T,N> scatter(
+	stream_stats<Var,T,N> scatter_update(
 		const Index index, 
 		const V src) noexcept 
 	{
-		return scatter_stats(*this, index, src);
+		return scatter_update_stats(*this, index, src);
+	}
+
+	template<Vec Index>
+	stream_stats<Var,T,N> scatter_merge(
+		const Index index, 
+		const stream_stats<Var,T,N> s) noexcept 
+	{
+		return scatter_merge_stats(*this, index, s);
+	}
+
+	template<Vec V>
+	void reduce_into(const ptrdiff_t i, V x) noexcept {
+		set(i, stream_stat<Var,T,N>{}.reduce(x));
 	}
 
 	stream_stats<Var,T,N> slice(bounds b) const noexcept
@@ -855,7 +855,7 @@ struct col_stats
 				stats.update(mask(x.row(i)));
 		else
 			for ( ptrdiff_t j = 0; j < x.ncols(); ++j )
-				stats.set_from(j, mask(x.col(j)));
+				stats.reduce_into(j, mask(x.col(j)));
 	}
 
 	void operator()(bounds b, task ctx)
@@ -876,7 +876,7 @@ struct row_stats
 	{
 		if ( x.prefer_rows() )
 			for ( ptrdiff_t i = 0; i < x.nrows(); ++i )
-				stats.set_from(i, mask(x.row(i)));
+				stats.reduce_into(i, mask(x.row(i)));
 		else
 			for ( ptrdiff_t j = 0; j < x.ncols(); ++j )
 				stats.update(mask(x.col(j)));
@@ -908,7 +908,7 @@ struct col_scatter_stats
 		}
 		else
 			for ( ptrdiff_t j = 0; j < x.ncols(); ++j )
-				stats.get(j).scatter(index, mask(x.col(j)));
+				stats.get(j).scatter_update(index, mask(x.col(j)));
 	}
 
 	void operator()(bounds b, task ctx)
@@ -930,7 +930,7 @@ struct row_scatter_stats
 	{
 		if ( x.prefer_rows() )
 			for ( ptrdiff_t i = 0; i < x.nrows(); ++i )
-				stats.get(i).scatter(index, mask(x.row(i)));
+				stats.get(i).scatter_update(index, mask(x.row(i)));
 		else
 		{
 			for ( ptrdiff_t j = 0; j < x.ncols(); ++j ) {

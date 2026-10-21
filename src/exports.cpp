@@ -1286,37 +1286,37 @@ SEXP do_group_stats(SEXP x, SEXP group, SEXP ugroup)
 			{
 				auto dst = stream_stats<Sum,double,int>::from(xout);
 				auto src = stream_stats<Sum,double,int>::from(x);
-				dst.fill().scatter(r_vec<int>(group), src);
+				dst.fill().scatter_merge(r_vec<int>(group), src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
 			{
 				auto dst = stream_stats<Prod,double,int>::from(xout);
 				auto src = stream_stats<Prod,double,int>::from(x);
-				dst.fill().scatter(r_vec<int>(group), src);
+				dst.fill().scatter_merge(r_vec<int>(group), src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
 			{
 				auto dst = stream_stats<Maximum,double,int>::from(xout);
 				auto src = stream_stats<Maximum,double,int>::from(x);
-				dst.fill().scatter(r_vec<int>(group), src);
+				dst.fill().scatter_merge(r_vec<int>(group), src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
 			{
 				auto dst = stream_stats<Minimum,double,int>::from(xout);
 				auto src = stream_stats<Minimum,double,int>::from(x);
-				dst.fill().scatter(r_vec<int>(group), src);
+				dst.fill().scatter_merge(r_vec<int>(group), src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "mean") == 0 )
 			{
 				auto dst = stream_stats<Mean,double,int>::from(xout);
 				auto src = stream_stats<Mean,double,int>::from(x);
-				dst.fill().scatter(r_vec<int>(group), src);
+				dst.fill().scatter_merge(r_vec<int>(group), src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
 			{
 				auto dst = stream_stats<Var,double,int>::from(xout);
 				auto src = stream_stats<Var,double,int>::from(x);
-				dst.fill().scatter(r_vec<int>(group), src);
+				dst.fill().scatter_merge(r_vec<int>(group), src);
 			}
 			else
 				Rf_error("unsupported summary statistic");
@@ -1328,37 +1328,37 @@ SEXP do_group_stats(SEXP x, SEXP group, SEXP ugroup)
 			{
 				auto dst = stream_stats<Sum,double,double>::from(xout);
 				auto src = stream_stats<Sum,double,double>::from(x);
-				dst.fill().scatter(r_vec<int>(group), src);
+				dst.fill().scatter_merge(r_vec<int>(group), src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
 			{
 				auto dst = stream_stats<Prod,double,double>::from(xout);
 				auto src = stream_stats<Prod,double,double>::from(x);
-				dst.fill().scatter(r_vec<int>(group), src);
+				dst.fill().scatter_merge(r_vec<int>(group), src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
 			{
 				auto dst = stream_stats<Maximum,double,double>::from(xout);
 				auto src = stream_stats<Maximum,double,double>::from(x);
-				dst.fill().scatter(r_vec<int>(group), src);
+				dst.fill().scatter_merge(r_vec<int>(group), src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
 			{
 				auto dst = stream_stats<Minimum,double,double>::from(xout);
 				auto src = stream_stats<Minimum,double,double>::from(x);
-				dst.fill().scatter(r_vec<int>(group), src);
+				dst.fill().scatter_merge(r_vec<int>(group), src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "mean") == 0 )
 			{
 				auto dst = stream_stats<Mean,double,double>::from(xout);
 				auto src = stream_stats<Mean,double,double>::from(x);
-				dst.fill().scatter(r_vec<int>(group), src);
+				dst.fill().scatter_merge(r_vec<int>(group), src);
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
 			{
 				auto dst = stream_stats<Var,double,double>::from(xout);
 				auto src = stream_stats<Var,double,double>::from(x);
-				dst.fill().scatter(r_vec<int>(group), src);
+				dst.fill().scatter_merge(r_vec<int>(group), src);
 			}
 			else
 				Rf_error("unsupported summary statistic");

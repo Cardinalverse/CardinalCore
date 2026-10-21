@@ -80,10 +80,17 @@ bench::mark(sDF |> peakPick() |> peakAlign(ref=list(centroid=mzs), ppm=80))
 
 s |> 
 	peakPick() |> 
+	peakAlign(ref=list(centroid=mzs), tolerance=0.05)
+
+s |> 
+	peakPick() |> 
 	peakAlign(ref=list(mz=mzs), tolerance=0.05) |>
 	peakMerge(by="ref")
 
-s |> peakPick() |> peakAlign(ref=list(centroid=mzs), tolerance=0.045)
+s |> 
+	peakPick() |> 
+	peakGroup(tolerance=0.1) |>
+	peakMerge(by="group")
 
 intensity <- function(i) mzml$ibd$intensity[[i]]
 mz <- function(i) mzml$ibd$mz[[i]]

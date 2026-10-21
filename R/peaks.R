@@ -258,15 +258,20 @@ setMethod("peakAlign", "DataFrame",
 
 .peakMerge <- function(object, by, count = "n", ...)
 {
+	if ( by %notin% colnames(object) )
+		stop("missing column [", by, "]")
 	group <- object[,by,drop=TRUE]
-	object <- object[,setdiff(colnames(object), c(by, count)),drop=FALSE]
-	# if ( count %in% colnames(object) ) {
-	# 	nobs <- object[,count,drop=TRUE]
-	# } else {
-	# 	nobs <- 1L
-	# }
-	# stats <- stream_stats(object, nobs=nobs, stat="mean")
-	col_stats(object, stat="mean", group=group, ...)
+	if ( count %in% colnames(object) ) {
+		nobs <- object[,count,drop=TRUE]
+	} else {
+		nobs <- 1L
+	}
+	cols <- setdiff(colnames(object), c(by, count))
+	stats <- lapply(cols, function(nm) {
+		s <- stream_stats(object[,nm,drop=FALSE], nobs=nobs, stat="mean")
+		group_stats(s, group=group)
+	})
+	do.call(cbind, setNames(stats, cols))
 }
 
 setMethod("peakMerge", "matrix",

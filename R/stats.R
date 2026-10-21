@@ -8,6 +8,8 @@ stream_stats <- function(x = numeric(), nobs = 1L,
 	stat <- match.arg(stat)
 	nobs = rep_len(nobs, length(x))
 	if ( stat == "var" ) {
+		if ( any(nobs > 1L) )
+			stop("initializing nobs > 1 not supported for stat 'var'")
 		structure(rep(NA_real_, length(x)), mean=x, 
 			nobs=nobs, stat=stat, class="stream_stats")
 	} else {
