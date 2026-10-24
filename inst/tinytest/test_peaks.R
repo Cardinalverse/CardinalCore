@@ -71,8 +71,9 @@ bench::mark(peakPick(sdf))
 bench::mark(peakPick(sDF))
 
 match_to_ref(sdf$mz, ref=mzs, tolerance=0.05)
+match_to_ref(sdf["mz"], ref=list(mzs), tolerance=0.05)
 match_to_ref(sdf["mz"], ref=list(mz=mzs), tolerance=0.05)
-# match_to_ref(sdf, ref=list(mz=mzs), tolerance=0.05)
+# match_to_ref(sdf["mz"], ref=list(mzs=mzs), tolerance=0.05)
 
 s |> peakPick() |> peakAlign(ref=list(mz=mzs), tolerance=0.05)
 sdf |> peakPick() |> peakAlign(ref=list(mz=mzs), tolerance=0.05)

@@ -11,8 +11,8 @@ peaks_find <- function(y, k = 5L)
 peaks_snrs <- function(y, k = 5L,
 	noise = c("DiffMAD", "SmoothSD", "SmoothMAD"), wlen = 0L)
 {
-	k <- as.integer(min(max(3L, k), length(y)))
 	noise <- c("DiffMAD"=0L, "SmoothSD"=1L, "SmoothMAD"=2L)[match.arg(noise)]
+	k <- as.integer(min(max(3L, k), length(y)))
 	.Call(C_do_peaks_snrs, y, k, noise, wlen)
 }
 
@@ -46,10 +46,10 @@ peaks_summary <- function(y, x = seq_along(y), k = 5L,
 {
 	if ( is.unsorted(x) )
 		stop("'x' must be sorted")
+	noise <- c("DiffMAD"=0L, "SmoothSD"=1L, "SmoothMAD"=2L)[match.arg(noise)]
 	k <- as.integer(min(max(3L, k), length(y)))
 	fmax <- as.double(min(max(fmax, 0), 1))
 	wlen <- as.integer(min(max(0L, wlen), length(y)))
-	noise <- c("DiffMAD"=0L, "SmoothSD"=1L, "SmoothMAD"=2L)[match.arg(noise)]
 	.Call(C_do_peaks_summary, y, x, k, noise, wlen, fmax)
 }
 
@@ -66,19 +66,19 @@ match_to_self <- function(x, score, tolerance = 0, ppm = numeric(), ...)
 		relative=tol$relative, relative_to="table")
 	hits <- unname(split(hits$index, rep.int(rows, hits$count)))
 	# resolve matches based on score
-	grp <- vapply(hits, function(i) i[which.max(score[i])], integer(1L))
+	group <- vapply(hits, function(i) i[which.max(score[i])], integer(1L))
 	# valid hits that match to self-hits
-	selfHit <- grp == rows
-	validHit <- selfHit[grp]
+	selfHit <- group == rows
+	validHit <- selfHit[group]
 	# loop until no invalid hits
 	while ( any(!validHit) )
 	{
 		cand <- lapply(hits, intersect, which(selfHit | !validHit))
-		grp <- vapply(cand, function(i) i[which.max(score[i])], integer(1L))
-		selfHit <- grp == rows
-		validHit <- selfHit[grp]
+		group <- vapply(cand, function(i) i[which.max(score[i])], integer(1L))
+		selfHit <- group == rows
+		validHit <- selfHit[group]
 	}
-	grp
+	group
 }
 
 match_to_ref <- function(x, ref, tolerance = 0, ppm = numeric(), ...)
@@ -86,31 +86,39 @@ match_to_ref <- function(x, ref, tolerance = 0, ppm = numeric(), ...)
 	x <- as.matrix(x)
 	tol <- resolve_dx(tolerance, ppm, colnames(x))
 	if ( is.list(ref) ) {
-		# match to sparse reference
+		# check list ref names
 		if ( !is.null(names(ref)) && !is.null(tol$names) ) {
-			if ( .valid_ref_names(ref, tol$names) )
-				ref <- ref[tol$names]
+			rnames <- names(ref)
+			if ( !setequal(rnames, tol$names) )
+				stop("invalid 'ref' names [", paste0(rnames, collapse=", "),
+					"]; expected [", paste0(tol$names, collapse=", "), "]")
+			ref <- ref[tol$names]
 		}
-		grp <- msearch(x, ref, tolerance=tol$dx,
+		# match to sparse reference
+		group <- msearch(x, ref, tolerance=tol$dx,
 			relative=tol$relative, relative_to="table")
 		dims <- lengths(ref)
 		# convert per-dimension groups to a single linear group
 		if ( length(dims) > 1L ) {
 			strides <- cumprod(c(1L, dims[-length(dims)]))
-			grp <- ((grp - 1L) %*% strides) + 1L
+			group <- ((group - 1L) %*% strides) + 1L
 		}
-		grp <- as.vector(grp)
+		group <- as.vector(group)
 	} else {
 		ref <- as.matrix(ref)
+		# check matrix ref colnames
 		if ( !is.null(names(ref)) && !is.null(tol$names) ) {
-			if ( .valid_ref_names(ref, tol$names) )
-				ref <- ref[tol$names]
+			rnames <- colnames(ref)
+			if ( !setequal(rnames, tol$names) )
+				stop("invalid 'ref' names [", paste0(rnames, collapse=", "),
+					"]; expected [", paste0(tol$names, collapse=", "), "]")
+			ref <- ref[tol$names]
 		}
 		# match to dense reference
-		grp <- kdsearch_first(x, ref, tolerance=tol$dx,
+		group <- kdsearch_first(x, ref, tolerance=tol$dx,
 			relative=tol$relative, relative_to="table")
 	}
-	grp
+	group
 }
 
 resolve_dx <- function(abs, ppm = numeric(), names = NULL)
@@ -149,14 +157,6 @@ resolve_dx <- function(abs, ppm = numeric(), names = NULL)
 	dx[i] <- 1e-6 * ppm
 	relative[i] <- TRUE
 	list(dx=dx, relative=relative, names=names)
-}
-
-.valid_ref_names <- function(ref, names)
-{
-	if ( !setequal(names(ref), names) )
-		stop("invalid 'ref' names [", paste0(names(ref), collapse=", "),
-			"]; expected [", paste0(names, collapse=", "), "]")
-	TRUE
 }
 
 #### Peak pick methods
