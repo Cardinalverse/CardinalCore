@@ -24,6 +24,7 @@ export(
 	"stream_stats",
 	"merge_stats",
 	"group_stats",
+	"collapse_by",
 	"col_stats",
 	"row_stats")
 

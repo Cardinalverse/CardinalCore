@@ -45,46 +45,8 @@ peaks_summary <- function(y, x = seq_along(y), k = 5L,
 	.Call(C_do_peaks_summary, y, x, k, noise, wlen, fmax)
 }
 
-#### Peak grouping
+#### Peak matching
 ## ----------------
-
-resolve_dx <- function(abs, ppm = numeric(), names = NULL)
-{
-	k <- max(length(abs), length(ppm), length(names))
-	if ( is.list(abs) )
-		abs <- unlist(abs)
-	if ( is.list(ppm) )
-		ppm <- unlist(ppm)
-	dx <- rep(abs, length.out=k)
-	relative <- setNames(logical(k), names(dx))
-	if ( is.null(names(dx)) ) {
-		names(dx) <- names
-		names(relative) <- names
-	} else {
-		if ( is.null(names) )
-			names <- union(names(dx), names(ppm))
-		unexpected <- names(dx) %notin% names
-		if ( any(unexpected) ) {
-			badnames <- unique(names(dx)[unexpected])
-			stop("unexpected name(s) [", paste0(badnames, collapse=", "), "]")
-		}
-		unresolved <- names %notin% names(dx)
-		if ( any(unresolved) ) {
-			badnames <- unique(names[unresolved])
-			stop("unresolved name(s) [", paste0(badnames, collapse=", "), "]")
-		}
-		dx <- dx[names]
-		relative <- relative[names]
-	}
-	if ( is.null(names(ppm)) ) {
-		i <- seq_along(ppm)
-	} else {
-		i <- names(ppm)
-	}
-	dx[i] <- 1e-6 * ppm
-	relative[i] <- TRUE
-	list(dx=dx, relative=relative, names=names)
-}
 
 match_to_self <- function(x, score, tolerance = 0, ppm = numeric(), ...)
 {
@@ -141,6 +103,44 @@ match_to_ref <- function(x, ref, tolerance = 0, ppm = numeric(), ...)
 			relative=tol$relative, relative_to="table")
 	}
 	grp
+}
+
+resolve_dx <- function(abs, ppm = numeric(), names = NULL)
+{
+	k <- max(length(abs), length(ppm), length(names))
+	if ( is.list(abs) )
+		abs <- unlist(abs)
+	if ( is.list(ppm) )
+		ppm <- unlist(ppm)
+	dx <- rep(abs, length.out=k)
+	relative <- setNames(logical(k), names(dx))
+	if ( is.null(names(dx)) ) {
+		names(dx) <- names
+		names(relative) <- names
+	} else {
+		if ( is.null(names) )
+			names <- union(names(dx), names(ppm))
+		unexpected <- names(dx) %notin% names
+		if ( any(unexpected) ) {
+			badnames <- unique(names(dx)[unexpected])
+			stop("unexpected name(s) [", paste0(badnames, collapse=", "), "]")
+		}
+		unresolved <- names %notin% names(dx)
+		if ( any(unresolved) ) {
+			badnames <- unique(names[unresolved])
+			stop("unresolved name(s) [", paste0(badnames, collapse=", "), "]")
+		}
+		dx <- dx[names]
+		relative <- relative[names]
+	}
+	if ( is.null(names(ppm)) ) {
+		i <- seq_along(ppm)
+	} else {
+		i <- names(ppm)
+	}
+	dx[i] <- 1e-6 * ppm
+	relative[i] <- TRUE
+	list(dx=dx, relative=relative, names=names)
 }
 
 .valid_ref_names <- function(ref, names)
@@ -256,28 +256,27 @@ setMethod("peakAlign", "DataFrame",
 #### Peak merge methods
 ## --------------------
 
-.peakMerge <- function(object, by, count = "n", ...)
+.peakMerge <- function(object, by, stat = "mean", count = "nobs", ...)
 {
-	if ( by %notin% colnames(object) )
-		stop("missing column [", by, "]")
-	group <- object[,by,drop=TRUE]
-	if ( count %in% colnames(object) ) {
-		nobs <- object[,count,drop=TRUE]
-	} else {
-		nobs <- 1L
-	}
-	cols <- setdiff(colnames(object), c(by, count))
-	stats <- lapply(cols, function(nm) {
-		s <- stream_stats(object[,nm,drop=FALSE], nobs=nobs, stat="mean")
-		group_stats(s, group=group)
-	})
-	do.call(cbind, setNames(stats, cols))
+	merged <- collapse_by(object, by, stat=stat, count=count)
+	do.call(cbind, lapply(merged, c))
 }
 
 setMethod("peakMerge", "matrix",
-	function(object, by, count = "n", ...)
+	function(object, by, stat = "mean", count = "nobs", ...)
 {
-	.peakMerge(object, by=by, count=count, ...)
+	.peakMerge(object, by=by, stat=stat, ount=count, ...)
 })
 
+setMethod("peakMerge", "data.frame",
+	function(object, by, stat = "mean", count = "nobs", ...)
+{
+	as.data.frame(.peakMerge(object, by=by, stat=stat, ount=count, ...))
+})
+
+setMethod("peakMerge", "DataFrame",
+	function(object, by, stat = "mean", count = "nobs", ...)
+{
+	DataFrame(.peakMerge(object, by=by, stat=stat, ount=count, ...))
+})
 

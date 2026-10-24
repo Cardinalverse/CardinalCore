@@ -78,16 +78,16 @@ bench::mark(s |> peakPick() |> peakAlign(ref=list(centroid=mzs), ppm=80))
 bench::mark(sdf |> peakPick() |> peakAlign(ref=list(centroid=mzs), ppm=80))
 bench::mark(sDF |> peakPick() |> peakAlign(ref=list(centroid=mzs), ppm=80))
 
-s |> 
+sDF |> 
 	peakPick() |> 
 	peakAlign(ref=list(centroid=mzs), tolerance=0.05)
 
-s |> 
+sDF |> 
 	peakPick() |> 
 	peakAlign(ref=list(mz=mzs), tolerance=0.05) |>
 	peakMerge(by="ref")
 
-s |> 
+sDF |> 
 	peakPick() |> 
 	peakGroup(tolerance=0.5) |>
 	peakMerge(by="group")
