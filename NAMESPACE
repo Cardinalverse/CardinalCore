@@ -42,6 +42,7 @@ export(
 	"peaks_prominences",
 	"peaks_widths",
 	"peaks_areas",
+	"peaks_snrs",
 	"peaks_summary",
 	"resolve_dx",
 	"match_to_ref",

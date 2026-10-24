@@ -347,6 +347,35 @@ struct peaks
 		return n;
 	}
 
+	// Get snrs of peaks and copy into output vectors
+	template<Num Index, Num T = double>
+	ptrdiff_t snrs_into(
+		vec<Index> index,
+		vec<Index> left_end,
+		vec<Index> right_end,
+		vec<T> snrs,
+		const Noise method,
+		const ptrdiff_t wlen = 0) const noexcept
+	{
+		ptrdiff_t n = 0;
+		T global_noise = wlen > 0 ? na_value<T>() : noise(method);
+		for ( ptrdiff_t i = 0; i < ssize(); ++i )
+		{
+			if ( is_peak(i) ) {
+				index[n] = i;
+				T height = coerce_cast<T>(y[i]);
+				left_end[n] = this->left_end(i);
+				right_end[n] = this->right_end(i);
+				if ( wlen > 0 )
+					snrs[n] = snr(i, method, wlen);
+				else
+					snrs[n] = height / global_noise;
+				++n;
+			}
+		}
+		return n;
+	}
+
 	// Get prominences of peaks and copy into output vectors
 	template<Num Index, Num T = double>
 	ptrdiff_t prominences_into(

@@ -8,6 +8,14 @@ peaks_find <- function(y, k = 5L)
 	.Call(C_do_peaks_find, y, as.integer(k))
 }
 
+peaks_snrs <- function(y, k = 5L,
+	noise = c("DiffMAD", "SmoothSD", "SmoothMAD"), wlen = 0L)
+{
+	k <- as.integer(min(max(3L, k), length(y)))
+	noise <- c("DiffMAD"=0L, "SmoothSD"=1L, "SmoothMAD"=2L)[match.arg(noise)]
+	.Call(C_do_peaks_snrs, y, k, noise, wlen)
+}
+
 peaks_prominences <- function(y, k = 5L, wlen = 0L)
 {
 	k <- as.integer(min(max(3L, k), length(y)))
@@ -33,8 +41,8 @@ peaks_areas <- function(y, x = seq_along(y), k = 5L)
 }
 
 peaks_summary <- function(y, x = seq_along(y), k = 5L, 
-	noise = c("DiffMAD", "SmoothSD", "SmoothMAD"),
-	wlen = 0L, fmax = 0.5, ...)
+	noise = c("DiffMAD", "SmoothSD", "SmoothMAD"), wlen = 0L, 
+	fmax = 0.5, ...)
 {
 	if ( is.unsorted(x) )
 		stop("'x' must be sorted")
