@@ -24,12 +24,19 @@ export(
 	"stream_stats",
 	"merge_stats",
 	"group_stats",
-	"collapse_by",
 	"col_stats",
-	"row_stats")
+	"row_stats",
+	"collapse_by",
+	"resolve_named_opts")
 
 S3method("print", "stream_stats")
 S3method("nobs", "stream_stats")
+S3method("Ops", "stream_stats")
+S3method("Math", "stream_stats")
+S3method("[", "stream_stats")
+S3method("[<-", "stream_stats")
+S3method("dim<-", "stream_stats")
+S3method("t", "stream_stats")
 
 export(
 	"roll",
@@ -44,9 +51,9 @@ export(
 	"peaks_areas",
 	"peaks_snrs",
 	"peaks_summary",
-	"resolve_dx",
 	"match_to_ref",
-	"match_to_self")
+	"match_to_self",
+	"resolve_dx")
 
 exportMethods(
 	"peakPick",
