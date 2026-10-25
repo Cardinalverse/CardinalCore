@@ -266,25 +266,24 @@ setMethod("peakAlign", "DataFrame",
 
 .peakMerge <- function(object, by, stat = "mean", count = "nobs", ...)
 {
-	merged <- collapse_by(object, by, stat=stat, count=count)
-	do.call(cbind, lapply(merged, c))
+	do.call(cbind, collapse_by(object, by, stat=stat, count=count))
 }
 
 setMethod("peakMerge", "matrix",
 	function(object, by, stat = "mean", count = "nobs", ...)
 {
-	.peakMerge(object, by=by, stat=stat, ount=count, ...)
+	.peakMerge(object, by=by, stat=stat, count=count, ...)
 })
 
 setMethod("peakMerge", "data.frame",
 	function(object, by, stat = "mean", count = "nobs", ...)
 {
-	as.data.frame(.peakMerge(object, by=by, stat=stat, ount=count, ...))
+	as.data.frame(.peakMerge(object, by=by, stat=stat, count=count, ...))
 })
 
 setMethod("peakMerge", "DataFrame",
 	function(object, by, stat = "mean", count = "nobs", ...)
 {
-	DataFrame(.peakMerge(object, by=by, stat=stat, ount=count, ...))
+	DataFrame(.peakMerge(object, by=by, stat=stat, count=count, ...))
 })
 

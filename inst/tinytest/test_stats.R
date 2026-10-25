@@ -14,6 +14,8 @@ mtcars
 as.data.frame(collapse_by(mtcars, "gear", stat="mean"))
 as.data.frame(collapse_by(mtcars, "gear", stat=c(disp="mean", "max")))
 collapse_by(mtcars, "gear", stat=c(disp="mean", mpg="mean"))
+
+l <- collapse_by(mtcars, "gear", stat=c(disp="mean", mpg="mean"))
 d <- as.data.frame(collapse_by(mtcars, "gear", stat=c(disp="mean", mpg="mean")))
 # collapse_by(mtcars, "gear", stat=c(disp="mean", disp="mean"))
 
