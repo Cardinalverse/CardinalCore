@@ -1,7 +1,7 @@
 require(CardinalCore, quietly=TRUE)
 require(tinytest, quietly=TRUE)
 
-# stream_stats methods
+# stream_stats
 x <- stream_stats(runif(10L), stat="mean")
 y <- stream_stats(runif(10L), stat="var")
 dim(x) <- c(5,2)
@@ -38,78 +38,52 @@ x <- runif(n)
 y <- runif(n)
 gx <- sample(6L, n, replace=TRUE)
 gy <- sample(6L, n, replace=TRUE)
-s1x <- group_stats(x, group=gx, stat="mean")
-s1y <- group_stats(y, group=gy, stat="mean")
-expect_equal(c(s1x), c(tapply(x, gx, mean)))
-expect_equal(c(s1y), c(tapply(y, gy, mean)))
-expect_equal(c(merge_stats(s1x, s1y)), c(tapply(c(x, y), c(gx, gy), mean)))
-s2x <- group_stats(x, group=gx, stat="var")
-s2y <- group_stats(y, group=gy, stat="var")
-expect_equal(c(s2x), c(tapply(x, gx, var)))
-expect_equal(c(s2y), c(tapply(y, gy, var)))
-expect_equal(c(merge_stats(s2x, s2y)), c(tapply(c(x, y), c(gx, gy), var)))
+s1x <- group_stats(x, gx, stat="sum")
+s1y <- group_stats(y, gy, stat="sum")
+expect_equal(c(s1x), c(tapply(x, gx, sum)))
+expect_equal(c(s1y), c(tapply(y, gy, sum)))
+expect_equal(c(merge_stats(s1x, s1y)), c(tapply(c(x, y), c(gx, gy), sum)))
+s2x <- group_stats(x, gx, stat="mean")
+s2y <- group_stats(y, gy, stat="mean")
+expect_equal(c(s2x), c(tapply(x, gx, mean)))
+expect_equal(c(s2y), c(tapply(y, gy, mean)))
+expect_equal(c(merge_stats(s2x, s2y)), c(tapply(c(x, y), c(gx, gy), mean)))
+s3x <- group_stats(x, gx, stat="var")
+s3y <- group_stats(y, gy, stat="var")
+expect_equal(c(s3x), c(tapply(x, gx, var)))
+expect_equal(c(s3y), c(tapply(y, gy, var)))
+expect_equal(c(merge_stats(s3x, s3y)), c(tapply(c(x, y), c(gx, gy), var)))
 
-mtcars
-as.data.frame(collapse_by(mtcars, "gear", stat="mean"))
-as.data.frame(collapse_by(mtcars, "gear", stat=c(disp="mean", "max")))
-collapse_by(mtcars, "gear", stat=c(disp="mean", mpg="mean"))
-
-l <- collapse_by(mtcars, "gear", stat=c(disp="mean", mpg="mean"))
-d <- as.data.frame(collapse_by(mtcars, "gear", stat=c(disp="mean", mpg="mean")))
-# collapse_by(mtcars, "gear", stat=c(disp="mean", disp="mean"))
-
-# Setup example matrix
+# col_stats and row_stats
 set.seed(1)
-nr <- 1e6
-nc <- 128
+nr <- 1000L
+nc <- 32L
 x <- matrix(runif(nr * nc), nrow=nr, ncol=nc)
-g <- sample(8, nrow(x), replace=TRUE)
-
-c2 <- function(x) {
-	attributes(x) <- attributes(x)[c("dim", "dimnames")]
-	x
-}
-
-expect_equal(c(col_stats(x, "sum")), colSums(x, na.rm=TRUE))
-bench::mark(c(col_stats(x, "sum")), colSums(x, na.rm=TRUE))
-bench::mark(c(col_stats(x, "sum", num.threads=2)), colSums(x, na.rm=TRUE))
-bench::mark(c(col_stats(x, "sum", num.threads=4)), colSums(x, na.rm=TRUE))
-
-expect_equal(c(col_stats(x, "mean")), colMeans(x, na.rm=TRUE))
-bench::mark(c(col_stats(x, "mean")), colMeans(x, na.rm=TRUE))
-bench::mark(c(col_stats(x, "mean", num.threads=2)), colMeans(x, na.rm=TRUE))
-bench::mark(c(col_stats(x, "mean", num.threads=4)), colMeans(x, na.rm=TRUE))
-
-expect_equal(c(col_stats(x, "var")), apply(x, 2, var, na.rm=TRUE))
-bench::mark(c(col_stats(x, "var")), apply(x, 2, var, na.rm=TRUE))
-bench::mark(c(col_stats(x, "var", num.threads=2)), apply(x, 2, var, na.rm=TRUE))
-bench::mark(c(col_stats(x, "var", num.threads=4)), apply(x, 2, var, na.rm=TRUE))
-
-expect_equal(c2(col_stats(x, "sum", group=g)), rowsum(x, group=g))
-bench::mark(c2(col_stats(x, "sum", group=g, num.threads=1)), rowsum(x, group=g))
-bench::mark(c2(col_stats(x, "sum", group=g, num.threads=2)), rowsum(x, group=g))
-bench::mark(c2(col_stats(x, "sum", group=g, num.threads=4)), rowsum(x, group=g))
-
-xt <- t(x)
-expect_equal(c(row_stats(xt, "sum")), rowSums(xt, na.rm=TRUE))
-bench::mark(c(row_stats(xt, "sum")), rowSums(xt, na.rm=TRUE))
-bench::mark(c(row_stats(xt, "sum", num.threads=2)), rowSums(xt, na.rm=TRUE))
-bench::mark(c(row_stats(xt, "sum", num.threads=4)), rowSums(xt, na.rm=TRUE))
-
-xt <- t(x)
-expect_equal(c2(row_stats(xt, "sum", group=g)), rowsum(x, group=g))
-bench::mark(c2(row_stats(xt, "sum", group=g, num.threads=1)), rowsum(x, group=g))
-bench::mark(c2(row_stats(xt, "sum", group=g, num.threads=2)), rowsum(x, group=g))
-bench::mark(c2(row_stats(xt, "sum", group=g, num.threads=4)), rowsum(x, group=g))
-
-# test expression templates
-test <- function(x, i) {
-	.Call(CardinalCore:::C_do_test_expression, x, i)
-}
-x <- runif(1e6)
-i <- sample(1e3)
-i0 <- i - 1L
-expect_equal(log1p(x + x)[i], test(x, i0))
-
-bench::mark(log1p(x + x)[i], test(x, i0))
+gr <- sample(6L, nr, replace=TRUE)
+gc <- sample(6L, nc, replace=TRUE)
+f <- function(INDEX, FUN) function(x) tapply(x, INDEX, FUN)
+expect_equal(c(col_stats(x, "sum")), colSums(x))
+expect_equal(c(row_stats(x, "sum")), rowSums(x))
+expect_equal(c(col_stats(x, "mean")), colMeans(x))
+expect_equal(c(row_stats(x, "mean")), rowMeans(x))
+expect_equal(c(col_stats(x, "var")), apply(x, 2L, var))
+expect_equal(c(row_stats(x, "var")), apply(x, 1L, var))
+expect_equal(
+	cbind(col_stats(x, "sum", group=gr)), 
+	apply(x, 2L, f(gr, sum)))
+expect_equal(
+	cbind(row_stats(x, "sum", group=gc)), 
+	apply(x, 1L, f(gc, sum)))
+expect_equal(
+	cbind(col_stats(x, "mean", group=gr)), 
+	apply(x, 2L, f(gr, mean)))
+expect_equal(
+	cbind(row_stats(x, "mean", group=gc)), 
+	apply(x, 1L, f(gc, mean)))
+expect_equal(
+	cbind(col_stats(x, "var", group=gr)), 
+	apply(x, 2L, f(gr, var)))
+expect_equal(
+	cbind(row_stats(x, "var", group=gc)), 
+	apply(x, 1L, f(gc, var)))
 
