@@ -1,6 +1,7 @@
 
 #### Binary search
 ## ----------------
+
 bsearch <- function(
 	query,
 	table,
@@ -125,8 +126,8 @@ msearch_last <- function(query, table, ...)
 	msearch_agg(query, table, lapply(table, seq_along), stat="max", ...)
 }
 
-#### Kd-tree search
-## ----------------
+#### Kd-tree range search
+## ----------------------
 
 kdtree <- function(table)
 {
@@ -142,6 +143,7 @@ kdsearch <- function(
 	relative = !missing(relative_to),
 	relative_to = c("query", "table"),
 	nomatch = NA_integer_,
+	split = TRUE,
 	num.threads = 0)
 {
 	query <- as.matrix(query)
@@ -160,8 +162,17 @@ kdsearch <- function(
 	tolerance <- as.double(rep_len(tolerance, ncol(table$table)))
 	relative <- as.logical(rep_len(relative, ncol(table$table)))
 	referent <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
-	.Call(C_do_kdtree_range_search, query, table,
+	hits <- .Call(C_do_kdtree_range_search, query, table,
 		tolerance, relative, referent, as.integer(num.threads))
+	if ( split ) {
+		if ( is.null(rownames(query)) ) {
+			f <- rep.int(seq_len(nrow(query)), hits$count)
+		} else {
+			f <- rep.int(rownames(query), hits$count)
+		}
+		hits <- setNames(split(hits$index, f), rownames(query))
+	}
+	hits
 }
 
 kdsearch_agg <- function(
@@ -208,11 +219,15 @@ kdsearch_last <- function(query, table, ...)
 	kdsearch_agg(query, table, seq_len(nrow(table)), stat="max", ...)
 }
 
+#### Kd-tree neighbor search
+## -------------------------
+
 knnsearch <- function(
 	query,
 	table,
 	k = 1L,
 	metric = c("Euclidean", "Manhattan", "Maximum"),
+	split = TRUE,
 	num.threads = 0)
 {
 	query <- as.matrix(query)
@@ -227,7 +242,18 @@ knnsearch <- function(
 	k <- rep_len(as.integer(k), nrow(query))
 	metric <- match.arg(metric)
 	metric <- c("Manhattan"=0L, "Euclidean"=1L, "Maximum"=2L)[metric]
-	.Call(C_do_kdtree_knn_search, query, table, k,
+	hits <- .Call(C_do_kdtree_knn_search, query, table, k,
 		metric, as.integer(num.threads))
+	if ( split ) {
+		if ( is.null(rownames(query)) ) {
+			f <- rep.int(seq_len(nrow(query)), hits$count)
+		} else {
+			f <- rep.int(rownames(query), hits$count)
+		}
+		index <- setNames(split(hits$index, f), rownames(query))
+		distance <- setNames(split(hits$distance, f), rownames(query))
+		hits <- list(index=index, distance=distance)
+	}
+	hits
 }
 

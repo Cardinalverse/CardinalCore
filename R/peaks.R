@@ -64,7 +64,6 @@ match_to_self <- function(x, score, tolerance = 0, ppm = numeric(), ...)
 	rows <- seq_len(nrow(x))
 	hits <- kdsearch(x, x, tolerance=tol$dx,
 		relative=tol$relative, relative_to="table")
-	hits <- unname(split(hits$index, rep.int(rows, hits$count)))
 	# resolve matches based on score
 	group <- vapply(hits, function(i) i[which.max(score[i])], integer(1L))
 	# valid hits that match to self-hits
