@@ -65,7 +65,7 @@ Math.stream_stats <- function(e1, e2) .unclass_stream_stats(NextMethod())
 		value <- stream_stats(value, stat=attr(x, "stat"))
 	attr(out, "nobs")[...] <- attr(value, "nobs")
 	if ( attr(x, "stat") == "var" )
-		dim(attr(out, "mean"))[...] <- attr(value, "mean")
+		attr(out, "mean")[...] <- attr(value, "mean")
 	attr(out, "group") <- NULL
 	out
 }

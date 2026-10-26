@@ -278,7 +278,7 @@ struct stream_stat<Var,T,N>
 		if ( n > 1 ) {
 			if ( s.n > 1 )
 			{
-				N nn = (n * s.n) / (n + s.n);
+				T nn = static_cast<T>(n * s.n) / static_cast<T>(n + s.n);
 				T mm = (mean - s.mean) * (mean - s.mean);
 				T ssa = (n - 1) * var;
 				T ssb = (s.n - 1) * s.var;
@@ -286,7 +286,7 @@ struct stream_stat<Var,T,N>
 				return {
 					.var = ssnew / (n + s.n - 1),
 					.mean = ((n * mean) + (s.n * s.mean)) / (n + s.n),
-					.n = n + s.n,
+					.n = static_cast<N>(n + s.n),
 				};
 			}
 			else if ( s.n == 1 )
