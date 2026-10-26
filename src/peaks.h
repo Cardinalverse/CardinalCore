@@ -176,12 +176,11 @@ struct peaks
 	ptrdiff_t left_end(ptrdiff_t i) const noexcept
 	{
 		assert(is_peak(i));
-		ptrdiff_t end = clamp(i - 1, 0, ssize() - 1);
+		ptrdiff_t end = clamp(i, 0, ssize() - 1);
 		while ( i > 0 && i >= end - (k / 2) )
 		{
-			if ( diff(y[i], y[end]) < 0 )
+			if ( diff(y[--i], y[end]) < 0 )
 				end = i;
-			--i;
 		}
 		return end;
 	}
@@ -190,12 +189,11 @@ struct peaks
 	ptrdiff_t right_end(ptrdiff_t i) const noexcept
 	{
 		assert(is_peak(i));
-		ptrdiff_t end = clamp(i + 1, 0, ssize() - 1);
+		ptrdiff_t end = clamp(i, 0, ssize() - 1);
 		while ( i < ssize() - 1 && i <= end + (k / 2) )
 		{
-			if ( diff(y[i], y[end]) < 0 )
+			if ( diff(y[++i], y[end]) < 0 )
 				end = i;
-			++i;
 		}
 		return end;
 	}
@@ -243,19 +241,23 @@ struct peaks
 	T left_ips(ptrdiff_t i, double fmax = 0.5) const noexcept
 	{
 		assert(is_peak(i));
-		ptrdiff_t j = clamp(i - 1, 0, ssize() - 1);
-		while ( j >= 0 )
+		T yf = fmax * y[i];
+		if ( yf > 0 )
 		{
-			T fheight = fmax * y[i];
-			if ( y[j] < fheight )
+			while ( i > 0 )
 			{
-				T t = (fheight - y[j]) / (y[j + 1] - y[j]);
-				return x[j] + (t * (x[j + 1] - x[j]));
+				T y0 = y[i - 1];
+				T y1 = y[i];
+				if ( y0 <= yf && yf <= y1 )
+				{
+					T t = (yf - y0) / (y1 - y0);
+					return x[i - 1] + (t * (x[i] - x[i - 1]));
+				}
+				else
+					--i;
 			}
-			else
-				--j;
 		}
-		return x[j];
+		return x[i];
 	}
 
 	// Find right intersection at a fraction of the max of peak i
@@ -263,19 +265,23 @@ struct peaks
 	T right_ips(ptrdiff_t i, double fmax = 0.5) const noexcept
 	{
 		assert(is_peak(i));
-		ptrdiff_t j = clamp(i + 1, 0, ssize() - 1);
-		while ( j < ssize() )
+		T yf = fmax * y[i];
+		if ( yf > 0 )
 		{
-			T fheight = fmax * y[i];
-			if ( y[j] < fheight )
+			while ( i < ssize() - 1 )
 			{
-				T t = (fheight - y[j - 1]) / (y[j] - y[j - 1]);
-				return x[j - 1] + (t * (x[j] - x[j - 1]));
+				T y0 = y[i];
+				T y1 = y[i + 1];
+				if ( y0 >= yf && yf >= y1 )
+				{
+					T t = (yf - y0) / (y1 - y0);
+					return x[i] + (t * (x[i + 1] - x[i]));
+				}
+				else
+					++i;
 			}
-			else
-				++j;
 		}
-		return x[j];
+		return x[i];
 	}
 
 	// Get global noise level
