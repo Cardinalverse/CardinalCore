@@ -81,7 +81,14 @@ expect_equal(ks2b[[1L]], c(2L, 5L, 6L, 8L))
 expect_equal(ks2c, c(ks2a, ks2b))
 
 # kdtree knn search
-knnsearch(c(2,3,3), d1, k=3)
-knnsearch(c(7,2,6), d1, k=3)
-knnsearch(rbind(c(2,3,3), c(7,2,6)), d1, k=3)
+kn1a <- knnsearch(t(c(2,3,3)), d1, k=3)
+kn1b <- knnsearch(t(c(7,2,6)), d1, k=3)
+kn1c <- knnsearch(rbind(c(2,3,3), c(7,2,6)), d1, k=3)
+expect_equal(kn1a$index[[1L]], c(1L, 14L, 11L))
+expect_equal(kn1b$index[[1L]], c(6L, 5L, 3L))
+expect_equal(kn1c$index, c(kn1a$index, kn1b$index))
+kn2 <- knnsearch(rbind(c(2,3,3), c(7,2,6)), d1, k=c(2,3))
+kn3 <- knnsearch(rbind(c(2,3,3), c(7,2,6)), d1, k=c(3,2))
+expect_equal(kn2$index[[1L]], kn3$index[[1L]][1:2])
+expect_equal(kn3$index[[2L]], kn2$index[[2L]][1:2])
 
