@@ -15,6 +15,10 @@ expect_equal(i1, c(4, 7, 13))
 expect_equal(i2, c(4, 7, 11))
 expect_equal(i3, 5)
 
+peaks_snrs(y1)
+peaks_snrs(y2)
+peaks_snrs(y3)
+
 p1 <- peaks_prominences(y1)
 p2 <- peaks_prominences(y2)
 p3 <- peaks_prominences(y3)
@@ -23,10 +27,6 @@ expect_equal(p1$right_base, c(5, 10, 14))
 expect_equal(p1$prominence, c(1, 1, 3))
 expect_equal(p2$prominence, c(1, 1, 3))
 expect_equal(p3$prominence, 1)
-
-peaks_snrs(y1)
-peaks_snrs(y2)
-peaks_snrs(y3)
 
 as.data.frame(peaks_summary(y1))
 as.data.frame(peaks_summary(y2))
@@ -55,7 +55,7 @@ mzs <- seq(from=mzr[1], to=mzr[2], by=0.1)
 
 head(peakGroup(s, tolerance=c(mz=0.05)))
 head(peakGroup(sdf, tolerance=0.05))
-peakGroup(sDF, tolerance=0.05)
+peakGroup(sDF, tolerance=0.05) |> peakMerge(by="group")
 
 pdf <- peakPick(sdf)
 row.names(pdf) <- NULL

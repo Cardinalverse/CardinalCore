@@ -24,6 +24,32 @@ expect_equal(bsearch(3.0, x, tolerance=0.111, relative_to="query"), 3)
 expect_equal(bsearch(3.0, x, tolerance=0.111, relative_to="table"), 3)
 expect_equal(bsearch((-1):1, numeric(), tolerance=0.1), rep(NA_integer_, 3L))
 
+# bsearch_agg on integers
+set.seed(1)
+q <- sort(sample(100, 3))
+x <- sort(sample(100))
+v <- sample(100L)
+f <- function(tol) lapply(q, function(qi) v[which(abs(qi - x) <= tol)])
+expect_equal(bsearch_agg(q, x, v, "sum"), sapply(f(0.0), sum))
+expect_equal(bsearch_agg(q, x, v, "mean"), sapply(f(0.0), mean))
+expect_equal(bsearch_agg(q, x, v, "var"), sapply(f(0.0), var))
+expect_equal(bsearch_agg(q, x, v, "sum", tolerance=5.0), sapply(f(5.0), sum))
+expect_equal(bsearch_agg(q, x, v, "mean", tolerance=5.0), sapply(f(5.0), mean))
+expect_equal(bsearch_agg(q, x, v, "var", tolerance=5.0), sapply(f(5.0), var))
+
+# bsearch_agg on doubles
+set.seed(1)
+q <- sort(runif(100))
+x <- sort(runif(100))
+v <- runif(100L)
+f <- function(tol) lapply(q, function(qi) v[which(abs(qi - x) <= tol)])
+expect_equal(bsearch_agg(q, x, v, "sum"), sapply(f(0.0), sum))
+expect_equal(bsearch_agg(q, x, v, "mean"), sapply(f(0.0), mean))
+expect_equal(bsearch_agg(q, x, v, "var"), sapply(f(0.0), var))
+expect_equal(bsearch_agg(q, x, v, "sum", tolerance=5.0), sapply(f(5.0), sum))
+expect_equal(bsearch_agg(q, x, v, "mean", tolerance=5.0), sapply(f(5.0), mean))
+expect_equal(bsearch_agg(q, x, v, "var", tolerance=5.0), sapply(f(5.0), var))
+
 # kdtree build
 d1 <- data.frame(
 	x=c(2,5,9,4,8,7,9,8,9,6,3,1,9,2,8),
