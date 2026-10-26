@@ -42,17 +42,23 @@ s1x <- group_stats(x, gx, stat="sum")
 s1y <- group_stats(y, gy, stat="sum")
 expect_equal(c(s1x), c(tapply(x, gx, sum)))
 expect_equal(c(s1y), c(tapply(y, gy, sum)))
-expect_equal(c(merge_stats(s1x, s1y)), c(tapply(c(x, y), c(gx, gy), sum)))
+expect_equal(
+	c(merge_stats(s1x, s1y)), 
+	c(tapply(c(x, y), c(gx, gy), sum)))
 s2x <- group_stats(x, gx, stat="mean")
 s2y <- group_stats(y, gy, stat="mean")
 expect_equal(c(s2x), c(tapply(x, gx, mean)))
 expect_equal(c(s2y), c(tapply(y, gy, mean)))
-expect_equal(c(merge_stats(s2x, s2y)), c(tapply(c(x, y), c(gx, gy), mean)))
+expect_equal(
+	c(merge_stats(s2x, s2y)), 
+	c(tapply(c(x, y), c(gx, gy), mean)))
 s3x <- group_stats(x, gx, stat="var")
 s3y <- group_stats(y, gy, stat="var")
 expect_equal(c(s3x), c(tapply(x, gx, var)))
 expect_equal(c(s3y), c(tapply(y, gy, var)))
-expect_equal(c(merge_stats(s3x, s3y)), c(tapply(c(x, y), c(gx, gy), var)))
+expect_equal(
+	c(merge_stats(s3x, s3y)), 
+	c(tapply(c(x, y), c(gx, gy), var)))
 
 # col_stats and row_stats
 set.seed(1)
@@ -86,4 +92,20 @@ expect_equal(
 expect_equal(
 	cbind(row_stats(x, "var", group=gc)), 
 	apply(x, 1L, f(gc, var)))
+
+# collapse_by
+set.seed(1)
+n <- 100L
+df <- data.frame(
+	x=runif(n), 
+	y=runif(n), 
+	g=sample(6L, n, replace=TRUE))
+dfs1 <- collapse_by(df, "g", stat="sum")
+dfs2 <- collapse_by(df, "g", stat=c(x="mean", y="var"))
+expect_equal(c(dfs1$nobs), c(table(df$g)))
+expect_equal(c(dfs2$nobs), c(table(df$g)))
+expect_equal(c(dfs1$x), c(tapply(df$x, df$g, sum)))
+expect_equal(c(dfs1$y), c(tapply(df$y, df$g, sum)))
+expect_equal(c(dfs2$x), c(tapply(df$x, df$g, mean)))
+expect_equal(c(dfs2$y), c(tapply(df$y, df$g, var)))
 
