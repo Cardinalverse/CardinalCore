@@ -79,6 +79,8 @@ concept Masked = Vec<Mask> &&
 template<Vec V>
 constexpr bool is_valid(V& v, ptrdiff_t i)
 {
+	if ( i < 0 || v.ssize() <= i )
+		return false;
 	if constexpr ( Masked<V> )
 		return v.is_valid(i);
 	else

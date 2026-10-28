@@ -624,7 +624,7 @@ struct nstream_stats
 			return n.nrows();
 	}
 
-	ptrdiff_t nchannels(ptrdiff_t i) const noexcept
+	ptrdiff_t nchannels() const noexcept
 	{
 		if constexpr ( Channels == Rows )
 			return n.nrows();
@@ -692,7 +692,7 @@ struct nstream_stats<Mean,T,N,Channels>
 			return n.nrows();
 	}
 
-	ptrdiff_t nchannels(ptrdiff_t i) const noexcept
+	ptrdiff_t nchannels() const noexcept
 	{
 		if constexpr ( Channels == Rows )
 			return n.nrows();
@@ -761,7 +761,7 @@ struct nstream_stats<Var,T,N,Channels>
 			return n.nrows();
 	}
 
-	ptrdiff_t nchannels(ptrdiff_t i) const noexcept
+	ptrdiff_t nchannels() const noexcept
 	{
 		if constexpr ( Channels == Rows )
 			return n.nrows();
