@@ -223,8 +223,67 @@ void bsearch_aggregate(
 		aggregate{&stat, values}(b);
 		agg[i] = stat.get();
 	}
-}
-	
+};
+
+// Binary search kernel
+template<Num Index, Vec L, Vec R>
+struct binary_searches
+{
+	vec<Index> index; // out
+	L query;          // in
+	R table;          // in
+	double tolerance; // in
+	bool relative;    // in
+	Ref referent;     // in
+	Index nomatch;    // in
+
+	ptrdiff_t ssize() const { return query.ssize(); }
+
+	void operator()(bounds b, task ctx)
+	{
+		assert(index.ssize() == query.ssize());
+		bsearch(
+			index.slice(b),
+			query.slice(b),
+			table,
+			tolerance,
+			relative,
+			referent,
+			nomatch);
+	}
+};
+
+// Binary search aggregation kernel
+template<Summary S, Num Out, Num In, Num Index, Vec L, Vec R>
+struct binary_aggregate
+{
+	vec<Out> agg;                  // out
+	L query;                       // in
+	R table;                       // in
+	vec<In> values;                // in
+	stream_stat<S,Out,Index> stat; // in
+	double tolerance;              // in
+	bool relative;                 // in
+	Ref referent;                  // in
+
+	ptrdiff_t ssize() const { return query.ssize(); }
+
+	void operator()(bounds b, task ctx)
+	{
+		assert(agg.ssize() == query.ssize());
+		assert(table.ssize() == values.ssize());
+		bsearch_aggregate(
+			agg.slice(b),
+			query.slice(b),
+			table,
+			values,
+			stat,
+			tolerance,
+			relative,
+			referent);
+	}
+};
+
 //// K-D search
 //--------------
 
@@ -590,7 +649,7 @@ struct range_searches
 	}
 };
 
-// Range aggregation kernel
+// Range search aggregation kernel
 template<Summary S, Num Out, Num In, Num Index, Num T, Vec Tol, Vec Rel>
 struct range_aggregate
 {
@@ -649,5 +708,6 @@ struct knn_searches
 		}
 	}
 };
+
 
 #endif // CARDINAL_CORE_SEARCH

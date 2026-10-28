@@ -118,7 +118,8 @@ SEXP do_bsearch(
 	SEXP tolerance,
 	SEXP relative,
 	SEXP referent,
-	SEXP nomatch)
+	SEXP nomatch,
+	SEXP num_threads)
 {
 	if ( TYPEOF(query) != TYPEOF(table) )
 		Rf_error("'query' and 'table' must have the same data type");
@@ -126,24 +127,30 @@ SEXP do_bsearch(
 	switch(TYPEOF(table))
 	{
 		case INTSXP:
-			bsearch(
-				r_vec<int>(index),
-				r_vec<int>(query),
-				r_vec<int>(table),
-				Rf_asReal(tolerance),
-				Rf_asLogical(relative),
-				static_cast<Ref>(Rf_asInteger(referent)),
-				Rf_asInteger(nomatch));
+			compute(
+				binary_searches{
+					r_vec<int>(index),
+					r_vec<int>(query),
+					r_vec<int>(table),
+					Rf_asReal(tolerance),
+					static_cast<bool>(Rf_asLogical(relative)),
+					static_cast<Ref>(Rf_asInteger(referent)),
+					Rf_asInteger(nomatch),
+				},
+				Rf_asInteger(num_threads));
 			break;
 		case REALSXP:
-			bsearch(
-				r_vec<int>(index),
-				r_vec<double>(query),
-				r_vec<double>(table),
-				Rf_asReal(tolerance),
-				Rf_asLogical(relative),
-				static_cast<Ref>(Rf_asInteger(referent)),
-				Rf_asInteger(nomatch));
+			compute(
+				binary_searches{
+					r_vec<int>(index),
+					r_vec<double>(query),
+					r_vec<double>(table),
+					Rf_asReal(tolerance),
+					static_cast<bool>(Rf_asLogical(relative)),
+					static_cast<Ref>(Rf_asInteger(referent)),
+					Rf_asInteger(nomatch),
+				},
+				Rf_asInteger(num_threads));
 			break;
 		default:
 			Rf_error("'query' and 'table' must be integer or double");
@@ -160,7 +167,8 @@ SEXP do_bsearch_aggregate(
 	SEXP stat,
 	SEXP tolerance,
 	SEXP relative,
-	SEXP referent)
+	SEXP referent,
+	SEXP num_threads)
 {
 	if ( TYPEOF(query) != TYPEOF(table) )
 		Rf_error("'query' and 'table' must have the same data type");
@@ -171,75 +179,93 @@ SEXP do_bsearch_aggregate(
 		{
 			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
 			{
-				bsearch_aggregate(
-					r_vec<double>(agg),
-					r_vec<int>(query),
-					r_vec<int>(table),
-					r_vec<double>(values),
-					stream_stat<Sum,double,int>{},
-					Rf_asReal(tolerance),
-					Rf_asLogical(relative),
-					static_cast<Ref>(Rf_asInteger(referent)));
+				compute(
+					binary_aggregate{
+						r_vec<double>(agg),
+						r_vec<int>(query),
+						r_vec<int>(table),
+						r_vec<double>(values),
+						stream_stat<Sum,double,int>{},
+						Rf_asReal(tolerance),
+						static_cast<bool>(Rf_asLogical(relative)),
+						static_cast<Ref>(Rf_asInteger(referent)),
+					},
+					Rf_asInteger(num_threads));
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
 			{
-				bsearch_aggregate(
-					r_vec<double>(agg),
-					r_vec<int>(query),
-					r_vec<int>(table),
-					r_vec<double>(values),
-					stream_stat<Prod,double,int>{},
-					Rf_asReal(tolerance),
-					Rf_asLogical(relative),
-					static_cast<Ref>(Rf_asInteger(referent)));
+				compute(
+					binary_aggregate{
+						r_vec<double>(agg),
+						r_vec<int>(query),
+						r_vec<int>(table),
+						r_vec<double>(values),
+						stream_stat<Prod,double,int>{},
+						Rf_asReal(tolerance),
+						static_cast<bool>(Rf_asLogical(relative)),
+						static_cast<Ref>(Rf_asInteger(referent)),
+					},
+					Rf_asInteger(num_threads));
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
 			{
-				bsearch_aggregate(
-					r_vec<double>(agg),
-					r_vec<int>(query),
-					r_vec<int>(table),
-					r_vec<double>(values),
-					stream_stat<Minimum,double,int>{},
-					Rf_asReal(tolerance),
-					Rf_asLogical(relative),
-					static_cast<Ref>(Rf_asInteger(referent)));
+				compute(
+					binary_aggregate{
+						r_vec<double>(agg),
+						r_vec<int>(query),
+						r_vec<int>(table),
+						r_vec<double>(values),
+						stream_stat<Minimum,double,int>{},
+						Rf_asReal(tolerance),
+						static_cast<bool>(Rf_asLogical(relative)),
+						static_cast<Ref>(Rf_asInteger(referent)),
+					},
+					Rf_asInteger(num_threads));
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
 			{
-				bsearch_aggregate(
-					r_vec<double>(agg),
-					r_vec<int>(query),
-					r_vec<int>(table),
-					r_vec<double>(values),
-					stream_stat<Maximum,double,int>{},
-					Rf_asReal(tolerance),
-					Rf_asLogical(relative),
-					static_cast<Ref>(Rf_asInteger(referent)));
+				compute(
+					binary_aggregate{
+						r_vec<double>(agg),
+						r_vec<int>(query),
+						r_vec<int>(table),
+						r_vec<double>(values),
+						stream_stat<Maximum,double,int>{},
+						Rf_asReal(tolerance),
+						static_cast<bool>(Rf_asLogical(relative)),
+						static_cast<Ref>(Rf_asInteger(referent)),
+					},
+					Rf_asInteger(num_threads));
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "mean") == 0 )
 			{
-				bsearch_aggregate(
-					r_vec<double>(agg),
-					r_vec<int>(query),
-					r_vec<int>(table),
-					r_vec<double>(values),
-					stream_stat<Mean,double,int>{},
-					Rf_asReal(tolerance),
-					Rf_asLogical(relative),
-					static_cast<Ref>(Rf_asInteger(referent)));
+				compute(
+					binary_aggregate{
+						r_vec<double>(agg),
+						r_vec<int>(query),
+						r_vec<int>(table),
+						r_vec<double>(values),
+						stream_stat<Mean,double,int>{},
+						Rf_asReal(tolerance),
+						static_cast<bool>(Rf_asLogical(relative)),
+						static_cast<Ref>(Rf_asInteger(referent)),
+					},
+					Rf_asInteger(num_threads));
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
 			{
-				bsearch_aggregate(
-					r_vec<double>(agg),
-					r_vec<int>(query),
-					r_vec<int>(table),
-					r_vec<double>(values),
-					stream_stat<Var,double,int>{},
-					Rf_asReal(tolerance),
-					Rf_asLogical(relative),
-					static_cast<Ref>(Rf_asInteger(referent)));
+				compute(
+					binary_aggregate{
+						r_vec<double>(agg),
+						r_vec<int>(query),
+						r_vec<int>(table),
+						r_vec<double>(values),
+						stream_stat<Var,double,int>{},
+						Rf_asReal(tolerance),
+						static_cast<bool>(Rf_asLogical(relative)),
+						static_cast<Ref>(Rf_asInteger(referent)),
+					},
+					Rf_asInteger(num_threads));
 			}
 			break;
 		}
@@ -247,75 +273,93 @@ SEXP do_bsearch_aggregate(
 		{
 			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
 			{
-				bsearch_aggregate(
-					r_vec<double>(agg),
-					r_vec<double>(query),
-					r_vec<double>(table),
-					r_vec<double>(values),
-					stream_stat<Sum,double,int>{},
-					Rf_asReal(tolerance),
-					Rf_asLogical(relative),
-					static_cast<Ref>(Rf_asInteger(referent)));
+				compute(
+					binary_aggregate{
+						r_vec<double>(agg),
+						r_vec<double>(query),
+						r_vec<double>(table),
+						r_vec<double>(values),
+						stream_stat<Sum,double,int>{},
+						Rf_asReal(tolerance),
+						static_cast<bool>(Rf_asLogical(relative)),
+						static_cast<Ref>(Rf_asInteger(referent)),
+					},
+					Rf_asInteger(num_threads));
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
 			{
-				bsearch_aggregate(
-					r_vec<double>(agg),
-					r_vec<double>(query),
-					r_vec<double>(table),
-					r_vec<double>(values),
-					stream_stat<Prod,double,int>{},
-					Rf_asReal(tolerance),
-					Rf_asLogical(relative),
-					static_cast<Ref>(Rf_asInteger(referent)));
+				compute(
+					binary_aggregate{
+						r_vec<double>(agg),
+						r_vec<double>(query),
+						r_vec<double>(table),
+						r_vec<double>(values),
+						stream_stat<Prod,double,int>{},
+						Rf_asReal(tolerance),
+						static_cast<bool>(Rf_asLogical(relative)),
+						static_cast<Ref>(Rf_asInteger(referent)),
+					},
+					Rf_asInteger(num_threads));
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
 			{
-				bsearch_aggregate(
-					r_vec<double>(agg),
-					r_vec<double>(query),
-					r_vec<double>(table),
-					r_vec<double>(values),
-					stream_stat<Minimum,double,int>{},
-					Rf_asReal(tolerance),
-					Rf_asLogical(relative),
-					static_cast<Ref>(Rf_asInteger(referent)));
+				compute(
+					binary_aggregate{
+						r_vec<double>(agg),
+						r_vec<double>(query),
+						r_vec<double>(table),
+						r_vec<double>(values),
+						stream_stat<Minimum,double,int>{},
+						Rf_asReal(tolerance),
+						static_cast<bool>(Rf_asLogical(relative)),
+						static_cast<Ref>(Rf_asInteger(referent)),
+					},
+					Rf_asInteger(num_threads));
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
 			{
-				bsearch_aggregate(
-					r_vec<double>(agg),
-					r_vec<double>(query),
-					r_vec<double>(table),
-					r_vec<double>(values),
-					stream_stat<Maximum,double,int>{},
-					Rf_asReal(tolerance),
-					Rf_asLogical(relative),
-					static_cast<Ref>(Rf_asInteger(referent)));
+				compute(
+					binary_aggregate{
+						r_vec<double>(agg),
+						r_vec<double>(query),
+						r_vec<double>(table),
+						r_vec<double>(values),
+						stream_stat<Maximum,double,int>{},
+						Rf_asReal(tolerance),
+						static_cast<bool>(Rf_asLogical(relative)),
+						static_cast<Ref>(Rf_asInteger(referent)),
+					},
+					Rf_asInteger(num_threads));
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "mean") == 0 )
 			{
-				bsearch_aggregate(
-					r_vec<double>(agg),
-					r_vec<double>(query),
-					r_vec<double>(table),
-					r_vec<double>(values),
-					stream_stat<Mean,double,int>{},
-					Rf_asReal(tolerance),
-					Rf_asLogical(relative),
-					static_cast<Ref>(Rf_asInteger(referent)));
+				compute(
+					binary_aggregate{
+						r_vec<double>(agg),
+						r_vec<double>(query),
+						r_vec<double>(table),
+						r_vec<double>(values),
+						stream_stat<Mean,double,int>{},
+						Rf_asReal(tolerance),
+						static_cast<bool>(Rf_asLogical(relative)),
+						static_cast<Ref>(Rf_asInteger(referent)),
+					},
+					Rf_asInteger(num_threads));
 			}
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
 			{
-				bsearch_aggregate(
-					r_vec<double>(agg),
-					r_vec<double>(query),
-					r_vec<double>(table),
-					r_vec<double>(values),
-					stream_stat<Var,double,int>{},
-					Rf_asReal(tolerance),
-					Rf_asLogical(relative),
-					static_cast<Ref>(Rf_asInteger(referent)));
+				compute(
+					binary_aggregate{
+						r_vec<double>(agg),
+						r_vec<double>(query),
+						r_vec<double>(table),
+						r_vec<double>(values),
+						stream_stat<Var,double,int>{},
+						Rf_asReal(tolerance),
+						static_cast<bool>(Rf_asLogical(relative)),
+						static_cast<Ref>(Rf_asInteger(referent)),
+					},
+					Rf_asInteger(num_threads));
 			}
 			break;
 		}

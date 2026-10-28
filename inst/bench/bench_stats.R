@@ -1,5 +1,4 @@
 require(CardinalCore, quietly=TRUE)
-require(tinytest, quietly=TRUE)
 
 # col_stats and row_stats
 set.seed(1)

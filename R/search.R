@@ -8,7 +8,8 @@ bsearch <- function(
 	tolerance = 0,
 	relative = !missing(relative_to),
 	relative_to = c("query", "table"),
-	nomatch = NA_integer_)
+	nomatch = NA_integer_,
+	num.threads = 0L)
 {
 	if ( is.unsorted(table) )
 		stop("'table' must be sorted")
@@ -19,7 +20,7 @@ bsearch <- function(
 	relative <- isTRUE(relative)
 	referent <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
 	.Call(C_do_bsearch, query, table,
-		as.double(tolerance), relative, referent, as.integer(nomatch))
+		tolerance, relative, referent, nomatch, num.threads)
 }
 
 bsearch_agg <- function(
@@ -29,7 +30,8 @@ bsearch_agg <- function(
 	stat = c("sum", "prod", "max", "min", "mean", "var"),
 	tolerance = 0,
 	relative = !missing(relative_to),
-	relative_to = c("query", "table"))
+	relative_to = c("query", "table"),
+	num.threads = 0L)
 {
 	stat <- match.arg(stat)
 	if ( is.unsorted(table) )
@@ -44,7 +46,7 @@ bsearch_agg <- function(
 	relative <- isTRUE(relative)
 	referent <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
 	.Call(C_do_bsearch_aggregate, query, table, values, stat,
-		as.double(tolerance), relative, referent)
+		tolerance, relative, referent, num.threads)
 }
 
 bsearch_first <- function(query, table, ...)
@@ -66,7 +68,8 @@ msearch <- function(
 	tolerance = 0,
 	relative = !missing(relative_to),
 	relative_to = c("query", "table"),
-	nomatch = NA_integer_)
+	nomatch = NA_integer_,
+	num.threads = 0L)
 {
 	query <- as.matrix(query)
 	if ( ncol(query) != length(tables) )
@@ -82,7 +85,8 @@ msearch <- function(
 			tolerance=tolerance[i],
 			relative=relative[i],
 			relative_to=relative_to,
-			nomatch=nomatch)
+			nomatch=nomatch,
+			num.threads=num.threads)
 	hits
 }
 
@@ -93,7 +97,8 @@ msearch_agg <- function(
 	stat = c("sum", "prod", "max", "min", "mean", "var"),
 	tolerance = 0,
 	relative = !missing(relative_to),
-	relative_to = c("query", "table"))
+	relative_to = c("query", "table"),
+	num.threads = 0L)
 {
 	query <- as.matrix(query)
 	if ( ncol(query) != length(tables) )
@@ -112,7 +117,8 @@ msearch_agg <- function(
 			stat=stat,
 			tolerance=tolerance[i],
 			relative=relative[i],
-			relative_to=relative_to)
+			relative_to=relative_to,
+			num.threads=num.threads)
 	aggs
 }
 
@@ -144,7 +150,7 @@ kdsearch <- function(
 	relative_to = c("query", "table"),
 	nomatch = NA_integer_,
 	split = TRUE,
-	num.threads = 0)
+	num.threads = 0L)
 {
 	query <- as.matrix(query)
 	if ( !inherits(table, "kdtree") )
@@ -163,7 +169,7 @@ kdsearch <- function(
 	relative <- as.logical(rep_len(relative, ncol(table$table)))
 	referent <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
 	hits <- .Call(C_do_kdtree_range_search, query, table,
-		tolerance, relative, referent, as.integer(num.threads))
+		tolerance, relative, referent, num.threads)
 	if ( split ) {
 		if ( is.null(rownames(query)) ) {
 			f <- rep.int(seq_len(nrow(query)), hits$count)
@@ -183,7 +189,7 @@ kdsearch_agg <- function(
 	tolerance = 0,
 	relative = !missing(relative_to),
 	relative_to = c("query", "table"),
-	num.threads = 0)
+	num.threads = 0L)
 {
 	stat <- match.arg(stat)
 	query <- as.matrix(query)
@@ -206,7 +212,7 @@ kdsearch_agg <- function(
 	relative <- as.logical(rep_len(relative, ncol(table$table)))
 	referent <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
 	.Call(C_do_kdtree_range_aggregate, query, table, values, stat,
-		tolerance, relative, referent, as.integer(num.threads))
+		tolerance, relative, referent, num.threads)
 }
 
 kdsearch_first <- function(query, table, ...)
@@ -228,7 +234,7 @@ knnsearch <- function(
 	k = 1L,
 	metric = c("Euclidean", "Manhattan", "Maximum"),
 	split = TRUE,
-	num.threads = 0)
+	num.threads = 0L)
 {
 	query <- as.matrix(query)
 	if ( !inherits(table, "kdtree") )
