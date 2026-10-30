@@ -128,7 +128,7 @@ SEXP do_bsearch(
 	{
 		case INTSXP:
 			compute(
-				binary_searches{
+				sorted_searches{
 					r_vec<int>(index),
 					r_vec<int>(query),
 					r_vec<int>(table),
@@ -141,7 +141,7 @@ SEXP do_bsearch(
 			break;
 		case REALSXP:
 			compute(
-				binary_searches{
+				sorted_searches{
 					r_vec<int>(index),
 					r_vec<double>(query),
 					r_vec<double>(table),
@@ -180,7 +180,7 @@ SEXP do_bsearch_aggregate(
 			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
 			{
 				compute(
-					binary_aggregate{
+					sorted_aggregates{
 						r_vec<double>(agg),
 						r_vec<int>(query),
 						r_vec<int>(table),
@@ -195,7 +195,7 @@ SEXP do_bsearch_aggregate(
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
 			{
 				compute(
-					binary_aggregate{
+					sorted_aggregates{
 						r_vec<double>(agg),
 						r_vec<int>(query),
 						r_vec<int>(table),
@@ -210,7 +210,7 @@ SEXP do_bsearch_aggregate(
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
 			{
 				compute(
-					binary_aggregate{
+					sorted_aggregates{
 						r_vec<double>(agg),
 						r_vec<int>(query),
 						r_vec<int>(table),
@@ -225,7 +225,7 @@ SEXP do_bsearch_aggregate(
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
 			{
 				compute(
-					binary_aggregate{
+					sorted_aggregates{
 						r_vec<double>(agg),
 						r_vec<int>(query),
 						r_vec<int>(table),
@@ -240,7 +240,7 @@ SEXP do_bsearch_aggregate(
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "mean") == 0 )
 			{
 				compute(
-					binary_aggregate{
+					sorted_aggregates{
 						r_vec<double>(agg),
 						r_vec<int>(query),
 						r_vec<int>(table),
@@ -255,7 +255,7 @@ SEXP do_bsearch_aggregate(
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
 			{
 				compute(
-					binary_aggregate{
+					sorted_aggregates{
 						r_vec<double>(agg),
 						r_vec<int>(query),
 						r_vec<int>(table),
@@ -274,7 +274,7 @@ SEXP do_bsearch_aggregate(
 			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
 			{
 				compute(
-					binary_aggregate{
+					sorted_aggregates{
 						r_vec<double>(agg),
 						r_vec<double>(query),
 						r_vec<double>(table),
@@ -289,7 +289,7 @@ SEXP do_bsearch_aggregate(
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
 			{
 				compute(
-					binary_aggregate{
+					sorted_aggregates{
 						r_vec<double>(agg),
 						r_vec<double>(query),
 						r_vec<double>(table),
@@ -304,7 +304,7 @@ SEXP do_bsearch_aggregate(
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
 			{
 				compute(
-					binary_aggregate{
+					sorted_aggregates{
 						r_vec<double>(agg),
 						r_vec<double>(query),
 						r_vec<double>(table),
@@ -319,7 +319,7 @@ SEXP do_bsearch_aggregate(
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
 			{
 				compute(
-					binary_aggregate{
+					sorted_aggregates{
 						r_vec<double>(agg),
 						r_vec<double>(query),
 						r_vec<double>(table),
@@ -334,7 +334,7 @@ SEXP do_bsearch_aggregate(
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "mean") == 0 )
 			{
 				compute(
-					binary_aggregate{
+					sorted_aggregates{
 						r_vec<double>(agg),
 						r_vec<double>(query),
 						r_vec<double>(table),
@@ -349,7 +349,7 @@ SEXP do_bsearch_aggregate(
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
 			{
 				compute(
-					binary_aggregate{
+					sorted_aggregates{
 						r_vec<double>(agg),
 						r_vec<double>(query),
 						r_vec<double>(table),
@@ -370,7 +370,7 @@ SEXP do_bsearch_aggregate(
 	return agg;
 }
 
-SEXP do_kdtree_build(SEXP table)
+SEXP do_kdtree(SEXP table)
 {
 	SEXP tree = PROTECT(Rf_allocVector(VECSXP, 4));
 	SEXP left = PROTECT(Rf_allocVector(INTSXP, Rf_nrows(table)));
@@ -403,7 +403,7 @@ SEXP do_kdtree_build(SEXP table)
 	return tree;
 }
 
-SEXP do_kdtree_range_search(
+SEXP do_kdsearch(
 	SEXP query,
 	SEXP tree,
 	SEXP tolerance,
@@ -425,7 +425,7 @@ SEXP do_kdtree_range_search(
 	{
 		case INTSXP:
 			compute(
-				range_counts{
+				kd_range_counts{
 					r_vec<int>(counts),
 					r_mat<int>(query),
 					kdtree<int,int>::from(tree),
@@ -437,7 +437,7 @@ SEXP do_kdtree_range_search(
 			break;
 		case REALSXP:
 			compute(
-				range_counts{
+				kd_range_counts{
 					r_vec<int>(counts),
 					r_mat<double>(query),
 					kdtree<int,double>::from(tree),
@@ -464,7 +464,7 @@ SEXP do_kdtree_range_search(
 	{
 		case INTSXP:
 			compute(
-				range_searches{
+				kd_range_searches{
 					r_vecs_pack<int,int>(index, offset),
 					r_mat<int>(query),
 					kdtree<int,int>::from(tree),
@@ -476,7 +476,7 @@ SEXP do_kdtree_range_search(
 			break;
 		case REALSXP:
 			compute(
-				range_searches{
+				kd_range_searches{
 					r_vecs_pack<int,int>(index, offset),
 					r_mat<double>(query),
 					kdtree<int,double>::from(tree),
@@ -503,7 +503,7 @@ SEXP do_kdtree_range_search(
 	return hits;
 }
 
-SEXP do_kdtree_range_aggregate(
+SEXP do_kdsearch_aggregate(
 	SEXP query,
 	SEXP tree,
 	SEXP values,
@@ -532,7 +532,7 @@ SEXP do_kdtree_range_aggregate(
 			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
 			{
 				compute(
-					range_aggregate{
+					kd_range_aggregates{
 						r_vec<double>(agg),
 						r_mat<int>(query),
 						kdtree<int,int>::from(tree),
@@ -547,7 +547,7 @@ SEXP do_kdtree_range_aggregate(
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
 			{
 				compute(
-					range_aggregate{
+					kd_range_aggregates{
 						r_vec<double>(agg),
 						r_mat<int>(query),
 						kdtree<int,int>::from(tree),
@@ -562,7 +562,7 @@ SEXP do_kdtree_range_aggregate(
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
 			{
 				compute(
-					range_aggregate{
+					kd_range_aggregates{
 						r_vec<double>(agg),
 						r_mat<int>(query),
 						kdtree<int,int>::from(tree),
@@ -577,7 +577,7 @@ SEXP do_kdtree_range_aggregate(
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
 			{
 				compute(
-					range_aggregate{
+					kd_range_aggregates{
 						r_vec<double>(agg),
 						r_mat<int>(query),
 						kdtree<int,int>::from(tree),
@@ -592,7 +592,7 @@ SEXP do_kdtree_range_aggregate(
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "mean") == 0 )
 			{
 				compute(
-					range_aggregate{
+					kd_range_aggregates{
 						r_vec<double>(agg),
 						r_mat<int>(query),
 						kdtree<int,int>::from(tree),
@@ -607,7 +607,7 @@ SEXP do_kdtree_range_aggregate(
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
 			{
 				compute(
-					range_aggregate{
+					kd_range_aggregates{
 						r_vec<double>(agg),
 						r_mat<int>(query),
 						kdtree<int,int>::from(tree),
@@ -626,7 +626,7 @@ SEXP do_kdtree_range_aggregate(
 			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
 			{
 				compute(
-					range_aggregate{
+					kd_range_aggregates{
 						r_vec<double>(agg),
 						r_mat<double>(query),
 						kdtree<int,double>::from(tree),
@@ -641,7 +641,7 @@ SEXP do_kdtree_range_aggregate(
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
 			{
 				compute(
-					range_aggregate{
+					kd_range_aggregates{
 						r_vec<double>(agg),
 						r_mat<double>(query),
 						kdtree<int,double>::from(tree),
@@ -656,7 +656,7 @@ SEXP do_kdtree_range_aggregate(
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
 			{
 				compute(
-					range_aggregate{
+					kd_range_aggregates{
 						r_vec<double>(agg),
 						r_mat<double>(query),
 						kdtree<int,double>::from(tree),
@@ -671,7 +671,7 @@ SEXP do_kdtree_range_aggregate(
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
 			{
 				compute(
-					range_aggregate{
+					kd_range_aggregates{
 						r_vec<double>(agg),
 						r_mat<double>(query),
 						kdtree<int,double>::from(tree),
@@ -686,7 +686,7 @@ SEXP do_kdtree_range_aggregate(
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "mean") == 0 )
 			{
 				compute(
-					range_aggregate{
+					kd_range_aggregates{
 						r_vec<double>(agg),
 						r_mat<double>(query),
 						kdtree<int,double>::from(tree),
@@ -701,7 +701,7 @@ SEXP do_kdtree_range_aggregate(
 			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
 			{
 				compute(
-					range_aggregate{
+					kd_range_aggregates{
 						r_vec<double>(agg),
 						r_mat<double>(query),
 						kdtree<int,double>::from(tree),
@@ -722,7 +722,7 @@ SEXP do_kdtree_range_aggregate(
 	return agg;
 }
 
-SEXP do_kdtree_knn_search(
+SEXP do_knnsearch(
 	SEXP query,
 	SEXP tree,
 	SEXP k,
@@ -749,7 +749,7 @@ SEXP do_kdtree_knn_search(
 	{
 		case INTSXP:
 			compute(
-				knn_searches{
+				kd_neighbor_searches{
 					r_vecs_pack<int,int>(index, offset),
 					r_vecs_pack<double,int>(dists, offset),
 					r_mat<int>(query),
@@ -760,7 +760,7 @@ SEXP do_kdtree_knn_search(
 			break;
 		case REALSXP:
 			compute(
-				knn_searches{
+				kd_neighbor_searches{
 					r_vecs_pack<int,int>(index, offset),
 					r_vecs_pack<double,int>(dists, offset),
 					r_mat<double>(query),

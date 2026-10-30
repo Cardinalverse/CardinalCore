@@ -227,7 +227,7 @@ void bsearch_aggregate(
 
 // Binary search kernel
 template<Num Index, Vec L, Vec R>
-struct binary_searches
+struct sorted_searches
 {
 	vec<Index> index; // out
 	L query;          // in
@@ -255,7 +255,7 @@ struct binary_searches
 
 // Binary search aggregation kernel
 template<Summary S, Num Out, Num In, Num Index, Vec L, Vec R>
-struct binary_aggregate
+struct sorted_aggregates
 {
 	vec<Out> agg;                  // out
 	L query;                       // in
@@ -507,7 +507,7 @@ struct kdtree
 	// - Fills dists with distances to hits
 	// - Results ordered according to distance
 	template<Vec V>
-	void knn_search(
+	void neighbor_search(
 		vec<Index> index,
 		vec<double> dists,
 		const V query,
@@ -592,7 +592,7 @@ struct kdtree
 
 // Range count kernel
 template<Num Index, Num T, Vec Tol, Vec Rel>
-struct range_counts
+struct kd_range_counts
 {
 	vec<Index> counts;    // out
 	mat<T> query;         // in
@@ -622,7 +622,7 @@ struct range_counts
 
 // Range search kernel
 template<Num Index, Num T, Vec Tol, Vec Rel>
-struct range_searches
+struct kd_range_searches
 {
 	vecs_pack<Index,Index> index; // out
 	mat<T> query;                 // in
@@ -651,7 +651,7 @@ struct range_searches
 
 // Range search aggregation kernel
 template<Summary S, Num Out, Num In, Num Index, Num T, Vec Tol, Vec Rel>
-struct range_aggregate
+struct kd_range_aggregates
 {
 	vec<Out> agg;                  // out
 	mat<T> query;                  // in
@@ -684,7 +684,7 @@ struct range_aggregate
 
 // KNN search kernel
 template<Num Index, Num T>
-struct knn_searches
+struct kd_neighbor_searches
 {
 	vecs_pack<Index,Index> index;  // out
 	vecs_pack<double,Index> dists; // out
@@ -700,7 +700,7 @@ struct knn_searches
 		assert(index.ssize() == query.nrow());
 		for ( ptrdiff_t i = b.start; i < b.stop; ++i )
 		{
-			tree.knn_search(
+			tree.neighbor_search(
 				index.get(i),
 				dists.get(i),
 				query.row(i),

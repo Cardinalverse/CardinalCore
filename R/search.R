@@ -139,7 +139,7 @@ kdtree <- function(table)
 {
 	if ( inherits(table, "kdtree") )
 		return(table)
-	.Call(C_do_kdtree_build, as.matrix(table))
+	.Call(C_do_kdtree, as.matrix(table))
 }
 
 kdsearch <- function(
@@ -168,7 +168,7 @@ kdsearch <- function(
 	tolerance <- as.double(rep_len(tolerance, ncol(table$table)))
 	relative <- as.logical(rep_len(relative, ncol(table$table)))
 	referent <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
-	hits <- .Call(C_do_kdtree_range_search, query, table,
+	hits <- .Call(C_do_kdsearch, query, table,
 		tolerance, relative, referent, num.threads)
 	if ( split ) {
 		if ( is.null(rownames(query)) ) {
@@ -211,7 +211,7 @@ kdsearch_agg <- function(
 	tolerance <- as.double(rep_len(tolerance, ncol(table$table)))
 	relative <- as.logical(rep_len(relative, ncol(table$table)))
 	referent <- c("query"=0L, "table"=1L)[match.arg(relative_to)]
-	.Call(C_do_kdtree_range_aggregate, query, table, values, stat,
+	.Call(C_do_kdsearch_aggregate, query, table, values, stat,
 		tolerance, relative, referent, num.threads)
 }
 
@@ -248,7 +248,7 @@ knnsearch <- function(
 	k <- rep_len(as.integer(k), nrow(query))
 	metric <- match.arg(metric)
 	metric <- c("Manhattan"=0L, "Euclidean"=1L, "Maximum"=2L)[metric]
-	hits <- .Call(C_do_kdtree_knn_search, query, table, k,
+	hits <- .Call(C_do_knnsearch, query, table, k,
 		metric, as.integer(num.threads))
 	if ( split ) {
 		if ( is.null(rownames(query)) ) {
