@@ -200,13 +200,13 @@ bounds rsearch(
 // Aggregate values matching a ranged binary search
 // - Values of table MUST be sorted (duplicated are accepted)
 // - Differences <= tolerance are considered matches
-template<Summary S, Num Out, Num In, Num Index, Vec L, Vec R>
+template<Summary S, Num Out, Num In, Num N, Vec L, Vec R>
 void bsearch_aggregate(
 	vec<Out> agg,
 	const L query,
 	const R table,
 	const vec<In> values,
-	stream_stat<S,Out,Index> stat,
+	stream_stat<S,Out,N> stat,
 	const double tolerance = 0,
 	const bool relative = false,
 	const Ref referent = Query)
@@ -254,14 +254,14 @@ struct sorted_searches
 };
 
 // Binary search aggregation kernel
-template<Summary S, Num Out, Num In, Num Index, Vec L, Vec R>
+template<Summary S, Num Out, Num In, Num N, Vec L, Vec R>
 struct sorted_aggregates
 {
 	vec<Out> agg;                  // out
 	L query;                       // in
 	R table;                       // in
 	vec<In> values;                // in
-	stream_stat<S,Out,Index> stat; // in
+	stream_stat<S,Out,N> stat; // in
 	double tolerance;              // in
 	bool relative;                 // in
 	Ref referent;                  // in
@@ -591,15 +591,15 @@ struct kdtree
 };
 
 // Range count kernel
-template<Num Index, Num T, Vec Tol, Vec Rel>
+template<Num N, Num T, Vec Tol, Vec Rel>
 struct kd_range_counts
 {
-	vec<Index> counts;    // out
-	mat<T> query;         // in
-	kdtree<Index,T> tree; // in
-	Tol tolerance;        // in
-	Rel relative;         // in
-	Ref referent;         // in
+	vec<N> counts;    // out
+	mat<T> query;     // in
+	kdtree<N,T> tree; // in
+	Tol tolerance;    // in
+	Rel relative;     // in
+	Ref referent;     // in
 
 	ptrdiff_t ssize() const
 	{
@@ -621,15 +621,15 @@ struct kd_range_counts
 };
 
 // Range search kernel
-template<Num Index, Num T, Vec Tol, Vec Rel>
+template<Num N, Num T, Vec Tol, Vec Rel>
 struct kd_range_searches
 {
-	vecs_pack<Index,Index> index; // out
-	mat<T> query;                 // in
-	kdtree<Index,T> tree;         // in
-	Tol tolerance;                // in
-	Rel relative;                 // in
-	Ref referent;                 // in
+	vecs_pack<N,N> index; // out
+	mat<T> query;         // in
+	kdtree<N,T> tree;     // in
+	Tol tolerance;        // in
+	Rel relative;         // in
+	Ref referent;         // in
 
 	ptrdiff_t ssize() const { return query.nrows(); }
 
@@ -650,17 +650,17 @@ struct kd_range_searches
 };
 
 // Range search aggregation kernel
-template<Summary S, Num Out, Num In, Num Index, Num T, Vec Tol, Vec Rel>
+template<Summary S, Num Out, Num In, Num N, Num T, Vec Tol, Vec Rel>
 struct kd_range_aggregates
 {
-	vec<Out> agg;                  // out
-	mat<T> query;                  // in
-	kdtree<Index,T> tree;          // in
-	vec<In> values;                // in
-	stream_stat<S,Out,Index> stat; // in
-	Tol tolerance;                 // in
-	Rel relative;                  // in
-	Ref referent;                  // in
+	vec<Out> agg;              // out
+	mat<T> query;              // in
+	kdtree<N,T> tree;          // in
+	vec<In> values;            // in
+	stream_stat<S,Out,N> stat; // in
+	Tol tolerance;             // in
+	Rel relative;              // in
+	Ref referent;              // in
 
 	ptrdiff_t ssize() const { return query.nrows(); }
 
@@ -683,13 +683,13 @@ struct kd_range_aggregates
 };
 
 // KNN search kernel
-template<Num Index, Num T>
+template<Num N, Num T>
 struct kd_neighbor_searches
 {
-	vecs_pack<Index,Index> index;  // out
-	vecs_pack<double,Index> dists; // out
+	vecs_pack<N,N> index;          // out
+	vecs_pack<double,N> dists; // out
 	mat<T> query;                  // in
-	kdtree<Index,T> tree;          // in
+	kdtree<N,T> tree;              // in
 	Norm p;                        // in
 
 	ptrdiff_t ssize() const { return query.nrows(); }

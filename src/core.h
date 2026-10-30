@@ -1286,27 +1286,12 @@ struct vecs_pack
 		assert(0 <= i && i + 1 < offset.len);
 		return data.slice({offset[i], offset[i + 1]});
 	}
-};
 
-// A non-owning array of fragmented vecs
-template<Num T, Num Length>
-struct vecs_list
-{
-	T ** ptrs;
-	vec<Length> lens;
-
-	ptrdiff_t ssize() const noexcept
+	vecs_pack<T,Offset> slice(bounds b) const noexcept
 	{
-		return lens.len;
-	}
-
-	vec<T> get(ptrdiff_t i) const noexcept
-	{
-		assert(0 <= i && i < lens.len);
 		return {
-			.ptr = ptrs[i],
-			.len = lens[i],
-			.stride = 1,
+			.data = data,
+			.offset = offset.slice(b),
 		};
 	}
 };

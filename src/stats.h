@@ -840,11 +840,11 @@ struct aggregate
 //----------------
 // Summarize matrices
 
-template<Summary S, Num T, Num N, Mat M>
+template<Summary S, Num Out, Num In, Num N>
 struct col_stats
 {
-	stream_stats<S,T,N> stats; // out
-	M x;                       // in
+	stream_stats<S,Out,N> stats; // out
+	mat<In> x;                   // in
 
 	ptrdiff_t ssize() const { return stats.ssize(); }
 
@@ -864,11 +864,11 @@ struct col_stats
 	}
 };
 
-template<Summary S, Num T, Num N, Mat M>
+template<Summary S, Num Out, Num In, Num N>
 struct row_stats
 {
-	stream_stats<S,T,N> stats; // out
-	M x;                       // in
+	stream_stats<S,Out,N> stats; // out
+	mat<In> x;                   // in
 
 	ptrdiff_t ssize() const { return stats.ssize(); }
 
@@ -888,12 +888,12 @@ struct row_stats
 	}
 };
 
-template<Summary S, Num T, Num N, Dim Channels, Mat M, Vec Index>
+template<Summary S, Num Out, Num In, Num N, Dim Channels>
 struct col_scatter_stats
 {
-	nstream_stats<S,T,N,Channels> stats; // out
-	Index index;                         // in
-	M x;                                 // in
+	nstream_stats<S,Out,N,Channels> stats; // out
+	vec<N> index;                          // in
+	mat<In> x;                             // in
 
 	ptrdiff_t ssize() const { return stats.ssize(); }
 
@@ -917,12 +917,12 @@ struct col_scatter_stats
 	}
 };
 
-template<Summary S, Num T, Num N, Dim Channels, Mat M, Vec Index>
+template<Summary S, Num Out, Num In, Num N, Dim Channels>
 struct row_scatter_stats
 {
-	nstream_stats<S,T,N,Channels> stats; // out
-	Index index;                         // in
-	M x;                                 // in
+	nstream_stats<S,Out,N,Channels> stats; // out
+	vec<N> index;                          // in
+	mat<In> x;                             // in
 
 	ptrdiff_t ssize() const { return stats.ssize(); }
 
@@ -945,6 +945,5 @@ struct row_scatter_stats
 		row_scatter_stats{stats.slice(b), index, x.slice_rows(b)}();
 	}
 };
-
 
 #endif // CARDINAL_CORE_STATS

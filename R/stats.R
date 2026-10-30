@@ -123,7 +123,7 @@ group_stats <- function(x, group, reorder = TRUE, ...)
 		group <- as.integer(group) - 1L
 	} else {
 		ugroup <- if (reorder) sort(unique(group)) else unique(group)
-		group <- as.integer(match(group, ugroup) - 1L)
+		group <- as.integer(match(group, ugroup)) - 1L
 	}
 	.Call(C_do_group_stats, x, group, ugroup)
 }
