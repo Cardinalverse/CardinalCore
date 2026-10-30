@@ -1291,7 +1291,7 @@ struct vecs_pack
 	{
 		return {
 			.data = data,
-			.offset = offset.slice(b),
+			.offset = offset.slice({b.start, b.stop + 1}),
 		};
 	}
 };

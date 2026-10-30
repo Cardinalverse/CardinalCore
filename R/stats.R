@@ -116,8 +116,6 @@ group_stats <- function(x, group, reorder = TRUE, ...)
 	if ( length(group) != length(x) )
 		stop("length(group) [", length(group), "] and ",
 			"length(x) [", length(x), "] must be equal")
-	if ( anyNA(group) )
-		stop("missing values in 'group'")
 	if ( is.factor(group) ) {
 		ugroup <- levels(group)
 		group <- as.integer(group) - 1L
@@ -128,6 +126,44 @@ group_stats <- function(x, group, reorder = TRUE, ...)
 	.Call(C_do_group_stats, x, group, ugroup)
 }
 
+#### Vector statistics
+## -------------------
+
+vec_stats <- function(
+	x, 
+	stat, 
+	group = NULL,
+	reorder = TRUE,
+	lengths = length(x),
+	num.threads = 0L)
+{
+	stat <- match.arg(stat, c("sum", "prod", "max", "min", "mean", "var"))
+	offset <- as.integer(cumsum(c(0L, lengths)))
+	n <- offset[length(offset)]
+	if ( n != length(x) )
+		stop("sum(lengths) [", n, "] and ",
+			"length(x) [", length(x), "] must be equal")
+	if ( !is.null(group) )
+	{
+		if ( length(group) != length(x) )
+			stop("length(group) [", length(group), "] and ",
+				"length(x) [", NROW(x), "] must be equal")
+		if ( is.factor(group) ) {
+			ugroup <- levels(group)
+			group <- as.integer(group)
+		} else {
+			ugroup <- if (reorder) sort(unique(group)) else unique(group)
+			group <- as.integer(match(group, ugroup))
+		}
+	}
+	if ( is.null(group) ) {
+		.Call(C_do_vec_stats, x, stat, offset, as.integer(num.threads))
+	} else {
+		.Call(C_do_vec_group_stats, 
+			x, stat, group, ugroup, offset, as.integer(num.threads))
+	}
+}
+
 #### Matrix statistics
 ## -------------------
 
@@ -136,7 +172,7 @@ col_stats <- function(
 	stat, 
 	group = NULL,
 	reorder = TRUE,
-	num.threads = 1)
+	num.threads = 0L)
 {
 	stat <- match.arg(stat, c("sum", "prod", "max", "min", "mean", "var"))
 	if ( !is.null(group) )
@@ -144,8 +180,6 @@ col_stats <- function(
 		if ( length(group) != NROW(x) )
 			stop("length(group) [", length(group), "] and ",
 				"NROW(x) [", NROW(x), "] must be equal")
-		if ( anyNA(group) )
-			stop("missing values in 'group'")
 		if ( is.factor(group) ) {
 			ugroup <- levels(group)
 			group <- as.integer(group) - 1L
@@ -167,7 +201,7 @@ row_stats <- function(
 	stat, 
 	group = NULL,
 	reorder = TRUE,
-	num.threads = 1)
+	num.threads = 0L)
 {
 	stat <- match.arg(stat, c("sum", "prod", "max", "min", "mean", "var"))
 	if ( !is.null(group) )
@@ -175,8 +209,6 @@ row_stats <- function(
 		if ( length(group) != NCOL(x) )
 			stop("length(group) [", length(group), "] and ",
 				"NCOL(x) [", NCOL(x), "] must be equal")
-		if ( anyNA(group) )
-			stop("missing values in 'group'")
 		if ( is.factor(group) ) {
 			ugroup <- levels(group)
 			group <- as.integer(group) - 1L

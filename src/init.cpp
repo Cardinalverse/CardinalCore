@@ -83,6 +83,17 @@ SEXP do_group_stats(SEXP x, SEXP group, SEXP ugroup);
 
 //// Matrix statistics
 //-----------------------
+SEXP do_vec_stats(SEXP x, SEXP stat, SEXP offset, SEXP num_threads);
+SEXP do_vec_group_stats(
+	SEXP x, 
+	SEXP stat, 
+	SEXP group,
+	SEXP ugroup,
+	SEXP offset,
+	SEXP num_threads);
+
+//// Matrix statistics
+//-----------------------
 SEXP do_col_stats(SEXP x, SEXP stat, SEXP num_threads);
 SEXP do_col_group_stats(
 	SEXP x, 
@@ -132,6 +143,9 @@ static const R_CallMethodDef callMethods[] = {
 	// Streaming statistics
 	CALLDEF(do_merge_stats, 2),
 	CALLDEF(do_group_stats, 3),
+	// Vector statistics
+	CALLDEF(do_vec_stats, 4),
+	CALLDEF(do_vec_group_stats, 6),
 	// Matrix statistics
 	CALLDEF(do_col_stats, 3),
 	CALLDEF(do_col_group_stats, 5),

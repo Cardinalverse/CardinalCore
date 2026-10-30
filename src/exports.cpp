@@ -1465,6 +1465,301 @@ SEXP do_group_stats(SEXP x, SEXP group, SEXP ugroup)
 	return xout;
 }
 
+//// Vector statistics
+//---------------------
+
+SEXP do_vec_stats(SEXP x, SEXP stat, SEXP offset, SEXP num_threads)
+{
+	SEXP xout = PROTECT(Rf_allocVector(REALSXP, XLENGTH(offset) - 1));
+	SEXP nobs = PROTECT(Rf_allocVector(INTSXP, XLENGTH(offset) - 1));
+	if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
+	{
+		SEXP means = PROTECT(Rf_allocVector(REALSXP, XLENGTH(offset)));
+		Rf_setAttrib(xout, Rf_install("mean"), means);
+		UNPROTECT(1);
+	}
+	Rf_setAttrib(xout, Rf_install("nobs"), nobs);
+	Rf_setAttrib(xout, Rf_install("stat"), stat);
+	Rf_setAttrib(xout, R_ClassSymbol, Rf_mkString("stream_stats"));
+	switch(TYPEOF(x))
+	{
+		case INTSXP:
+		{
+			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
+			{
+				compute(
+					vec_stats{
+						stream_stats<Sum,int,int>::from(xout).fill(),
+						r_vecs_pack<int,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
+			{
+				compute(
+					vec_stats{
+						stream_stats<Prod,int,int>::from(xout).fill(),
+						r_vecs_pack<int,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
+			{
+				compute(
+					vec_stats{
+						stream_stats<Maximum,int,int>::from(xout).fill(),
+						r_vecs_pack<int,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
+			{
+				compute(
+					vec_stats{
+						stream_stats<Minimum,int,int>::from(xout).fill(),
+						r_vecs_pack<int,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "mean") == 0 )
+			{
+				compute(
+					vec_stats{
+						stream_stats<Mean,int,int>::from(xout).fill(),
+						r_vecs_pack<int,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
+			{
+				compute(
+					vec_stats{
+						stream_stats<Var,int,int>::from(xout).fill(),
+						r_vecs_pack<int,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else
+				Rf_error("unsupported summary statistic");
+			break;
+		}
+		case REALSXP:
+		{
+			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
+			{
+				compute(
+					vec_stats{
+						stream_stats<Sum,double,int>::from(xout).fill(),
+						r_vecs_pack<double,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
+			{
+				compute(
+					vec_stats{
+						stream_stats<Prod,double,int>::from(xout).fill(),
+						r_vecs_pack<double,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
+			{
+				compute(
+					vec_stats{
+						stream_stats<Maximum,double,int>::from(xout).fill(),
+						r_vecs_pack<double,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
+			{
+				compute(
+					vec_stats{
+						stream_stats<Minimum,double,int>::from(xout).fill(),
+						r_vecs_pack<double,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "mean") == 0 )
+			{
+				compute(
+					vec_stats{
+						stream_stats<Mean,double,int>::from(xout).fill(),
+						r_vecs_pack<double,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
+			{
+				compute(
+					vec_stats{
+						stream_stats<Var,double,int>::from(xout).fill(),
+						r_vecs_pack<double,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else
+				Rf_error("unsupported summary statistic");
+
+			break;
+		}
+		default:
+			Rf_error("'x' must be integer or double");
+	}
+	UNPROTECT(2);
+	return xout;
+}
+
+SEXP do_vec_group_stats(
+	SEXP x, 
+	SEXP stat, 
+	SEXP group, 
+	SEXP ugroup, 
+	SEXP offset,
+	SEXP num_threads)
+{
+	SEXP xout = PROTECT(Rf_allocMatrix(REALSXP, LENGTH(ugroup), XLENGTH(offset) - 1));
+	SEXP nobs = PROTECT(Rf_allocMatrix(INTSXP, LENGTH(ugroup), XLENGTH(offset) - 1));
+	if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
+	{
+		SEXP means = PROTECT(Rf_allocMatrix(REALSXP, 
+			LENGTH(ugroup), XLENGTH(offset) - 1));
+		Rf_setAttrib(xout, Rf_install("mean"), means);
+		UNPROTECT(1);
+	}
+	SEXP dnms = PROTECT(Rf_allocVector(VECSXP, 2));
+	SET_VECTOR_ELT(dnms, 0, Rf_coerceVector(ugroup, STRSXP));
+	if ( Rf_getAttrib(x, R_DimNamesSymbol) != R_NilValue )
+		SET_VECTOR_ELT(dnms, 1, 
+			VECTOR_ELT(Rf_getAttrib(x, R_DimNamesSymbol), 1));
+	else
+		SET_VECTOR_ELT(dnms, 1, R_NilValue);
+	Rf_setAttrib(xout, Rf_install("nobs"), nobs);
+	Rf_setAttrib(xout, Rf_install("stat"), stat);
+	Rf_setAttrib(xout, Rf_install("group"), ugroup);
+	Rf_setAttrib(xout, R_DimNamesSymbol, dnms);
+	Rf_setAttrib(xout, R_ClassSymbol, Rf_mkString("stream_stats"));
+	SEXP index = PROTECT(Rf_allocVector(INTSXP, XLENGTH(x)));
+	r_vec<int>(index).assign(r_vec<int>(group) - 1);
+	switch(TYPEOF(x))
+	{
+		case INTSXP:
+		{
+			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
+			{
+				compute(
+					vec_scatter_stats{
+						nstream_stats<Sum,int,int>::from(xout).fill(),
+						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<int,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
+			{
+				compute(
+					vec_scatter_stats{
+						nstream_stats<Prod,int,int>::from(xout).fill(),
+						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<int,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
+			{
+				compute(
+					vec_scatter_stats{
+						nstream_stats<Maximum,int,int>::from(xout).fill(),
+						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<int,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
+			{
+				compute(
+					vec_scatter_stats{
+						nstream_stats<Minimum,int,int>::from(xout).fill(),
+						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<int,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "mean") == 0 )
+			{
+				compute(
+					vec_scatter_stats{
+						nstream_stats<Mean,int,int>::from(xout).fill(),
+						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<int,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
+			{
+				compute(
+					vec_scatter_stats{
+						nstream_stats<Var,int,int>::from(xout).fill(),
+						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<int,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else
+				Rf_error("unsupported summary statistic");
+			break;
+		}
+		case REALSXP:
+		{
+			if ( strcmp(CHAR(STRING_ELT(stat, 0)), "sum") == 0 )
+			{
+				compute(
+					vec_scatter_stats{
+						nstream_stats<Sum,double,int>::from(xout).fill(),
+						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<double,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "prod") == 0 )
+			{
+				compute(
+					vec_scatter_stats{
+						nstream_stats<Prod,double,int>::from(xout).fill(),
+						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<double,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "max") == 0 )
+			{
+				compute(
+					vec_scatter_stats{
+						nstream_stats<Maximum,double,int>::from(xout).fill(),
+						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<double,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "min") == 0 )
+			{
+				compute(
+					vec_scatter_stats{
+						nstream_stats<Minimum,double,int>::from(xout).fill(),
+						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<double,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "mean") == 0 )
+			{
+				compute(
+					vec_scatter_stats{
+						nstream_stats<Mean,double,int>::from(xout).fill(),
+						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<double,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
+			{
+				compute(
+					vec_scatter_stats{
+						nstream_stats<Var,double,int>::from(xout).fill(),
+						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<double,int>(x, offset)},
+					Rf_asInteger(num_threads));
+			}
+			else
+				Rf_error("unsupported summary statistic");
+
+			break;
+		}
+		default:
+			Rf_error("'x' must be integer or double");
+	}
+	UNPROTECT(3);
+	return xout;
+}
+
 //// Matrix statistics
 //---------------------
 

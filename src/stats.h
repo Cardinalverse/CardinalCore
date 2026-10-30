@@ -99,10 +99,10 @@ Dst scatter_update_stats(Dst dst, const Index index, const Src src) noexcept
 	assert(dst.ssize() == src.ssize());
 	for ( ptrdiff_t i = 0; i < src.ssize(); ++i )
 	{
-		if ( !is_valid(index, i) || !is_valid(src, i) )
-			continue;
-		auto ii = index[i];
-		dst.set(ii, dst.get(ii).update(src[i]));
+		if ( is_valid(index, i) && is_valid(src, i) ) {
+			auto ii = index[i];
+			dst.set(ii, dst.get(ii).update(src[i]));
+		}
 	}
 	return dst;
 }
@@ -114,10 +114,10 @@ Dst scatter_merge_stats(Dst dst, const Index index, const Src src) noexcept
 	assert(dst.ssize() == src.ssize());
 	for ( ptrdiff_t i = 0; i < src.ssize(); ++i )
 	{
-		if ( !is_valid(index, i) )
-			continue;
-		auto ii = index[i];
-		dst.set(ii, dst.get(ii).merge(src.get(i)));
+		if ( is_valid(index, i) ) {
+			auto ii = index[i];
+			dst.set(ii, dst.get(ii).merge(src.get(i)));
+		}
 	}
 	return dst;
 }
@@ -838,7 +838,27 @@ struct aggregate
 
 //// Stats kernels
 //----------------
-// Summarize matrices
+// Summarize vectors and matrices
+
+template<Summary S, Num Out, Num In, Num N>
+struct vec_stats
+{
+	stream_stats<S,Out,N> stats; // out
+	vecs_pack<In,N> x;           // in
+
+	ptrdiff_t ssize() const { return stats.ssize(); }
+
+	void operator()()
+	{
+		for ( ptrdiff_t i = 0; i < x.ssize(); ++i )
+			stats.reduce_into(i, mask(x.get(i)));
+	}
+
+	void operator()(bounds b, task ctx)
+	{
+		vec_stats{stats.slice(b), x.slice(b)}();
+	}
+};
 
 template<Summary S, Num Out, Num In, Num N>
 struct col_stats
@@ -885,6 +905,27 @@ struct row_stats
 	void operator()(bounds b, task ctx)
 	{
 		row_stats{stats.slice(b), x.slice_rows(b)}();
+	}
+};
+
+template<Summary S, Num Out, Num In, Num N, Dim Channels>
+struct vec_scatter_stats
+{
+	nstream_stats<S,Out,N,Channels> stats; // out
+	vecs_pack<N,N> index;                  // in
+	vecs_pack<In,N> x;                     // in
+
+	ptrdiff_t ssize() const { return stats.ssize(); }
+
+	void operator()()
+	{
+		for ( ptrdiff_t i = 0; i < x.ssize(); ++i )
+			stats.get(i).scatter_update(index.get(i), mask(x.get(i)));
+	}
+
+	void operator()(bounds b, task ctx)
+	{
+		vec_scatter_stats{stats.slice(b), index.slice(b), x.slice(b)}();
 	}
 };
 
