@@ -1369,7 +1369,6 @@ SEXP do_group_stats(SEXP x, SEXP group, SEXP ugroup)
 	}
 	Rf_setAttrib(xout, Rf_install("nobs"), nobs);
 	Rf_setAttrib(xout, Rf_install("stat"), stat);
-	Rf_setAttrib(xout, Rf_install("group"), ugroup);
 	Rf_setAttrib(xout, R_NamesSymbol, Rf_coerceVector(ugroup, STRSXP));
 	Rf_setAttrib(xout, R_ClassSymbol, Rf_mkString("stream_stats"));
 	switch(TYPEOF(nx))
@@ -1470,11 +1469,12 @@ SEXP do_group_stats(SEXP x, SEXP group, SEXP ugroup)
 
 SEXP do_vec_stats(SEXP x, SEXP stat, SEXP offset, SEXP num_threads)
 {
-	SEXP xout = PROTECT(Rf_allocVector(REALSXP, XLENGTH(offset) - 1));
-	SEXP nobs = PROTECT(Rf_allocVector(INTSXP, XLENGTH(offset) - 1));
+	R_xlen_t xlen = XLENGTH(offset) - 1;
+	SEXP xout = PROTECT(Rf_allocVector(REALSXP, xlen));
+	SEXP nobs = PROTECT(Rf_allocVector(INTSXP, xlen));
 	if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
 	{
-		SEXP means = PROTECT(Rf_allocVector(REALSXP, XLENGTH(offset)));
+		SEXP means = PROTECT(Rf_allocVector(REALSXP, xlen));
 		Rf_setAttrib(xout, Rf_install("mean"), means);
 		UNPROTECT(1);
 	}
@@ -1607,29 +1607,27 @@ SEXP do_vec_group_stats(
 	SEXP offset,
 	SEXP num_threads)
 {
-	SEXP xout = PROTECT(Rf_allocMatrix(REALSXP, LENGTH(ugroup), XLENGTH(offset) - 1));
-	SEXP nobs = PROTECT(Rf_allocMatrix(INTSXP, LENGTH(ugroup), XLENGTH(offset) - 1));
+	R_xlen_t xlen = XLENGTH(offset) - 1;
+	SEXP xout = PROTECT(Rf_allocMatrix(REALSXP, LENGTH(ugroup), xlen));
+	SEXP nobs = PROTECT(Rf_allocMatrix(INTSXP, LENGTH(ugroup), xlen));
 	if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
 	{
-		SEXP means = PROTECT(Rf_allocMatrix(REALSXP, 
-			LENGTH(ugroup), XLENGTH(offset) - 1));
+		SEXP means = PROTECT(Rf_allocMatrix(REALSXP, LENGTH(ugroup), xlen));
 		Rf_setAttrib(xout, Rf_install("mean"), means);
 		UNPROTECT(1);
 	}
 	SEXP dnms = PROTECT(Rf_allocVector(VECSXP, 2));
 	SET_VECTOR_ELT(dnms, 0, Rf_coerceVector(ugroup, STRSXP));
 	if ( Rf_getAttrib(x, R_DimNamesSymbol) != R_NilValue )
-		SET_VECTOR_ELT(dnms, 1, 
-			VECTOR_ELT(Rf_getAttrib(x, R_DimNamesSymbol), 1));
+		SET_VECTOR_ELT(dnms, 1, VECTOR_ELT(Rf_getAttrib(x, R_DimNamesSymbol), 1));
 	else
 		SET_VECTOR_ELT(dnms, 1, R_NilValue);
 	Rf_setAttrib(xout, Rf_install("nobs"), nobs);
 	Rf_setAttrib(xout, Rf_install("stat"), stat);
-	Rf_setAttrib(xout, Rf_install("group"), ugroup);
 	Rf_setAttrib(xout, R_DimNamesSymbol, dnms);
 	Rf_setAttrib(xout, R_ClassSymbol, Rf_mkString("stream_stats"));
 	SEXP index = PROTECT(Rf_allocVector(INTSXP, XLENGTH(x)));
-	r_vec<int>(index).assign(r_vec<int>(group) - 1);
+	sub1_into(r_vec<int>(index), r_vec<int>(group));
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
@@ -1908,21 +1906,18 @@ SEXP do_col_group_stats(
 	SEXP nobs = PROTECT(Rf_allocMatrix(INTSXP, LENGTH(ugroup), Rf_ncols(x)));
 	if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
 	{
-		SEXP means = PROTECT(Rf_allocMatrix(REALSXP, 
-			LENGTH(ugroup), Rf_ncols(x)));
+		SEXP means = PROTECT(Rf_allocMatrix(REALSXP, LENGTH(ugroup), Rf_ncols(x)));
 		Rf_setAttrib(xout, Rf_install("mean"), means);
 		UNPROTECT(1);
 	}
 	SEXP dnms = PROTECT(Rf_allocVector(VECSXP, 2));
 	SET_VECTOR_ELT(dnms, 0, Rf_coerceVector(ugroup, STRSXP));
 	if ( Rf_getAttrib(x, R_DimNamesSymbol) != R_NilValue )
-		SET_VECTOR_ELT(dnms, 1, 
-			VECTOR_ELT(Rf_getAttrib(x, R_DimNamesSymbol), 1));
+		SET_VECTOR_ELT(dnms, 1, VECTOR_ELT(Rf_getAttrib(x, R_DimNamesSymbol), 1));
 	else
 		SET_VECTOR_ELT(dnms, 1, R_NilValue);
 	Rf_setAttrib(xout, Rf_install("nobs"), nobs);
 	Rf_setAttrib(xout, Rf_install("stat"), stat);
-	Rf_setAttrib(xout, Rf_install("group"), ugroup);
 	Rf_setAttrib(xout, R_DimNamesSymbol, dnms);
 	Rf_setAttrib(xout, R_ClassSymbol, Rf_mkString("stream_stats"));
 	switch(TYPEOF(x))
@@ -2200,21 +2195,18 @@ SEXP do_row_group_stats(
 	SEXP nobs = PROTECT(Rf_allocMatrix(INTSXP, LENGTH(ugroup), Rf_nrows(x)));
 	if ( strcmp(CHAR(STRING_ELT(stat, 0)), "var") == 0 )
 	{
-		SEXP means = PROTECT(Rf_allocMatrix(REALSXP, 
-			LENGTH(ugroup), Rf_nrows(x)));
+		SEXP means = PROTECT(Rf_allocMatrix(REALSXP, LENGTH(ugroup), Rf_nrows(x)));
 		Rf_setAttrib(xout, Rf_install("mean"), means);
 		UNPROTECT(1);
 	}
 	SEXP dnms = PROTECT(Rf_allocVector(VECSXP, 2));
 	SET_VECTOR_ELT(dnms, 0, Rf_coerceVector(ugroup, STRSXP));
 	if ( Rf_getAttrib(x, R_DimNamesSymbol) != R_NilValue )
-		SET_VECTOR_ELT(dnms, 1, 
-			VECTOR_ELT(Rf_getAttrib(x, R_DimNamesSymbol), 0));
+		SET_VECTOR_ELT(dnms, 1, VECTOR_ELT(Rf_getAttrib(x, R_DimNamesSymbol), 0));
 	else
 		SET_VECTOR_ELT(dnms, 1, R_NilValue);
 	Rf_setAttrib(xout, Rf_install("nobs"), nobs);
 	Rf_setAttrib(xout, Rf_install("stat"), stat);
-	Rf_setAttrib(xout, Rf_install("group"), ugroup);
 	Rf_setAttrib(xout, R_DimNamesSymbol, dnms);
 	Rf_setAttrib(xout, R_ClassSymbol, Rf_mkString("stream_stats"));
 	switch(TYPEOF(x))

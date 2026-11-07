@@ -249,7 +249,7 @@ knnsearch <- function(
 	metric <- match.arg(metric)
 	metric <- c("Manhattan"=0L, "Euclidean"=1L, "Maximum"=2L)[metric]
 	hits <- .Call(C_do_knnsearch, query, table, k,
-		metric, as.integer(num.threads))
+		metric, num.threads)
 	if ( split ) {
 		if ( is.null(rownames(query)) ) {
 			f <- rep.int(seq_len(nrow(query)), hits$count)

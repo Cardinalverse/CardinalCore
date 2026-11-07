@@ -37,10 +37,10 @@ struct plan
 	{
 		plan p = {.nthreads = nthreads, .ntasks = ntasks};
 		// Clamp nthreads to [0, nitems]
-		p.nthreads = p.nthreads < 0 ? 0 : 
+		p.nthreads = p.nthreads <= 0 ? 0 : 
 			(p.nthreads > nitems ? nitems : p.nthreads);
 		// Clamp ntasks to [1, nthreads]
-		p.ntasks = p.ntasks < 1 ? 1 :
+		p.ntasks = p.nthreads <= 1 ? 1 :
 			(p.ntasks < p.nthreads ? p.nthreads : p.ntasks);
 		return p;
 	}
@@ -65,7 +65,7 @@ struct chunker
 		// number of items per task
 		ptrdiff_t tasksize = nitems / ntasks;
 		// leftover items remaining
-		ptrdiff_t remainder = nitems % ntasks;
+		ptrdiff_t remainder = nitems % tasksize;
 		// distribute remaining items across tasks
 		if ( i < remainder ) {
 			// give a remainder to this task

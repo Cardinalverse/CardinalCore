@@ -2,27 +2,29 @@ require(CardinalCore, quietly=TRUE)
 
 # vec_stats
 set.seed(1)
-n <- 1e7
-x <- runif(n)
-g <- sample(6L, n, replace=TRUE)
+n1 <- 1e4
+n2 <- 1000L
+lx <- replicate(n1, runif(n2), simplify=FALSE)
+lg <- replicate(n1, sample(6L, n2, replace=TRUE), simplify=FALSE)
+w <- lengths(lx)
+x <- unlist(lx)
+g <- unlist(lg)
 f <- factor(g)
-size <- 1e3
-m <- rep.int(size, n %/% size)
 
 bench::mark(
-	vec_stats(x, "sum", lengths=m, num.threads=1),
-	vec_stats(x, "sum", lengths=m, num.threads=2),
-	vec_stats(x, "sum", lengths=m, num.threads=4))
+	vec_stats(x, "sum", w, num.threads=1),
+	vec_stats(x, "sum", w, num.threads=2),
+	vec_stats(x, "sum", w, num.threads=4))
 
 bench::mark(
-	vec_stats(x, "sum", g, lengths=m, num.threads=1),
-	vec_stats(x, "sum", g, lengths=m, num.threads=2),
-	vec_stats(x, "sum", g, lengths=m, num.threads=4))
+	vec_stats(x, "sum", w, g, num.threads=1),
+	vec_stats(x, "sum", w, g, num.threads=2),
+	vec_stats(x, "sum", w, g, num.threads=4))
 
 bench::mark(
-	vec_stats(x, "sum", f, lengths=m, num.threads=1),
-	vec_stats(x, "sum", f, lengths=m, num.threads=2),
-	vec_stats(x, "sum", f, lengths=m, num.threads=4))
+	vec_stats(x, "sum", w, f, num.threads=1),
+	vec_stats(x, "sum", w, f, num.threads=2),
+	vec_stats(x, "sum", w, f, num.threads=4))
 
 # col_stats and row_stats
 set.seed(1)

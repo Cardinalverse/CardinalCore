@@ -132,16 +132,23 @@ group_stats <- function(x, group, reorder = TRUE, ...)
 vec_stats <- function(
 	x, 
 	stat, 
+	width, 
 	group = NULL,
 	reorder = TRUE,
-	lengths = length(x),
 	num.threads = 0L)
 {
 	stat <- match.arg(stat, c("sum", "prod", "max", "min", "mean", "var"))
-	offset <- as.integer(cumsum(c(0L, lengths)))
-	n <- offset[length(offset)]
-	if ( n != length(x) )
-		stop("sum(lengths) [", n, "] and ",
+	if ( length(width) == 1L ) {
+		tasks <- length(x) %/% width
+		remainder <- length(x) %% width
+		width <- rep.int(width, tasks)
+		if ( remainder != 0L )
+			width <- c(width, remainder)
+	}
+	offset <- as.integer(cumsum(c(0L, width)))
+	xlen <- offset[length(offset)]
+	if ( xlen != length(x) )
+		stop("sum(width) [", xlen, "] and ",
 			"length(x) [", length(x), "] must be equal")
 	if ( !is.null(group) )
 	{
@@ -157,10 +164,10 @@ vec_stats <- function(
 		}
 	}
 	if ( is.null(group) ) {
-		.Call(C_do_vec_stats, x, stat, offset, as.integer(num.threads))
+		.Call(C_do_vec_stats, x, stat, offset, num.threads)
 	} else {
 		.Call(C_do_vec_group_stats, 
-			x, stat, group, ugroup, offset, as.integer(num.threads))
+			x, stat, group, ugroup, offset, num.threads)
 	}
 }
 
@@ -189,10 +196,10 @@ col_stats <- function(
 		}
 	}
 	if ( is.null(group) ) {
-		.Call(C_do_col_stats, as.matrix(x), stat, as.integer(num.threads))
+		.Call(C_do_col_stats, as.matrix(x), stat, num.threads)
 	} else {
 		.Call(C_do_col_group_stats, 
-			as.matrix(x), stat, group, ugroup, as.integer(num.threads))
+			as.matrix(x), stat, group, ugroup, num.threads)
 	}
 }
 
@@ -218,10 +225,10 @@ row_stats <- function(
 		}
 	}
 	if ( is.null(group) ) {
-		.Call(C_do_row_stats, as.matrix(x), stat, as.integer(num.threads))
+		.Call(C_do_row_stats, as.matrix(x), stat, num.threads)
 	} else {
 		.Call(C_do_row_group_stats, 
-			as.matrix(x), stat, group, ugroup, as.integer(num.threads))
+			as.matrix(x), stat, group, ugroup, num.threads)
 	}
 }
 

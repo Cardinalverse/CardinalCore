@@ -1404,6 +1404,14 @@ template<Num T>
 vec<T> add1(vec<T> x) noexcept { return x.assign(mask(x) + 1); }
 template<Num T>
 vec<T> sub1(vec<T> x) noexcept { return x.assign(mask(x) - 1); }
+template<Num T>
+vec<T> add1_into(vec<T> dst, vec<T> src) noexcept {
+	return dst.assign(mask(src) + 1);
+}
+template<Num T>
+vec<T> sub1_into(vec<T> dst, vec<T> src) noexcept {
+	return dst.assign(mask(src) - 1);
+}
 #endif // USING_R
 
 // SEXP data pointers
