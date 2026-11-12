@@ -60,6 +60,31 @@ expect_equal(
 	c(merge_stats(s3x, s3y)), 
 	c(tapply(c(x, y), c(gx, gy), var)))
 
+# vec_stats
+set.seed(1)
+n1 <- 4L
+n2 <- 10L
+xs <- replicate(n1, runif(n2), simplify=FALSE)
+gs <- replicate(n1, sample(6L, n2, replace=TRUE), simplify=FALSE)
+l <- lengths(xs)
+x <- unlist(xs)
+g <- unlist(gs)
+expect_equal(c(vec_stats(x, "sum", length(x))), sum(x))
+expect_equal(c(vec_stats(x, "mean", length(x))), mean(x))
+expect_equal(c(vec_stats(x, "var", length(x))), var(x))
+expect_equal(
+	c(vec_stats(x, "sum", length(x), g)), 
+	c(unname(tapply(x, g, sum))))
+expect_equal(
+	c(vec_stats(x, "mean", length(x), g)), 
+	c(unname(tapply(x, g, mean))))
+expect_equal(
+	c(vec_stats(x, "var", length(x), g)), 
+	c(unname(tapply(x, g, var))))
+expect_equal(c(vec_stats(x, "sum", 10L)), vapply(xs, sum, numeric(1L)))
+expect_equal(c(vec_stats(x, "mean", 10L)), vapply(xs, mean, numeric(1L)))
+expect_equal(c(vec_stats(x, "var", 10L)), vapply(xs, var, numeric(1L)))
+
 # col_stats and row_stats
 set.seed(1)
 nr <- 1000L

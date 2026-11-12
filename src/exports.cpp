@@ -1754,7 +1754,7 @@ SEXP do_vec_group_stats(
 		default:
 			Rf_error("'x' must be integer or double");
 	}
-	UNPROTECT(3);
+	UNPROTECT(4);
 	return xout;
 }
 

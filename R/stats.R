@@ -138,6 +138,8 @@ vec_stats <- function(
 	num.threads = 0L)
 {
 	stat <- match.arg(stat, c("sum", "prod", "max", "min", "mean", "var"))
+	if ( any(sizes <= 0) )
+		stop("sizes must be positive")
 	if ( length(sizes) == 1L ) {
 		tasks <- length(x) %/% sizes
 		remainder <- length(x) %% sizes
