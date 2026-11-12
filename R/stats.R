@@ -132,23 +132,23 @@ group_stats <- function(x, group, reorder = TRUE, ...)
 vec_stats <- function(
 	x, 
 	stat, 
-	width, 
+	sizes, 
 	group = NULL,
 	reorder = TRUE,
 	num.threads = 0L)
 {
 	stat <- match.arg(stat, c("sum", "prod", "max", "min", "mean", "var"))
-	if ( length(width) == 1L ) {
-		tasks <- length(x) %/% width
-		remainder <- length(x) %% width
-		width <- rep.int(width, tasks)
+	if ( length(sizes) == 1L ) {
+		tasks <- length(x) %/% sizes
+		remainder <- length(x) %% sizes
+		sizes <- rep.int(sizes, tasks)
 		if ( remainder != 0L )
-			width <- c(width, remainder)
+			sizes <- c(sizes, remainder)
 	}
-	offset <- as.integer(cumsum(c(0L, width)))
+	offset <- as.integer(cumsum(c(0L, sizes)))
 	xlen <- offset[length(offset)]
 	if ( xlen != length(x) )
-		stop("sum(width) [", xlen, "] and ",
+		stop("sum(sizes) [", xlen, "] and ",
 			"length(x) [", length(x), "] must be equal")
 	if ( !is.null(group) )
 	{
