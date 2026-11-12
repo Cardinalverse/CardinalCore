@@ -263,26 +263,27 @@ setMethod("peakAlign", "DataFrame",
 #### Peak merge methods
 ## --------------------
 
-.peakMerge <- function(object, by, stat = "mean", count = "nobs", ...)
+.peakMerge <- function(object, by, stat = "mean", ...)
 {
-	do.call(cbind, collapse_by(object, by, stat=stat, ...))
+	columns <- collapse_by(object, by, stat=stat, ...)
+	do.call(cbind, lapply(columns, drop))
 }
 
 setMethod("peakMerge", "matrix",
-	function(object, by, stat = "mean", count = "nobs", ...)
+	function(object, by, stat = "mean", ...)
 {
-	.peakMerge(object, by=by, stat=stat, count=count, ...)
+	.peakMerge(object, by=by, stat=stat, ...)
 })
 
 setMethod("peakMerge", "data.frame",
-	function(object, by, stat = "mean", count = "nobs", ...)
+	function(object, by, stat = "mean", ...)
 {
-	as.data.frame(.peakMerge(object, by=by, stat=stat, count=count, ...))
+	as.data.frame(.peakMerge(object, by=by, stat=stat, ...))
 })
 
 setMethod("peakMerge", "DataFrame",
-	function(object, by, stat = "mean", count = "nobs", ...)
+	function(object, by, stat = "mean", ...)
 {
-	DataFrame(.peakMerge(object, by=by, stat=stat, count=count, ...))
+	DataFrame(.peakMerge(object, by=by, stat=stat, ...))
 })
 

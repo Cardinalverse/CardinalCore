@@ -252,26 +252,28 @@ collapse_by <- function(
 	if ( by %notin% colnames(x) )
 		stop("missing 'by' column [", by, "]")
 	group <- x[,by,drop=TRUE]
-	if ( !is.factor(group) ) {
+	if ( is.factor(group) ) {
+		ugroup <- levels(group)
+	} else {
 		ugroup <- if (reorder) sort(unique(group)) else unique(group)
 		group <- factor(group, levels=ugroup)
 	}
-	columns <- c(by, count, names(stat))
+	columns <- c(names(stat), count, by)
 	out <- setNames(vector("list", length(columns)), columns)
-	out[[by]] <- levels(group)
-	if ( count %in% colnames(x) ) {
-		nobs <- x[,count,drop=TRUE]
-	} else {
-		nobs <- as.integer(!is.na(group))
-	}
-	out[[count]] <- vec_stats(nobs, stat="sum", sizes=sizes, 
-		group=group, num.threads=num.threads)
 	for ( i in seq_along(stat) ) {
 		nm <- names(stat)[i]
 		xi <- x[,nm,drop=TRUE]
 		out[[nm]] <- vec_stats(xi, stat=stat[i], sizes=sizes, 
 			group=group, num.threads=num.threads)
 	}
+	if ( count %in% colnames(x) ) {
+		n <- x[,count,drop=TRUE]
+	} else {
+		n <- as.integer(!is.na(group))
+	}
+	out[[count]] <- vec_stats(n, stat="sum", sizes=sizes, 
+		group=group, num.threads=num.threads)
+	out[[by]] <- ugroup
 	out
 }
 
