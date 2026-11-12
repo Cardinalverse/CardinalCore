@@ -81,9 +81,9 @@ expect_equal(
 expect_equal(
 	c(drop(vec_stats(x, "var", length(x), g))),
 	c(tapply(x, g, var)))
-expect_equal(c(vec_stats(x, "sum", 10L)), vapply(xs, sum, numeric(1L)))
-expect_equal(c(vec_stats(x, "mean", 10L)), vapply(xs, mean, numeric(1L)))
-expect_equal(c(vec_stats(x, "var", 10L)), vapply(xs, var, numeric(1L)))
+expect_equal(c(vec_stats(x, "sum", n2)), vapply(xs, sum, numeric(1L)))
+expect_equal(c(vec_stats(x, "mean", n2)), vapply(xs, mean, numeric(1L)))
+expect_equal(c(vec_stats(x, "var", n2)), vapply(xs, var, numeric(1L)))
 
 # col_stats and row_stats
 set.seed(1)

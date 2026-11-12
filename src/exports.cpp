@@ -1618,16 +1618,11 @@ SEXP do_vec_group_stats(
 	}
 	SEXP dnms = PROTECT(Rf_allocVector(VECSXP, 2));
 	SET_VECTOR_ELT(dnms, 0, Rf_coerceVector(ugroup, STRSXP));
-	if ( Rf_getAttrib(x, R_DimNamesSymbol) != R_NilValue )
-		SET_VECTOR_ELT(dnms, 1, VECTOR_ELT(Rf_getAttrib(x, R_DimNamesSymbol), 1));
-	else
-		SET_VECTOR_ELT(dnms, 1, R_NilValue);
+	SET_VECTOR_ELT(dnms, 1, R_NilValue);
 	Rf_setAttrib(xout, Rf_install("nobs"), nobs);
 	Rf_setAttrib(xout, Rf_install("stat"), stat);
 	Rf_setAttrib(xout, R_DimNamesSymbol, dnms);
 	Rf_setAttrib(xout, R_ClassSymbol, Rf_mkString("stream_stats"));
-	SEXP index = PROTECT(Rf_allocVector(INTSXP, XLENGTH(x)));
-	sub1_into(r_vec<int>(index), r_vec<int>(group));
 	switch(TYPEOF(x))
 	{
 		case INTSXP:
@@ -1637,7 +1632,7 @@ SEXP do_vec_group_stats(
 				compute(
 					vec_scatter_stats{
 						nstream_stats<Sum,double,int>::from(xout).fill(),
-						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<int,int>(group, offset),
 						r_vecs_pack<int,int>(x, offset)},
 					Rf_asInteger(num_threads));
 			}
@@ -1646,7 +1641,7 @@ SEXP do_vec_group_stats(
 				compute(
 					vec_scatter_stats{
 						nstream_stats<Prod,double,int>::from(xout).fill(),
-						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<int,int>(group, offset),
 						r_vecs_pack<int,int>(x, offset)},
 					Rf_asInteger(num_threads));
 			}
@@ -1655,7 +1650,7 @@ SEXP do_vec_group_stats(
 				compute(
 					vec_scatter_stats{
 						nstream_stats<Maximum,double,int>::from(xout).fill(),
-						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<int,int>(group, offset),
 						r_vecs_pack<int,int>(x, offset)},
 					Rf_asInteger(num_threads));
 			}
@@ -1664,7 +1659,7 @@ SEXP do_vec_group_stats(
 				compute(
 					vec_scatter_stats{
 						nstream_stats<Minimum,double,int>::from(xout).fill(),
-						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<int,int>(group, offset),
 						r_vecs_pack<int,int>(x, offset)},
 					Rf_asInteger(num_threads));
 			}
@@ -1673,7 +1668,7 @@ SEXP do_vec_group_stats(
 				compute(
 					vec_scatter_stats{
 						nstream_stats<Mean,double,int>::from(xout).fill(),
-						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<int,int>(group, offset),
 						r_vecs_pack<int,int>(x, offset)},
 					Rf_asInteger(num_threads));
 			}
@@ -1682,7 +1677,7 @@ SEXP do_vec_group_stats(
 				compute(
 					vec_scatter_stats{
 						nstream_stats<Var,double,int>::from(xout).fill(),
-						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<int,int>(group, offset),
 						r_vecs_pack<int,int>(x, offset)},
 					Rf_asInteger(num_threads));
 			}
@@ -1697,7 +1692,7 @@ SEXP do_vec_group_stats(
 				compute(
 					vec_scatter_stats{
 						nstream_stats<Sum,double,int>::from(xout).fill(),
-						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<int,int>(group, offset),
 						r_vecs_pack<double,int>(x, offset)},
 					Rf_asInteger(num_threads));
 			}
@@ -1706,7 +1701,7 @@ SEXP do_vec_group_stats(
 				compute(
 					vec_scatter_stats{
 						nstream_stats<Prod,double,int>::from(xout).fill(),
-						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<int,int>(group, offset),
 						r_vecs_pack<double,int>(x, offset)},
 					Rf_asInteger(num_threads));
 			}
@@ -1715,7 +1710,7 @@ SEXP do_vec_group_stats(
 				compute(
 					vec_scatter_stats{
 						nstream_stats<Maximum,double,int>::from(xout).fill(),
-						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<int,int>(group, offset),
 						r_vecs_pack<double,int>(x, offset)},
 					Rf_asInteger(num_threads));
 			}
@@ -1724,7 +1719,7 @@ SEXP do_vec_group_stats(
 				compute(
 					vec_scatter_stats{
 						nstream_stats<Minimum,double,int>::from(xout).fill(),
-						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<int,int>(group, offset),
 						r_vecs_pack<double,int>(x, offset)},
 					Rf_asInteger(num_threads));
 			}
@@ -1733,7 +1728,7 @@ SEXP do_vec_group_stats(
 				compute(
 					vec_scatter_stats{
 						nstream_stats<Mean,double,int>::from(xout).fill(),
-						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<int,int>(group, offset),
 						r_vecs_pack<double,int>(x, offset)},
 					Rf_asInteger(num_threads));
 			}
@@ -1742,7 +1737,7 @@ SEXP do_vec_group_stats(
 				compute(
 					vec_scatter_stats{
 						nstream_stats<Var,double,int>::from(xout).fill(),
-						r_vecs_pack<int,int>(index, offset),
+						r_vecs_pack<int,int>(group, offset),
 						r_vecs_pack<double,int>(x, offset)},
 					Rf_asInteger(num_threads));
 			}
@@ -1754,7 +1749,7 @@ SEXP do_vec_group_stats(
 		default:
 			Rf_error("'x' must be integer or double");
 	}
-	UNPROTECT(4);
+	UNPROTECT(3);
 	return xout;
 }
 

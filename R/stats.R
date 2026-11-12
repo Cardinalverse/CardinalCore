@@ -159,10 +159,10 @@ vec_stats <- function(
 				"length(x) [", NROW(x), "] must be equal")
 		if ( is.factor(group) ) {
 			ugroup <- levels(group)
-			group <- as.integer(group)
+			group <- as.integer(group) - 1L
 		} else {
 			ugroup <- if (reorder) sort(unique(group)) else unique(group)
-			group <- as.integer(match(group, ugroup))
+			group <- as.integer(match(group, ugroup)) - 1L
 		}
 	}
 	if ( is.null(group) ) {
