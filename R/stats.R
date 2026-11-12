@@ -141,9 +141,9 @@ vec_stats <- function(
 	if ( any(sizes <= 0) )
 		stop("sizes must be positive")
 	if ( length(sizes) == 1L ) {
-		tasks <- length(x) %/% sizes
+		nparts <- length(x) %/% sizes
 		remainder <- length(x) %% sizes
-		sizes <- rep.int(sizes, tasks)
+		sizes <- rep.int(sizes, nparts)
 		if ( remainder != 0L )
 			sizes <- c(sizes, remainder)
 	}
@@ -237,27 +237,41 @@ row_stats <- function(
 #### Collapse statistics
 ## ---------------------
 
-collapse_by <- function(x, by, stat, count = "nobs")
+collapse_by <- function(
+	x,
+	by,
+	stat,
+	sizes = nrow(x),
+	count = "nobs",
+	reorder = TRUE,
+	num.threads = 0L)
 {
+	options <- c("sum", "prod", "max", "min", "mean", "var")
+	stat <- resolve_named_opts(stat, options, names=colnames(x), 
+		exclude=c(by, count), duplicates.ok=FALSE)
 	if ( by %notin% colnames(x) )
 		stop("missing 'by' column [", by, "]")
 	group <- x[,by,drop=TRUE]
+	if ( !is.factor(group) ) {
+		ugroup <- if (reorder) sort(unique(group)) else unique(group)
+		group <- factor(group, levels=ugroup)
+	}
+	columns <- c(by, count, names(stat))
+	out <- setNames(vector("list", length(columns)), columns)
+	out[[by]] <- levels(group)
 	if ( count %in% colnames(x) ) {
 		nobs <- x[,count,drop=TRUE]
 	} else {
 		nobs <- as.integer(!is.na(group))
 	}
-	options <- c("sum", "prod", "max", "min", "mean", "var")
-	stat <- resolve_named_opts(stat, options, names=colnames(x), 
-		exclude=c(by, count), duplicates.ok=FALSE)
-	out <- setNames(vector("list", length(stat)), names(stat))
-	for ( i in seq_along(out) ) {
+	out[[count]] <- vec_stats(nobs, stat="sum", sizes=sizes, 
+		group=group, num.threads=num.threads)
+	for ( i in seq_along(stat) ) {
 		nm <- names(stat)[i]
-		out[[nm]] <- group_stats(x[,nm,drop=TRUE], 
-			group=group, stat=stat[i], nobs=nobs)
+		xi <- x[,nm,drop=TRUE]
+		out[[nm]] <- vec_stats(xi, stat=stat[i], sizes=sizes, 
+			group=group, num.threads=num.threads)
 	}
-	out[[count]] <- group_stats(nobs, group=group, stat="sum")
-	out[[by]] <- attr(out[[count]], "group")
 	out
 }
 

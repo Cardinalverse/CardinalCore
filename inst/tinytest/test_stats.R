@@ -73,14 +73,14 @@ expect_equal(c(vec_stats(x, "sum", length(x))), sum(x))
 expect_equal(c(vec_stats(x, "mean", length(x))), mean(x))
 expect_equal(c(vec_stats(x, "var", length(x))), var(x))
 expect_equal(
-	c(vec_stats(x, "sum", length(x), g)), 
-	c(unname(tapply(x, g, sum))))
+	c(drop(vec_stats(x, "sum", length(x), g))),
+	c(tapply(x, g, sum)))
 expect_equal(
-	c(vec_stats(x, "mean", length(x), g)), 
-	c(unname(tapply(x, g, mean))))
+	c(drop(vec_stats(x, "mean", length(x), g))),
+	c(tapply(x, g, mean)))
 expect_equal(
-	c(vec_stats(x, "var", length(x), g)), 
-	c(unname(tapply(x, g, var))))
+	c(drop(vec_stats(x, "var", length(x), g))),
+	c(tapply(x, g, var)))
 expect_equal(c(vec_stats(x, "sum", 10L)), vapply(xs, sum, numeric(1L)))
 expect_equal(c(vec_stats(x, "mean", 10L)), vapply(xs, mean, numeric(1L)))
 expect_equal(c(vec_stats(x, "var", 10L)), vapply(xs, var, numeric(1L)))
@@ -127,10 +127,10 @@ df <- data.frame(
 	g=sample(6L, n, replace=TRUE))
 dfs1 <- collapse_by(df, "g", stat="sum")
 dfs2 <- collapse_by(df, "g", stat=c(x="mean", y="var"))
-expect_equal(c(dfs1$nobs), c(table(df$g)))
-expect_equal(c(dfs2$nobs), c(table(df$g)))
-expect_equal(c(dfs1$x), c(tapply(df$x, df$g, sum)))
-expect_equal(c(dfs1$y), c(tapply(df$y, df$g, sum)))
-expect_equal(c(dfs2$x), c(tapply(df$x, df$g, mean)))
-expect_equal(c(dfs2$y), c(tapply(df$y, df$g, var)))
+expect_equal(c(drop(dfs1$nobs)), c(table(df$g)))
+expect_equal(c(drop(dfs2$nobs)), c(table(df$g)))
+expect_equal(c(drop(dfs1$x)), c(tapply(df$x, df$g, sum)))
+expect_equal(c(drop(dfs1$y)), c(tapply(df$y, df$g, sum)))
+expect_equal(c(drop(dfs2$x)), c(tapply(df$x, df$g, mean)))
+expect_equal(c(drop(dfs2$y)), c(tapply(df$y, df$g, var)))
 

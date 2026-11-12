@@ -162,17 +162,17 @@ resolve_dx <- function(abs, ppm = numeric(), names = NULL)
 ## -------------------
 
 .peakPick <- function(object, x = "mz", y = "intensity",
-	cols = c("snr", "sum", "area", "width", "centroid"), ...)
+	columns = c("snr", "sum", "area", "width", "centroid"), ...)
 {
 	peaks <- peaks_summary(object[,y,drop=TRUE], object[,x,drop=TRUE], ...)
-	cbind(object[peaks$index,,drop=FALSE], do.call(cbind, peaks[cols]))
+	cbind(object[peaks$index,,drop=FALSE], do.call(cbind, peaks[columns]))
 }
 
 .peakPick_df <- function(object, x = "mz", y = "intensity",
-	cols = c("snr", "sum", "area", "width", "centroid"), ...)
+	columns = c("snr", "sum", "area", "width", "centroid"), ...)
 {
 	peaks <- peaks_summary(object[[y]], object[[x]], ...)
-	cbind(object[peaks$index,,drop=FALSE], as.data.frame(peaks[cols]))
+	cbind(object[peaks$index,,drop=FALSE], as.data.frame(peaks[columns]))
 }
 
 setMethod("peakPick", "matrix",
@@ -265,7 +265,7 @@ setMethod("peakAlign", "DataFrame",
 
 .peakMerge <- function(object, by, stat = "mean", count = "nobs", ...)
 {
-	do.call(cbind, collapse_by(object, by, stat=stat, count=count))
+	do.call(cbind, collapse_by(object, by, stat=stat, ...))
 }
 
 setMethod("peakMerge", "matrix",
