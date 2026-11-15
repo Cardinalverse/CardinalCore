@@ -72,3 +72,18 @@ bench::mark(
 	row_stats(x, "mean", fc, num.threads=4),
 	row_stats(x, "mean", fc, num.threads=8))
 
+# collapse_by
+set.seed(1)
+n <- 5e7L
+df <- data.frame(
+	x=runif(n), 
+	y=runif(n), 
+	g=structure(sample(6L, n, replace=TRUE), levels=LETTERS[1:6], class="factor"))
+
+bench::mark(
+	collapse_by(df, "g", stat=c(x="mean"), num.threads=0),
+	collapse_by(df, "g", stat=c(x="mean"), num.threads=1),
+	collapse_by(df, "g", stat=c(x="mean"), num.threads=2),
+	collapse_by(df, "g", stat=c(x="mean"), num.threads=4),
+	collapse_by(df, "g", stat=c(x="mean"), num.threads=8))
+

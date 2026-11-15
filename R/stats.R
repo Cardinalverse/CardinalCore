@@ -278,7 +278,7 @@ collapse_by <- function(
 		ugroup <- if (reorder) sort(unique(group)) else unique(group)
 		group <- factor(group, levels=ugroup)
 	}
-	columns <- c(names(stat), count, by)
+	columns <- c(names(stat), count)
 	out <- setNames(vector("list", length(columns)), columns)
 	for ( i in seq_along(stat) ) {
 		nm <- names(stat)[i]
