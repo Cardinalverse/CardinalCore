@@ -54,7 +54,6 @@ Math.stream_stats <- function(e1, e2) .unclass_stream_stats(NextMethod())
 	attr(out, "nobs") <- attr(x, "nobs")[..., drop=drop]
 	if ( attr(x, "stat") == "var" )
 		dim(attr(out, "mean")) <- attr(x, "mean")[..., drop=drop]
-	attr(out, "group") <- NULL
 	out
 }
 
@@ -66,7 +65,6 @@ Math.stream_stats <- function(e1, e2) .unclass_stream_stats(NextMethod())
 	attr(out, "nobs")[...] <- attr(value, "nobs")
 	if ( attr(x, "stat") == "var" )
 		attr(out, "mean")[...] <- attr(value, "mean")
-	attr(out, "group") <- NULL
 	out
 }
 
@@ -76,7 +74,6 @@ Math.stream_stats <- function(e1, e2) .unclass_stream_stats(NextMethod())
 	dim(attr(out, "nobs")) <- dim(out)
 	if ( attr(x, "stat") == "var" )
 		dim(attr(out, "mean")) <- dim(out)
-	attr(out, "group") <- NULL
 	out
 }
 
@@ -86,7 +83,14 @@ Math.stream_stats <- function(e1, e2) .unclass_stream_stats(NextMethod())
 	attr(out, "nobs") <- t(attr(x, "nobs"))
 	if ( attr(x, "stat") == "var" )
 		attr(out, "mean") <- t(attr(x, "mean"))
-	attr(out, "group") <- NULL
+	out
+}
+
+.drop_stream_stats <- function(x) {
+	out <- drop(x)
+	attr(out, "nobs") <- drop(attr(x, "nobs"))
+	if ( attr(x, "stat") == "var" )
+		attr(out, "mean") <- drop(attr(x, "mean"))
 	out
 }
 
@@ -130,20 +134,26 @@ group_stats <- function(x, group, reorder = TRUE, ...)
 ## -------------------
 
 vec_stats <- function(
-	x, 
-	stat, 
-	sizes, 
+	x,
+	stat,
 	group = NULL,
 	reorder = TRUE,
+	sizes = NULL,
+	collapse = is.null(sizes),
 	num.threads = 0L)
 {
 	stat <- match.arg(stat, c("sum", "prod", "max", "min", "mean", "var"))
-	if ( any(sizes <= 0) )
+	collapse <- force(collapse)
+	if ( is.null(sizes) ) {
+		nx <- max(1L, 2L * num.threads)
+		sizes <- ceiling(length(x) / nx)
+	} else if ( any(sizes <= 0L) ) {
 		stop("sizes must be positive")
+	}
 	if ( length(sizes) == 1L ) {
-		nparts <- length(x) %/% sizes
+		nx <- length(x) %/% sizes
 		remainder <- length(x) %% sizes
-		sizes <- rep.int(sizes, nparts)
+		sizes <- rep.int(sizes, nx)
 		if ( remainder != 0L )
 			sizes <- c(sizes, remainder)
 	}
@@ -166,11 +176,23 @@ vec_stats <- function(
 		}
 	}
 	if ( is.null(group) ) {
-		.Call(C_do_vec_stats, x, stat, offset, num.threads)
+		out <- .Call(C_do_vec_stats, x, stat, offset, num.threads)
 	} else {
-		.Call(C_do_vec_group_stats, 
+		out <- .Call(C_do_vec_group_stats, 
 			x, stat, group, ugroup, offset, num.threads)
 	}
+	if ( collapse ) {
+		if ( is.null(group) ) {
+			if ( length(out) > 1L )
+				out <- group_stats(out, rep.int(1L, length(out)))
+			out <- unname(out)
+		} else {
+			if ( ncol(out) > 1L )
+				out <- group_stats(out, rep_len(rownames(out), length(out)))
+			out <- .drop_stream_stats(out)
+		}
+	}
+	out
 }
 
 #### Matrix statistics
@@ -241,9 +263,9 @@ collapse_by <- function(
 	x,
 	by,
 	stat,
-	sizes = nrow(x),
 	count = "nobs",
 	reorder = TRUE,
+	sizes = NULL,
 	num.threads = 0L)
 {
 	options <- c("sum", "prod", "max", "min", "mean", "var")
@@ -252,9 +274,7 @@ collapse_by <- function(
 	if ( by %notin% colnames(x) )
 		stop("missing 'by' column [", by, "]")
 	group <- x[,by,drop=TRUE]
-	if ( is.factor(group) ) {
-		ugroup <- levels(group)
-	} else {
+	if ( !is.factor(group) ) {
 		ugroup <- if (reorder) sort(unique(group)) else unique(group)
 		group <- factor(group, levels=ugroup)
 	}
@@ -264,7 +284,7 @@ collapse_by <- function(
 		nm <- names(stat)[i]
 		xi <- x[,nm,drop=TRUE]
 		out[[nm]] <- vec_stats(xi, stat=stat[i], sizes=sizes, 
-			group=group, num.threads=num.threads)
+			group=group, collapse=TRUE, num.threads=num.threads)
 	}
 	if ( count %in% colnames(x) ) {
 		n <- x[,count,drop=TRUE]
@@ -272,8 +292,9 @@ collapse_by <- function(
 		n <- as.integer(!is.na(group))
 	}
 	out[[count]] <- vec_stats(n, stat="sum", sizes=sizes, 
-		group=group, num.threads=num.threads)
-	out[[by]] <- ugroup
+		group=group, collapse=TRUE, num.threads=num.threads)
+	out <- as.data.frame(out)
+	row.names(out) <- levels(group)
 	out
 }
 

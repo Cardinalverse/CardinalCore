@@ -65,7 +65,7 @@ struct chunker
 		// number of items per task
 		ptrdiff_t tasksize = nitems / ntasks;
 		// leftover items remaining
-		ptrdiff_t remainder = nitems % tasksize;
+		ptrdiff_t remainder = nitems % ntasks;
 		// distribute remaining items across tasks
 		if ( i < remainder ) {
 			// give a remainder to this task

@@ -69,21 +69,43 @@ gs <- replicate(n1, sample(6L, n2, replace=TRUE), simplify=FALSE)
 l <- lengths(xs)
 x <- unlist(xs)
 g <- unlist(gs)
-expect_equal(c(vec_stats(x, "sum", length(x))), sum(x))
-expect_equal(c(vec_stats(x, "mean", length(x))), mean(x))
-expect_equal(c(vec_stats(x, "var", length(x))), var(x))
+
+expect_equal(c(vec_stats(x, "sum")), sum(x))
+expect_equal(c(vec_stats(x, "mean")), mean(x))
+expect_equal(c(vec_stats(x, "var")), var(x))
+expect_equal(c(vec_stats(x, "sum", sizes=n2, collapse=TRUE)), sum(x))
+expect_equal(c(vec_stats(x, "mean", sizes=n2, collapse=TRUE)), mean(x))
+expect_equal(c(vec_stats(x, "var", sizes=n2, collapse=TRUE)), var(x))
+
 expect_equal(
-	c(drop(vec_stats(x, "sum", length(x), g))),
+	c(vec_stats(x, "sum", sizes=n2)), 
+	vapply(xs, sum, numeric(1L)))
+expect_equal(
+	c(vec_stats(x, "mean", sizes=n2)), 
+	vapply(xs, mean, numeric(1L)))
+expect_equal(
+	c(vec_stats(x, "var", sizes=n2)), 
+	vapply(xs, var, numeric(1L)))
+
+expect_equal(
+	c(vec_stats(x, "sum", group=g)),
 	c(tapply(x, g, sum)))
 expect_equal(
-	c(drop(vec_stats(x, "mean", length(x), g))),
+	c(vec_stats(x, "mean", group=g)),
 	c(tapply(x, g, mean)))
 expect_equal(
-	c(drop(vec_stats(x, "var", length(x), g))),
+	c(vec_stats(x, "var", group=g)),
 	c(tapply(x, g, var)))
-expect_equal(c(vec_stats(x, "sum", n2)), vapply(xs, sum, numeric(1L)))
-expect_equal(c(vec_stats(x, "mean", n2)), vapply(xs, mean, numeric(1L)))
-expect_equal(c(vec_stats(x, "var", n2)), vapply(xs, var, numeric(1L)))
+
+expect_equal(
+	c(vec_stats(x, "sum", group=g, sizes=n2, collapse=TRUE)),
+	c(tapply(x, g, sum)))
+expect_equal(
+	c(vec_stats(x, "mean", group=g, sizes=n2, collapse=TRUE)),
+	c(tapply(x, g, mean)))
+expect_equal(
+	c(vec_stats(x, "var", group=g, sizes=n2, collapse=TRUE)),
+	c(tapply(x, g, var)))
 
 # col_stats and row_stats
 set.seed(1)
@@ -93,6 +115,7 @@ x <- matrix(runif(nr * nc), nrow=nr, ncol=nc)
 gr <- sample(6L, nr, replace=TRUE)
 gc <- sample(6L, nc, replace=TRUE)
 f <- function(INDEX, FUN) function(x) tapply(x, INDEX, FUN)
+
 expect_equal(c(col_stats(x, "sum")), colSums(x))
 expect_equal(c(row_stats(x, "sum")), rowSums(x))
 expect_equal(c(col_stats(x, "mean")), colMeans(x))
@@ -127,6 +150,7 @@ df <- data.frame(
 	g=sample(6L, n, replace=TRUE))
 dfs1 <- collapse_by(df, "g", stat="sum")
 dfs2 <- collapse_by(df, "g", stat=c(x="mean", y="var"))
+
 expect_equal(c(drop(dfs1$nobs)), c(table(df$g)))
 expect_equal(c(drop(dfs2$nobs)), c(table(df$g)))
 expect_equal(c(drop(dfs1$x)), c(tapply(df$x, df$g, sum)))
