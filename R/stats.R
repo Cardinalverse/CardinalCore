@@ -44,7 +44,7 @@ nobs.stream_stats <- function(object, ...) {
 
 Ops.stream_stats <- function(e1, e2) .unclass_stream_stats(NextMethod())
 
-Math.stream_stats <- function(e1, e2) .unclass_stream_stats(NextMethod())
+Math.stream_stats <- function(x, ...) .unclass_stream_stats(NextMethod())
 
 `[.stream_stats` <- function(x, ..., drop = TRUE)
 {

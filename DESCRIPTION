@@ -24,9 +24,10 @@ Description: Low-level processing and visualization utilities for mass spectrome
 License: Artistic-2.0 | file LICENSE
 Depends: 
 	R (>= 4.6),
-	BiocGenerics,
 	S4Vectors
-Imports: methods
+Imports: 
+	methods, 
+	stats
 Suggests: 
     BiocStyle,
     tinytest,

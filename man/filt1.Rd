@@ -44,7 +44,7 @@ filt1_conv(y, w = rep(1, 5L))
 \examples{
 set.seed(1)
 x <- seq(from=0, to=6 * pi, length.out=5000)
-y <- sin(x) + 0.6 * sin(2.6 * t)
+y <- sin(x) + 0.6 * sin(2.6 * x)
 y <- y + runif(length(y))
 z <- filt1_mean(y, k=25)
 
