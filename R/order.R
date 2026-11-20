@@ -2,7 +2,7 @@
 #### Quickselect and Quicksort
 ## ----------------------------
 
-qselect <- function(x, k = (length(x) + 1L) %/% 2L)
+qselect <- function(x, k)
 {
 	if ( any(k < 1L | k > length(x)) )
 		stop("k includes out of bounds subscripts")

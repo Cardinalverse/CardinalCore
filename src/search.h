@@ -166,7 +166,7 @@ void bsearch(
 // - If relative == true, then referent determines the reference
 // - Returns bounds [start, stop) range of matches
 template<Num Index = ptrdiff_t, Num L, Vec R>
-bounds rsearch(
+bounds bsearch_range(
 	const L query,
 	const R table,
 	const double tolerance = 0,
@@ -214,7 +214,7 @@ void bsearch_aggregate(
 	for ( ptrdiff_t i = 0; i < query.len; ++i )
 	{
 		stat = {};
-		bounds b = rsearch(
+		bounds b = bsearch_range(
 			query[i],
 			table,
 			tolerance,
@@ -257,14 +257,14 @@ struct sorted_searches
 template<Summary S, Num Out, Num In, Num N, Vec L, Vec R>
 struct sorted_aggregates
 {
-	vec<Out> agg;                  // out
-	L query;                       // in
-	R table;                       // in
-	vec<In> values;                // in
+	vec<Out> agg;              // out
+	L query;                   // in
+	R table;                   // in
+	vec<In> values;            // in
 	stream_stat<S,Out,N> stat; // in
-	double tolerance;              // in
-	bool relative;                 // in
-	Ref referent;                  // in
+	double tolerance;          // in
+	bool relative;             // in
+	Ref referent;              // in
 
 	ptrdiff_t ssize() const { return query.ssize(); }
 

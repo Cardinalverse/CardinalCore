@@ -122,14 +122,14 @@ msearch_agg <- function(
 	aggs
 }
 
-msearch_first <- function(query, table, ...)
+msearch_first <- function(query, tables, ...)
 {
-	msearch_agg(query, table, lapply(table, seq_along), stat="min", ...)
+	msearch_agg(query, tables, lapply(tables, seq_along), stat="min", ...)
 }
 
-msearch_last <- function(query, table, ...)
+msearch_last <- function(query, tables, ...)
 {
-	msearch_agg(query, table, lapply(table, seq_along), stat="max", ...)
+	msearch_agg(query, tables, lapply(tables, seq_along), stat="max", ...)
 }
 
 #### Kd-tree range search

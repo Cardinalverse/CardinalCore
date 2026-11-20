@@ -1,7 +1,6 @@
 \name{filt1}
 
 \alias{filt1}
-
 \alias{filt1_mean}
 \alias{filt1_conv}
 
